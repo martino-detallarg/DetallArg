@@ -1,13 +1,14 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const COLORES_ESTADO = {
-  Pendiente: "#F59E0B",
-  "En proceso": "#3B82F6",
-  Terminado: "#10B981",
+  Pendiente: "#D9A441",
+  "En proceso": colors.accent,
+  Terminado: "#4C9A6A",
 };
 
 export default function TurnoCard({ turno, cliente, auto, onPress }) {
-  const colorEstado = COLORES_ESTADO[turno.estado] ?? "#9CA3AF";
+  const colorEstado = COLORES_ESTADO[turno.estado] ?? colors.textMuted;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
@@ -23,8 +24,8 @@ export default function TurnoCard({ turno, cliente, auto, onPress }) {
         <Text style={styles.servicio}>{turno.servicio}</Text>
       </View>
 
-      <View style={[styles.badge, { backgroundColor: colorEstado }]}>
-        <Text style={styles.badgeTexto}>{turno.estado}</Text>
+      <View style={[styles.badge, { borderColor: colorEstado }]}>
+        <Text style={[styles.badgeTexto, { color: colorEstado }]}>{turno.estado}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -34,51 +35,52 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     padding: 14,
     marginHorizontal: 16,
     marginVertical: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...shadow,
   },
   hora: {
     width: 56,
   },
   horaTexto: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontFamily: fonts.mono,
+    fontSize: 15,
+    color: colors.textSecondary,
   },
   info: {
     flex: 1,
   },
   cliente: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
+    color: colors.textPrimary,
   },
   auto: {
+    fontFamily: fonts.body,
     fontSize: 13,
-    color: "#4B5563",
+    color: colors.textSecondary,
     marginTop: 2,
   },
   servicio: {
+    fontFamily: fonts.body,
     fontSize: 13,
-    color: "#6B7280",
+    color: colors.textMuted,
     marginTop: 2,
   },
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
+    borderWidth: 1,
   },
   badgeTexto: {
-    color: "#FFFFFF",
+    fontFamily: fonts.monoMedium,
     fontSize: 11,
-    fontWeight: "700",
   },
 });

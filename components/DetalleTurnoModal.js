@@ -1,7 +1,10 @@
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getAutosByClienteId } from "../data/mockData";
+import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import Button from "./Button";
+import { useData } from "../data/DataContext";
+import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 export default function DetalleTurnoModal({ visible, turno, cliente, auto, onClose }) {
+  const { getAutosByClienteId } = useData();
   if (!turno || !cliente) return null;
 
   const autosDelCliente = getAutosByClienteId(cliente.id);
@@ -43,9 +46,9 @@ export default function DetalleTurnoModal({ visible, turno, cliente, auto, onClo
             </View>
           </ScrollView>
 
-          <TouchableOpacity style={styles.cerrar} onPress={onClose}>
-            <Text style={styles.cerrarTexto}>Cerrar</Text>
-          </TouchableOpacity>
+          <View style={styles.botonCerrar}>
+            <Button title="Cerrar" variant="secondary" onPress={onClose} />
+          </View>
         </View>
       </View>
     </Modal>
@@ -55,58 +58,63 @@ export default function DetalleTurnoModal({ visible, turno, cliente, auto, onClo
 const styles = StyleSheet.create({
   fondo: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(4, 3, 3, 0.7)",
     justifyContent: "flex-end",
   },
   contenedor: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.card,
+    borderTopRightRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     padding: 20,
     maxHeight: "80%",
+    ...shadow,
+    shadowOffset: { width: 0, height: -4 },
   },
   titulo: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    color: colors.textPrimary,
   },
   servicio: {
-    fontSize: 14,
-    color: "#6B7280",
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textSecondary,
     marginTop: 2,
     marginBottom: 16,
   },
   seccion: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-    marginTop: 8,
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginTop: 4,
+    marginBottom: 10,
   },
   tarjeta: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     padding: 14,
     marginBottom: 12,
   },
   filaLabel: {
+    fontFamily: fonts.mono,
     fontSize: 11,
-    color: "#9CA3AF",
+    color: colors.textMuted,
     marginTop: 8,
   },
   filaValor: {
+    fontFamily: fonts.body,
     fontSize: 15,
-    color: "#111827",
+    color: colors.textPrimary,
   },
-  cerrar: {
-    backgroundColor: "#111827",
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  cerrarTexto: {
-    color: "#FFFFFF",
-    fontWeight: "700",
+  botonCerrar: {
+    marginTop: 16,
   },
 });

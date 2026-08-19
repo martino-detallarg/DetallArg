@@ -1,119 +1,98 @@
-import { useState } from "react";
-import { StatusBar } from "expo-status-bar";
-import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import TurnoCard from "./components/TurnoCard";
-import DetalleTurnoModal from "./components/DetalleTurnoModal";
-import NuevoTurnoModal from "./components/NuevoTurnoModal";
-import { getAutoById, getClienteById, turnosIniciales } from "./data/mockData";
+import { useCallback, useState } from "react";
+import { View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { NavigationContainer } from "@react-navigation/native";
+import * as SplashScreenNativo from "expo-splash-screen";
+import { useFonts } from "expo-font";
+import {
+  Archivo_800ExtraBold,
+  Archivo_900Black,
+} from "@expo-google-fonts/archivo";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
+import { JetBrainsMono_400Regular, JetBrainsMono_500Medium } from "@expo-google-fonts/jetbrains-mono";
+
+import SplashScreen from "./screens/SplashScreen";
+import LoginScreen from "./screens/LoginScreen";
+import SignupScreen from "./screens/SignupScreen";
+import VerifyEmailScreen from "./screens/VerifyEmailScreen";
+import DashboardNavigator from "./navigation/DashboardNavigator";
+import { DataProvider } from "./data/DataContext";
+import { colors } from "./theme";
+
+SplashScreenNativo.preventAutoHideAsync();
 
 export default function App() {
-  const [turnos, setTurnos] = useState(turnosIniciales);
-  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
-  const [modalNuevoVisible, setModalNuevoVisible] = useState(false);
+  const [fontsLoaded] = useFonts({
+    Archivo_800ExtraBold,
+    Archivo_900Black,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_500Medium,
+  });
 
-  const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
+  const [pantalla, setPantalla] = useState("splash");
+  const [emailPendiente, setEmailPendiente] = useState("");
 
-  function agregarTurno(datosTurno) {
-    const nuevoTurno = { id: `t${Date.now()}`, ...datosTurno };
-    setTurnos((actuales) => [...actuales, nuevoTurno]);
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreenNativo.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
   }
 
   return (
-    <SafeAreaView style={styles.pantalla}>
-      <View style={styles.header}>
-        <Text style={styles.titulo}>DetallArg</Text>
-        <Text style={styles.subtitulo}>Agenda de hoy · {turnosOrdenados.length} turnos</Text>
-      </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, backgroundColor: colors.bg }} onLayout={onLayoutRootView}>
+          {pantalla === "splash" && (
+            <SplashScreen onTerminar={() => setPantalla("login")} />
+          )}
 
-      <FlatList
-        data={turnosOrdenados}
-        keyExtractor={(turno) => turno.id}
-        contentContainerStyle={styles.lista}
-        renderItem={({ item }) => (
-          <TurnoCard
-            turno={item}
-            cliente={getClienteById(item.clienteId)}
-            auto={getAutoById(item.autoId)}
-            onPress={() => setTurnoSeleccionado(item)}
-          />
-        )}
-        ListEmptyComponent={
-          <Text style={styles.vacio}>Todavía no hay turnos cargados para hoy.</Text>
-        }
-      />
+          {pantalla === "login" && (
+            <LoginScreen
+              onLoginExitoso={() => setPantalla("app")}
+              onIrARegistro={() => setPantalla("signup")}
+            />
+          )}
 
-      <TouchableOpacity style={styles.fab} onPress={() => setModalNuevoVisible(true)}>
-        <Text style={styles.fabTexto}>+</Text>
-      </TouchableOpacity>
+          {pantalla === "signup" && (
+            <SignupScreen
+              onCuentaCreada={(email) => {
+                setEmailPendiente(email);
+                setPantalla("verify-email");
+              }}
+              onIrALogin={() => setPantalla("login")}
+            />
+          )}
 
-      <DetalleTurnoModal
-        visible={turnoSeleccionado !== null}
-        turno={turnoSeleccionado}
-        cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
-        auto={turnoSeleccionado ? getAutoById(turnoSeleccionado.autoId) : null}
-        onClose={() => setTurnoSeleccionado(null)}
-      />
+          {pantalla === "verify-email" && (
+            <VerifyEmailScreen
+              email={emailPendiente}
+              onIrALogin={() => setPantalla("login")}
+            />
+          )}
 
-      <NuevoTurnoModal
-        visible={modalNuevoVisible}
-        onClose={() => setModalNuevoVisible(false)}
-        onGuardar={agregarTurno}
-      />
-
-      <StatusBar style="auto" />
-    </SafeAreaView>
+          {pantalla === "app" && (
+            <DataProvider>
+              <NavigationContainer>
+                <DashboardNavigator onLogout={() => setPantalla("login")} />
+              </NavigationContainer>
+            </DataProvider>
+          )}
+        </View>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  pantalla: {
-    flex: 1,
-    backgroundColor: "#F3F4F6",
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  titulo: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#111827",
-  },
-  subtitulo: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 2,
-  },
-  lista: {
-    paddingVertical: 8,
-    paddingBottom: 100,
-  },
-  vacio: {
-    textAlign: "center",
-    color: "#9CA3AF",
-    marginTop: 40,
-  },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 30,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#111827",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  fabTexto: {
-    color: "#FFFFFF",
-    fontSize: 30,
-    fontWeight: "400",
-    marginTop: -2,
-  },
-});
