@@ -1,6 +1,7 @@
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import HomeScreen from "../screens/HomeScreen";
 import ClientesScreen from "../screens/ClientesScreen";
+import MisInsumosScreen from "../screens/MisInsumosScreen";
 import PlaceholderScreen from "../screens/PlaceholderScreen";
 import DrawerContent from "../components/DrawerContent";
 import { colors } from "../theme";
@@ -11,7 +12,6 @@ const PANTALLAS_PLACEHOLDER = [
   { ruta: "Configuracion", titulo: "Configuración" },
   { ruta: "DatosPrincipales", titulo: "Datos Principales" },
   { ruta: "MiEquipo", titulo: "Mi Equipo" },
-  { ruta: "MisInsumos", titulo: "Mis Insumos" },
   { ruta: "MisHorarios", titulo: "Mis Horarios" },
   { ruta: "MisServicios", titulo: "Mis Servicios" },
   { ruta: "Soporte", titulo: "Soporte" },
@@ -30,6 +30,7 @@ export default function DashboardNavigator({ onLogout }) {
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name="Clientes" component={ClientesScreen} />
+      <Drawer.Screen name="MisInsumos" component={MisInsumosScreen} />
       {PANTALLAS_PLACEHOLDER.map(({ ruta, titulo }) => (
         <Drawer.Screen
           key={ruta}

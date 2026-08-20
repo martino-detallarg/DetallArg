@@ -6,6 +6,7 @@ const DataContext = createContext(null);
 export function DataProvider({ children }) {
   const [clientes, setClientes] = useState(clientesIniciales);
   const [autos, setAutos] = useState(autosIniciales);
+  const [misInsumos, setMisInsumos] = useState([]);
 
   function agregarCliente({ nombre, telefono, ...resto }) {
     const nuevoCliente = { id: `c${Date.now()}`, nombre, telefono, ...resto };
@@ -39,10 +40,27 @@ export function DataProvider({ children }) {
     return autos.filter((a) => a.clienteId === clienteId);
   }
 
+  function agregarInsumo({ productoId, marca, nombre, categoria, ph, dilucion, rendimiento, imagen }) {
+    const nuevoInsumo = {
+      id: `mi${Date.now()}`,
+      productoId,
+      marca,
+      nombre,
+      categoria,
+      ph,
+      dilucion,
+      rendimiento,
+      imagen,
+    };
+    setMisInsumos((actuales) => [...actuales, nuevoInsumo]);
+    return nuevoInsumo;
+  }
+
   const value = useMemo(
     () => ({
       clientes,
       autos,
+      misInsumos,
       agregarCliente,
       agregarAuto,
       actualizarCliente,
@@ -50,8 +68,9 @@ export function DataProvider({ children }) {
       getClienteById,
       getAutoById,
       getAutosByClienteId,
+      agregarInsumo,
     }),
-    [clientes, autos]
+    [clientes, autos, misInsumos]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
