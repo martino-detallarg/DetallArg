@@ -54,25 +54,17 @@ export default function DatosVehiculoStep({ datos, paso = 2, totalPasos = 2, onC
           error={errores.marcaModelo}
         />
         <Input
+          label="Año (opcional)"
+          value={datos.anio}
+          onChangeText={(v) => onCambiar({ anio: v })}
+          placeholder="2020"
+          keyboardType="numeric"
+        />
+        <Input
           label="Color"
           value={datos.color}
           onChangeText={(v) => onCambiar({ color: v })}
           placeholder="Gris"
-        />
-        <Input
-          label="Kilómetros"
-          value={datos.kilometros}
-          onChangeText={(v) => onCambiar({ kilometros: v })}
-          placeholder="45000"
-          keyboardType="numeric"
-        />
-        <Input
-          label="Observaciones (opcional)"
-          value={datos.observaciones}
-          onChangeText={(v) => onCambiar({ observaciones: v })}
-          placeholder="Detalles a tener en cuenta..."
-          multiline
-          numberOfLines={3}
         />
 
         <View style={styles.boton}>

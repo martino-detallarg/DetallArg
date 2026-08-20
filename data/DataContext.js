@@ -1,47 +1,12 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { autos as autosIniciales, clientes as clientesIniciales } from "./mockData";
 import { misInsumosIniciales } from "./mockInsumos";
 import { costosFijosIniciales } from "./mockFinanzas";
 
 const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
-  const [clientes, setClientes] = useState(clientesIniciales);
-  const [autos, setAutos] = useState(autosIniciales);
   const [misInsumos, setMisInsumos] = useState(misInsumosIniciales);
   const [costosFijos, setCostosFijos] = useState(costosFijosIniciales);
-
-  function agregarCliente({ nombre, telefono, ...resto }) {
-    const nuevoCliente = { id: `c${Date.now()}`, nombre, telefono, ...resto };
-    setClientes((actuales) => [...actuales, nuevoCliente]);
-    return nuevoCliente;
-  }
-
-  function agregarAuto({ marca, modelo, patente, color, clienteId, ...resto }) {
-    const nuevoAuto = { id: `a${Date.now()}`, marca, modelo, patente, color, clienteId, ...resto };
-    setAutos((actuales) => [...actuales, nuevoAuto]);
-    return nuevoAuto;
-  }
-
-  function actualizarCliente(id, cambios) {
-    setClientes((actuales) => actuales.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
-  }
-
-  function actualizarAuto(id, cambios) {
-    setAutos((actuales) => actuales.map((a) => (a.id === id ? { ...a, ...cambios } : a)));
-  }
-
-  function getClienteById(id) {
-    return clientes.find((c) => c.id === id);
-  }
-
-  function getAutoById(id) {
-    return autos.find((a) => a.id === id);
-  }
-
-  function getAutosByClienteId(clienteId) {
-    return autos.filter((a) => a.clienteId === clienteId);
-  }
 
   function agregarInsumo({
     productoId,
@@ -89,23 +54,14 @@ export function DataProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      clientes,
-      autos,
       misInsumos,
       costosFijos,
-      agregarCliente,
-      agregarAuto,
-      actualizarCliente,
-      actualizarAuto,
-      getClienteById,
-      getAutoById,
-      getAutosByClienteId,
       agregarInsumo,
       agregarCostoFijo,
       actualizarCostoFijo,
       eliminarCostoFijo,
     }),
-    [clientes, autos, misInsumos, costosFijos]
+    [misInsumos, costosFijos]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
-import { colors, fonts } from "../../theme";
+import { colors } from "../../theme";
 
 export default function DatosClienteStep({ datos, paso = 1, totalPasos = 2, onCambiar, onAtras, onContinuar }) {
   const [errores, setErrores] = useState({});
@@ -45,13 +45,6 @@ export default function DatosClienteStep({ datos, paso = 1, totalPasos = 2, onCa
           keyboardType="phone-pad"
           error={errores.telefono}
         />
-        <Input
-          label="Dirección (opcional)"
-          value={datos.direccion}
-          onChangeText={(v) => onCambiar({ direccion: v })}
-          placeholder="Calle 123, Ciudad"
-        />
-        <Text style={styles.nota}>Para entrega a domicilio</Text>
 
         <View style={styles.boton}>
           <Button title="Continuar a Vehículo" onPress={handleContinuar} disabled={!esValido} />
@@ -69,13 +62,6 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-  },
-  nota: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: -10,
-    marginBottom: 16,
   },
   boton: {
     marginTop: 12,

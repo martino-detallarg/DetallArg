@@ -6,7 +6,7 @@ import SeleccionarVehiculoStep from "../nuevoCliente/SeleccionarVehiculoStep";
 import DatosServicioStep from "./DatosServicioStep";
 import SeleccionVehiculoStep from "./SeleccionVehiculoStep";
 import ConfirmacionTrabajoStep from "./ConfirmacionTrabajoStep";
-import { useData } from "../../data/DataContext";
+import { useClientes } from "../../data/ClienteContext";
 import { colors } from "../../theme";
 
 function datosVacios(clienteId, autoId) {
@@ -35,7 +35,7 @@ export default function TrabajoNuevoWizard({
   clienteIdInicial,
   autoIdInicial,
 }) {
-  const { getClienteById } = useData();
+  const { getClienteById } = useClientes();
   const seSaltaSeleccion = !!(clienteIdInicial && autoIdInicial);
   const totalPasos = seSaltaSeleccion ? 2 : 3;
 

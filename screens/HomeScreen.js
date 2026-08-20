@@ -7,10 +7,11 @@ import TurnoCard from "../components/TurnoCard";
 import DetalleTurnoModal from "../components/DetalleTurnoModal";
 import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
 import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
+import ConfirmarTrabajoModal from "../components/ConfirmarTrabajoModal";
 import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
 import { turnosIniciales } from "../data/mockData";
-import { useData } from "../data/DataContext";
+import { useClientes } from "../data/ClienteContext";
 import { usuarioActual } from "../data/mockUser";
 import { colors, fonts, shadow } from "../theme";
 
@@ -25,7 +26,7 @@ function formatearMonto(valor) {
 }
 
 export default function HomeScreen({ navigation }) {
-  const { getClienteById, getAutoById } = useData();
+  const { getClienteById, getVehiculoById } = useClientes();
   const [turnos, setTurnos] = useState(turnosIniciales);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
 
@@ -35,6 +36,8 @@ export default function HomeScreen({ navigation }) {
   const [wizardClienteVisible, setWizardClienteVisible] = useState(false);
   const [wizardTrabajoVisible, setWizardTrabajoVisible] = useState(false);
   const [prefillTrabajo, setPrefillTrabajo] = useState(null);
+  const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
+  const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
 
   const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
 
@@ -62,8 +65,20 @@ export default function HomeScreen({ navigation }) {
 
   function handleClienteVehiculoListo(clienteId, autoId) {
     setWizardClienteVisible(false);
-    setPrefillTrabajo({ clienteId, autoId });
+    setClienteVehiculoPendiente({ clienteId, autoId });
+    setConfirmacionTrabajoVisible(true);
+  }
+
+  function handleConfirmarTrabajoSi() {
+    setConfirmacionTrabajoVisible(false);
+    setPrefillTrabajo(clienteVehiculoPendiente);
+    setClienteVehiculoPendiente(null);
     setWizardTrabajoVisible(true);
+  }
+
+  function handleConfirmarTrabajoNo() {
+    setConfirmacionTrabajoVisible(false);
+    setClienteVehiculoPendiente(null);
   }
 
   function handleCerrarTrabajo() {
@@ -96,7 +111,7 @@ export default function HomeScreen({ navigation }) {
           <TurnoCard
             turno={item}
             cliente={getClienteById(item.clienteId)}
-            auto={getAutoById(item.autoId)}
+            auto={getVehiculoById(item.autoId)}
             onPress={() => setTurnoSeleccionado(item)}
           />
         )}
@@ -127,7 +142,7 @@ export default function HomeScreen({ navigation }) {
         visible={turnoSeleccionado !== null}
         turno={turnoSeleccionado}
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
-        auto={turnoSeleccionado ? getAutoById(turnoSeleccionado.autoId) : null}
+        auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
         onClose={() => setTurnoSeleccionado(null)}
       />
 
@@ -136,6 +151,12 @@ export default function HomeScreen({ navigation }) {
         modo={modoClienteWizard}
         onClose={() => setWizardClienteVisible(false)}
         onListo={handleClienteVehiculoListo}
+      />
+
+      <ConfirmarTrabajoModal
+        visible={confirmacionTrabajoVisible}
+        onSi={handleConfirmarTrabajoSi}
+        onNo={handleConfirmarTrabajoNo}
       />
 
       <TrabajoNuevoWizard

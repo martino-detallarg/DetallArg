@@ -1,13 +1,11 @@
 import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import Button from "./Button";
-import { useData } from "../data/DataContext";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 export default function DetalleTurnoModal({ visible, turno, cliente, auto, onClose }) {
-  const { getAutosByClienteId } = useData();
   if (!turno || !cliente) return null;
 
-  const autosDelCliente = getAutosByClienteId(cliente.id);
+  const autosDelCliente = cliente.vehiculos;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
