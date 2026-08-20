@@ -1,12 +1,13 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { autos as autosIniciales, clientes as clientesIniciales } from "./mockData";
+import { misInsumosIniciales } from "./mockInsumos";
 
 const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
   const [clientes, setClientes] = useState(clientesIniciales);
   const [autos, setAutos] = useState(autosIniciales);
-  const [misInsumos, setMisInsumos] = useState([]);
+  const [misInsumos, setMisInsumos] = useState(misInsumosIniciales);
 
   function agregarCliente({ nombre, telefono, ...resto }) {
     const nuevoCliente = { id: `c${Date.now()}`, nombre, telefono, ...resto };
@@ -51,6 +52,9 @@ export function DataProvider({ children }) {
       dilucion,
       rendimiento,
       imagen,
+      // Un insumo recién agregado se asume lleno hasta que carguemos control
+      // real de stock.
+      nivel: 100,
     };
     setMisInsumos((actuales) => [...actuales, nuevoInsumo]);
     return nuevoInsumo;

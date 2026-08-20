@@ -5,238 +5,194 @@
 // a cada producto: las pantallas ya están preparadas para mostrar esa imagen
 // en vez del ícono cuando esté presente.
 export const CATEGORIAS = {
+  desengrasantes: { etiqueta: "Desengrasantes", icono: "sync-outline" },
   shampoo: { etiqueta: "Shampoo", icono: "water-outline" },
-  cera: { etiqueta: "Cera / Sellador", icono: "sparkles-outline" },
-  pulido: { etiqueta: "Pulido", icono: "disc-outline" },
-  ceramicCoating: { etiqueta: "Ceramic Coating", icono: "shield-checkmark-outline" },
-  limpiadorLlantas: { etiqueta: "Limpiador de llantas", icono: "sync-outline" },
-  quickDetailer: { etiqueta: "Quick Detailer", icono: "flash-outline" },
-  descontaminante: { etiqueta: "Descontaminante", icono: "color-fill-outline" },
+  pulidores: { etiqueta: "Pulidores", icono: "disc-outline" },
+  protecciones: { etiqueta: "Protecciones", icono: "shield-checkmark-outline" },
+  interiores: { etiqueta: "Interiores", icono: "layers-outline" },
+  rejuvenecedores: { etiqueta: "Rejuvenecedores", icono: "refresh-outline" },
 };
 
-// Los valores de pH que no están confirmados por ficha técnica real se dejan
-// en "N/D" a propósito, para no inventar datos técnicos.
+// Orden y agrupación en 2 páginas para la estantería de "Mis Insumos".
+export const ORDEN_CATEGORIAS = Object.keys(CATEGORIAS);
+export const PAGINAS_ESTANTERIA = [
+  ["desengrasantes", "shampoo", "interiores"],
+  ["pulidores", "protecciones", "rejuvenecedores"],
+];
+
+// Umbral de stock bajo compartido entre el casillero de producto (franja
+// roja) y las notificaciones de "quedan pocos usos".
+export const UMBRAL_STOCK_BAJO = 25;
+
+// Catálogo real e investigado. Protecciones, Interiores y Rejuvenecedores
+// todavía no tienen productos investigados: usan un producto placeholder
+// (marca "A definir") solo para que la categoría no se vea vacía mientras
+// armamos la lista real. Reemplazar por productos investigados de verdad,
+// como se hizo con las demás categorías.
+// Los valores que no están confirmados por ficha técnica real se dejan en
+// "N/D" a propósito, para no inventar datos técnicos.
 export const catalogoInsumos = [
-  // Vonixx
-  {
-    id: "vonixx-shine-shampoo",
-    marca: "Vonixx",
-    nombre: "Shine Shampoo",
-    categoria: "shampoo",
-    dilucion: "1:400",
-    rendimiento: "≈400 lavados por litro",
-    ph: "N/D",
-  },
-  {
-    id: "vonixx-wet-wax",
-    marca: "Vonixx",
-    nombre: "Wet Wax",
-    categoria: "cera",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈40 aplicaciones por frasco de 500ml",
-    ph: "N/D",
-  },
-  {
-    id: "vonixx-polish-30-corte",
-    marca: "Vonixx",
-    nombre: "Polish 3.0 Corte",
-    categoria: "pulido",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈30 aplicaciones por frasco de 200g",
-    ph: "N/D",
-  },
-  {
-    id: "vonixx-v-coat-fw1",
-    marca: "Vonixx",
-    nombre: "V-Coat FW1",
-    categoria: "ceramicCoating",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈15 autos por kit de 20ml",
-    ph: "N/D",
-  },
-  // CarPro
-  {
-    id: "carpro-reset",
-    marca: "CarPro",
-    nombre: "Reset",
-    categoria: "shampoo",
-    dilucion: "1:400 a 1:800",
-    rendimiento: "≈500 lavados por litro",
-    ph: "N/D",
-  },
-  {
-    id: "carpro-cquartz-uk-30",
-    marca: "CarPro",
-    nombre: "CQuartz UK 3.0",
-    categoria: "ceramicCoating",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈10 autos por kit de 50ml",
-    ph: "N/D",
-  },
+  // Desengrasantes
   {
     id: "carpro-iron-x",
     marca: "CarPro",
     nombre: "Iron X",
-    categoria: "descontaminante",
-    dilucion: "1:3 a 1:5",
-    rendimiento: "≈20 aplicaciones por frasco de 500ml",
-    ph: "N/D",
+    categoria: "desengrasantes",
+    ph: "Neutro",
+    dilucion: "Se usa puro, sin diluir",
+    rendimiento: "Actúa 2-3 min",
   },
   {
-    id: "carpro-wheel-cleaner",
-    marca: "CarPro",
-    nombre: "Wheel Cleaner",
-    categoria: "limpiadorLlantas",
-    dilucion: "1:4",
-    rendimiento: "≈30 lavados por litro",
-    ph: "N/D",
-  },
-  // Sonax
-  {
-    id: "sonax-xtreme-shampoo",
-    marca: "Sonax",
-    nombre: "Xtreme Shampoo",
-    categoria: "shampoo",
-    dilucion: "1:200",
-    rendimiento: "≈200 lavados por litro",
-    ph: "N/D",
-  },
-  {
-    id: "sonax-xtreme-polish-wax",
-    marca: "Sonax",
-    nombre: "Xtreme Polish & Wax",
-    categoria: "cera",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈25 aplicaciones por frasco de 250ml",
-    ph: "N/D",
+    id: "koch-green-star",
+    marca: "Koch Chemie",
+    nombre: "Green Star",
+    categoria: "desengrasantes",
+    ph: "Alcalino",
+    dilucion: "Dilución variable: 1:20 interior liviano, 1:10 taller, 1:5 motor, 1:3 grasa pesada",
+    rendimiento: "N/D",
   },
   {
     id: "sonax-wheel-cleaner-full-effect",
     marca: "Sonax",
     nombre: "Wheel Cleaner Full Effect",
-    categoria: "limpiadorLlantas",
-    dilucion: "Puro (gatillo)",
-    rendimiento: "≈15 lavados por frasco de 500ml",
-    ph: "N/D",
+    categoria: "desengrasantes",
+    ph: "Neutro",
+    dilucion: "Se usa puro",
+    rendimiento: "Actúa 3-5 min",
   },
+  // Shampoo
   {
-    id: "sonax-brilliantshine-detailer",
-    marca: "Sonax",
-    nombre: "BrilliantShine Detailer",
-    categoria: "quickDetailer",
-    dilucion: "Puro (gatillo)",
-    rendimiento: "≈40 aplicaciones por frasco de 750ml",
-    ph: "N/D",
-  },
-  // Menzerna
-  {
-    id: "menzerna-fg400",
-    marca: "Menzerna",
-    nombre: "FG400 Pulido de Corte",
-    categoria: "pulido",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈35 aplicaciones por frasco de 250ml",
-    ph: "N/D",
-  },
-  {
-    id: "menzerna-fg500",
-    marca: "Menzerna",
-    nombre: "FG500 Pulido de Acabado",
-    categoria: "pulido",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈35 aplicaciones por frasco de 250ml",
-    ph: "N/D",
-  },
-  {
-    id: "menzerna-power-clean",
-    marca: "Menzerna",
-    nombre: "Power Clean",
+    id: "vonixx-v-floc",
+    marca: "Vonixx",
+    nombre: "V-Floc",
     categoria: "shampoo",
-    dilucion: "1:10 a 1:20",
-    rendimiento: "≈80 lavados por litro",
-    ph: "N/D",
+    ph: "Neutro",
+    dilucion: "Lavado 1:400, snow foam 1:20",
+    rendimiento: "Rinde 500ml hasta 200L de solución",
   },
   {
-    id: "menzerna-power-lock",
-    marca: "Menzerna",
-    nombre: "Power Lock",
-    categoria: "cera",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈20 aplicaciones por frasco de 500ml",
-    ph: "N/D",
+    id: "carpro-reset",
+    marca: "CarPro",
+    nombre: "Reset",
+    categoria: "shampoo",
+    ph: "Neutro en solución",
+    dilucion: "1:500 (40ml cada 20L)",
+    rendimiento: "N/D",
   },
-  // 3D
+  {
+    id: "sonax-xtreme-shampoo",
+    marca: "Sonax",
+    nombre: "Xtreme Shampoo 2 in 1",
+    categoria: "shampoo",
+    ph: "N/D",
+    dilucion: "Según etiqueta",
+    rendimiento: "N/D",
+  },
   {
     id: "3d-wash-wax",
     marca: "3D",
-    nombre: "Wash & Wax",
+    nombre: "Wash N Wax",
     categoria: "shampoo",
-    dilucion: "1:400",
-    rendimiento: "≈350 lavados por litro",
+    ph: "Neutro",
+    dilucion: "A confirmar",
+    rendimiento: "N/D",
+  },
+  // Pulidores
+  {
+    id: "vonixx-v-cut",
+    marca: "Vonixx",
+    nombre: "V-Cut",
+    categoria: "pulidores",
     ph: "N/D",
+    dilucion: "Sin dilución, listo para usar",
+    rendimiento: "N/D",
   },
   {
-    id: "3d-speed",
-    marca: "3D",
-    nombre: "Speed",
-    categoria: "quickDetailer",
-    dilucion: "Puro (gatillo)",
-    rendimiento: "≈50 aplicaciones por frasco de 473ml",
+    id: "menzerna-fg400",
+    marca: "Menzerna",
+    nombre: "400 Fast Gloss",
+    categoria: "pulidores",
     ph: "N/D",
+    dilucion: "Sin dilución",
+    rendimiento: "N/D",
+  },
+  // Protecciones (placeholder, a definir)
+  {
+    id: "placeholder-cera-carnauba",
+    marca: "A definir",
+    nombre: "Cera de Carnauba",
+    categoria: "protecciones",
+    ph: "N/D",
+    dilucion: "N/D",
+    rendimiento: "N/D",
+  },
+  // Interiores (placeholder, a definir)
+  {
+    id: "placeholder-protector-plasticos",
+    marca: "A definir",
+    nombre: "Protector de Plásticos",
+    categoria: "interiores",
+    ph: "N/D",
+    dilucion: "N/D",
+    rendimiento: "N/D",
+  },
+  // Rejuvenecedores (placeholder, a definir)
+  {
+    id: "placeholder-renovador-cuero",
+    marca: "A definir",
+    nombre: "Renovador de Cuero",
+    categoria: "rejuvenecedores",
+    ph: "N/D",
+    dilucion: "N/D",
+    rendimiento: "N/D",
+  },
+];
+
+// Estantería inicial mock para poder ver el diseño de "Mis Insumos" con
+// datos de ejemplo (niveles de stock variados, alguna categoría con más de
+// 3 productos). Protecciones, Interiores y Rejuvenecedores muestran su
+// producto placeholder hasta que investiguemos productos reales para esas
+// categorías.
+function buscarProducto(id) {
+  const producto = catalogoInsumos.find((p) => p.id === id);
+  return { ...producto };
+}
+
+export const misInsumosIniciales = [
+  { ...buscarProducto("carpro-iron-x"), id: "mi-iron-x", productoId: "carpro-iron-x", nivel: 80, imagen: null },
+  { ...buscarProducto("koch-green-star"), id: "mi-green-star", productoId: "koch-green-star", nivel: 15, imagen: null },
+  {
+    ...buscarProducto("sonax-wheel-cleaner-full-effect"),
+    id: "mi-wheel-cleaner-full-effect",
+    productoId: "sonax-wheel-cleaner-full-effect",
+    nivel: 55,
+    imagen: null,
+  },
+  { ...buscarProducto("vonixx-v-floc"), id: "mi-v-floc", productoId: "vonixx-v-floc", nivel: 90, imagen: null },
+  { ...buscarProducto("carpro-reset"), id: "mi-reset", productoId: "carpro-reset", nivel: 20, imagen: null },
+  { ...buscarProducto("sonax-xtreme-shampoo"), id: "mi-xtreme-shampoo", productoId: "sonax-xtreme-shampoo", nivel: 45, imagen: null },
+  { ...buscarProducto("3d-wash-wax"), id: "mi-wash-wax", productoId: "3d-wash-wax", nivel: 60, imagen: null },
+  { ...buscarProducto("vonixx-v-cut"), id: "mi-v-cut", productoId: "vonixx-v-cut", nivel: 70, imagen: null },
+  { ...buscarProducto("menzerna-fg400"), id: "mi-fg400", productoId: "menzerna-fg400", nivel: 10, imagen: null },
+  {
+    ...buscarProducto("placeholder-cera-carnauba"),
+    id: "mi-cera-carnauba",
+    productoId: "placeholder-cera-carnauba",
+    nivel: 100,
+    imagen: null,
   },
   {
-    id: "3d-yellow-compound",
-    marca: "3D",
-    nombre: "Yellow Compound",
-    categoria: "pulido",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈30 aplicaciones por frasco de 236ml",
-    ph: "N/D",
+    ...buscarProducto("placeholder-protector-plasticos"),
+    id: "mi-protector-plasticos",
+    productoId: "placeholder-protector-plasticos",
+    nivel: 100,
+    imagen: null,
   },
   {
-    id: "3d-grey-wheel-cleaner",
-    marca: "3D",
-    nombre: "Grey Wheel Cleaner",
-    categoria: "limpiadorLlantas",
-    dilucion: "1:5",
-    rendimiento: "≈40 lavados por frasco de 473ml",
-    ph: "N/D",
-  },
-  // Koch Chemie
-  {
-    id: "koch-green-star",
-    marca: "Koch Chemie",
-    nombre: "Green Star",
-    categoria: "shampoo",
-    dilucion: "1:10 a 1:100",
-    rendimiento: "≈100 usos por litro",
-    ph: "N/D",
-  },
-  {
-    id: "koch-nano-magic-pro",
-    marca: "Koch Chemie",
-    nombre: "Nano Magic Pro",
-    categoria: "cera",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈20 aplicaciones por frasco de 500ml",
-    ph: "N/D",
-  },
-  {
-    id: "koch-felge-star",
-    marca: "Koch Chemie",
-    nombre: "Felge Star",
-    categoria: "limpiadorLlantas",
-    dilucion: "1:3 a 1:10",
-    rendimiento: "≈40 lavados por litro",
-    ph: "N/D",
-  },
-  {
-    id: "koch-heavy-cut-h802",
-    marca: "Koch Chemie",
-    nombre: "Heavy Cut H8.02",
-    categoria: "pulido",
-    dilucion: "Puro (sin diluir)",
-    rendimiento: "≈25 aplicaciones por kilo",
-    ph: "N/D",
+    ...buscarProducto("placeholder-renovador-cuero"),
+    id: "mi-renovador-cuero",
+    productoId: "placeholder-renovador-cuero",
+    nivel: 100,
+    imagen: null,
   },
 ];
