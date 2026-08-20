@@ -102,6 +102,7 @@ export default function AgregarInsumoModal({ visible, onClose }) {
       dilucion,
       rendimiento,
       imagen: producto.imagen ?? null,
+      precioCompra: producto.precioCompra,
     });
     setIdsAgregados((actuales) => new Set(actuales).add(producto.id));
   }

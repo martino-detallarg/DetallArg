@@ -31,6 +31,11 @@ export const UMBRAL_STOCK_BAJO = 25;
 // como se hizo con las demás categorías.
 // Los valores que no están confirmados por ficha técnica real se dejan en
 // "N/D" a propósito, para no inventar datos técnicos.
+//
+// `precioCompra` es un valor de ejemplo (en pesos argentinos) para tener el
+// dato cargado y disponible de cara a los cálculos reales de costos
+// variables que se van a construir más adelante. Todavía no se usa en
+// ningún cálculo.
 export const catalogoInsumos = [
   // Desengrasantes
   {
@@ -41,6 +46,7 @@ export const catalogoInsumos = [
     ph: "Neutro",
     dilucion: "Se usa puro, sin diluir",
     rendimiento: "Actúa 2-3 min",
+    precioCompra: 45000,
   },
   {
     id: "koch-green-star",
@@ -50,6 +56,7 @@ export const catalogoInsumos = [
     ph: "Alcalino",
     dilucion: "Dilución variable: 1:20 interior liviano, 1:10 taller, 1:5 motor, 1:3 grasa pesada",
     rendimiento: "N/D",
+    precioCompra: 38000,
   },
   {
     id: "sonax-wheel-cleaner-full-effect",
@@ -59,6 +66,7 @@ export const catalogoInsumos = [
     ph: "Neutro",
     dilucion: "Se usa puro",
     rendimiento: "Actúa 3-5 min",
+    precioCompra: 32000,
   },
   // Shampoo
   {
@@ -69,6 +77,7 @@ export const catalogoInsumos = [
     ph: "Neutro",
     dilucion: "Lavado 1:400, snow foam 1:20",
     rendimiento: "Rinde 500ml hasta 200L de solución",
+    precioCompra: 28000,
   },
   {
     id: "carpro-reset",
@@ -78,6 +87,7 @@ export const catalogoInsumos = [
     ph: "Neutro en solución",
     dilucion: "1:500 (40ml cada 20L)",
     rendimiento: "N/D",
+    precioCompra: 42000,
   },
   {
     id: "sonax-xtreme-shampoo",
@@ -87,6 +97,7 @@ export const catalogoInsumos = [
     ph: "N/D",
     dilucion: "Según etiqueta",
     rendimiento: "N/D",
+    precioCompra: 30000,
   },
   {
     id: "3d-wash-wax",
@@ -96,6 +107,7 @@ export const catalogoInsumos = [
     ph: "Neutro",
     dilucion: "A confirmar",
     rendimiento: "N/D",
+    precioCompra: 25000,
   },
   // Pulidores
   {
@@ -106,6 +118,7 @@ export const catalogoInsumos = [
     ph: "N/D",
     dilucion: "Sin dilución, listo para usar",
     rendimiento: "N/D",
+    precioCompra: 40000,
   },
   {
     id: "menzerna-fg400",
@@ -115,6 +128,7 @@ export const catalogoInsumos = [
     ph: "N/D",
     dilucion: "Sin dilución",
     rendimiento: "N/D",
+    precioCompra: 55000,
   },
   // Protecciones (placeholder, a definir)
   {
@@ -125,6 +139,7 @@ export const catalogoInsumos = [
     ph: "N/D",
     dilucion: "N/D",
     rendimiento: "N/D",
+    precioCompra: 20000,
   },
   // Interiores (placeholder, a definir)
   {
@@ -135,6 +150,7 @@ export const catalogoInsumos = [
     ph: "N/D",
     dilucion: "N/D",
     rendimiento: "N/D",
+    precioCompra: 18000,
   },
   // Rejuvenecedores (placeholder, a definir)
   {
@@ -145,6 +161,7 @@ export const catalogoInsumos = [
     ph: "N/D",
     dilucion: "N/D",
     rendimiento: "N/D",
+    precioCompra: 22000,
   },
 ];
 

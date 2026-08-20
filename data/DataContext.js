@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { autos as autosIniciales, clientes as clientesIniciales } from "./mockData";
 import { misInsumosIniciales } from "./mockInsumos";
+import { costosFijosIniciales } from "./mockFinanzas";
 
 const DataContext = createContext(null);
 
@@ -8,6 +9,7 @@ export function DataProvider({ children }) {
   const [clientes, setClientes] = useState(clientesIniciales);
   const [autos, setAutos] = useState(autosIniciales);
   const [misInsumos, setMisInsumos] = useState(misInsumosIniciales);
+  const [costosFijos, setCostosFijos] = useState(costosFijosIniciales);
 
   function agregarCliente({ nombre, telefono, ...resto }) {
     const nuevoCliente = { id: `c${Date.now()}`, nombre, telefono, ...resto };
@@ -41,7 +43,17 @@ export function DataProvider({ children }) {
     return autos.filter((a) => a.clienteId === clienteId);
   }
 
-  function agregarInsumo({ productoId, marca, nombre, categoria, ph, dilucion, rendimiento, imagen }) {
+  function agregarInsumo({
+    productoId,
+    marca,
+    nombre,
+    categoria,
+    ph,
+    dilucion,
+    rendimiento,
+    imagen,
+    precioCompra,
+  }) {
     const nuevoInsumo = {
       id: `mi${Date.now()}`,
       productoId,
@@ -52,6 +64,7 @@ export function DataProvider({ children }) {
       dilucion,
       rendimiento,
       imagen,
+      precioCompra,
       // Un insumo recién agregado se asume lleno hasta que carguemos control
       // real de stock.
       nivel: 100,
@@ -60,11 +73,26 @@ export function DataProvider({ children }) {
     return nuevoInsumo;
   }
 
+  function agregarCostoFijo({ categoria, monto }) {
+    const nuevoCostoFijo = { id: `cf${Date.now()}`, categoria, monto };
+    setCostosFijos((actuales) => [...actuales, nuevoCostoFijo]);
+    return nuevoCostoFijo;
+  }
+
+  function actualizarCostoFijo(id, cambios) {
+    setCostosFijos((actuales) => actuales.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
+  }
+
+  function eliminarCostoFijo(id) {
+    setCostosFijos((actuales) => actuales.filter((c) => c.id !== id));
+  }
+
   const value = useMemo(
     () => ({
       clientes,
       autos,
       misInsumos,
+      costosFijos,
       agregarCliente,
       agregarAuto,
       actualizarCliente,
@@ -73,8 +101,11 @@ export function DataProvider({ children }) {
       getAutoById,
       getAutosByClienteId,
       agregarInsumo,
+      agregarCostoFijo,
+      actualizarCostoFijo,
+      eliminarCostoFijo,
     }),
-    [clientes, autos, misInsumos]
+    [clientes, autos, misInsumos, costosFijos]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
