@@ -1,7 +1,6 @@
 import { Image, StyleSheet, View } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import { FRENTE_REFERENCIA_IMG } from "./frenteReferenciaImagen";
-import { TIPOS_DANIO } from "../../data/tiposDanio";
 import { colors } from "../../theme";
 
 // Diagrama genérico de check-in visual: por ahora es SOLO la vista de
@@ -11,9 +10,13 @@ import { colors } from "../../theme";
 // Derecha, Atrás) todavía no están listas, así que no se simulan acá — se
 // van a sumar más adelante, junto con el resto de las carrocerías.
 //
-// Es puramente visual: recibe `danios` (mapa panelId -> tipoDanio) y avisa
-// los toques por `onPanelPress`, el mismo contrato que usan los diagramas
-// específicos por carrocería (por ejemplo PickupCabinaSimpleDiagram).
+// Es puramente visual: recibe `danios` (mapa panelId -> { tipos, nota }) y
+// avisa los toques por `onPanelPress`, el mismo contrato que usan los
+// diagramas específicos por carrocería (por ejemplo
+// PickupCabinaSimpleDiagram). Como una zona puede tener varios tipos de
+// daño a la vez, acá no se pinta con el color de ningún tipo puntual: solo
+// se resalta con un borde neutro cuando tiene uno o más — el detalle de
+// cuáles se ve en la lista resumen de DiagramaDanios.
 export const PANEL_IDS = [
   "capot",
   "vidrio",
@@ -57,17 +60,17 @@ export default function DamageDiagram({ danios, onPanelPress, width = "100%" }) 
       <Image source={{ uri: FRENTE_REFERENCIA_IMG }} style={StyleSheet.absoluteFill} resizeMode="contain" />
       <Svg style={StyleSheet.absoluteFill} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
         {PANEL_IDS.map((id) => {
-          const tipo = danios[id] ? TIPOS_DANIO[danios[id]] : null;
+          const marcado = danios[id]?.tipos?.length > 0;
           return (
             <Polygon
               key={id}
               points={pointsToStr(ZONES[id])}
-              fill={tipo ? tipo.color : colors.textPrimary}
-              fillOpacity={tipo ? 0.4 : 0.05}
-              stroke={tipo ? tipo.color : colors.textPrimary}
-              strokeOpacity={tipo ? 1 : 0.3}
-              strokeWidth={tipo ? 1.5 : 1.25}
-              strokeDasharray={tipo ? undefined : "4,4"}
+              fill={colors.textPrimary}
+              fillOpacity={marcado ? 0.12 : 0.05}
+              stroke={marcado ? colors.error : colors.textPrimary}
+              strokeOpacity={marcado ? 1 : 0.3}
+              strokeWidth={marcado ? 2 : 1.25}
+              strokeDasharray={marcado ? undefined : "4,4"}
               onPress={() => onPanelPress(id)}
             />
           );

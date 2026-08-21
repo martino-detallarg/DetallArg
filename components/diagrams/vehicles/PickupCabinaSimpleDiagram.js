@@ -38,21 +38,23 @@
  *
  * No tiene puerta_trasera (cabina simple = 2 puertas).
  *
- * Es puramente visual: recibe `danios` (mapa panelId -> tipoDanio, con las
- * claves de TIPOS_DANIO en data/tiposDanio.js) y avisa los toques por
- * `onPanelPress`. El selector de tipo de daño y la lista resumen viven en
+ * Es puramente visual: recibe `danios` (mapa panelId -> { tipos, nota }, con
+ * los ids de tipo definidos en data/tiposDanio.js) y avisa los toques por
+ * `onPanelPress`. Como cada panel puede tener varios tipos de daño a la
+ * vez, acá no se pinta con el color de ningún tipo puntual: solo se
+ * resalta con un borde neutro cuando tiene uno o más. El selector de tipos
+ * de daño y la lista resumen (con el detalle de cuáles) viven en
  * components/wizard/DiagramaDanios.js, que envuelve a este componente con
- * la misma interfaz que el diagrama genérico de 5 zonas.
+ * la misma interfaz que el diagrama genérico de Frente.
  *
  * Uso:
  *   <PickupCabinaSimpleDiagram
- *     danios={{ puerta_delantera_izq: "rayon", capot: "abolladura" }}
+ *     danios={{ puerta_delantera_izq: { tipos: ["rayon", "oxido"], nota: "" } }}
  *     onPanelPress={(panelId) => marcarDanio(panelId)}
  *   />
  * ─────────────────────────────────────────────────────────────────────────
  */
 import Svg, { Path } from "react-native-svg";
-import { TIPOS_DANIO } from "../../../data/tiposDanio";
 import { colors } from "../../../theme";
 
 export const VEHICLE_TYPE = "pickup_cabina_simple";
@@ -119,13 +121,15 @@ const DECORATIVE_WHEELS = [
 ];
 
 // Colores por defecto tomados de theme.js: fondo de superficie (panelFill),
-// borde sutil (panelStroke) y el mismo gris de fondo/superficie para las
-// ruedas decorativas. Ya no hay un color "damaged" fijo acá: cuando un
-// panel tiene un daño cargado, se pinta con el color propio de ese tipo de
-// daño (TIPOS_DANIO), no con un único color de alerta genérico.
+// borde sutil (panelStroke), el mismo gris de fondo/superficie para las
+// ruedas decorativas, y el color de alerta de la app (panelStrokeMarcado)
+// para resaltar el borde de un panel que tiene uno o más daños cargados —
+// como puede tener varios tipos a la vez, no hay un único color "damaged"
+// fijo por tipo acá; el detalle de cuáles se ve en la lista resumen.
 const defaultColors = {
   panelFill: colors.surface2,
   panelStroke: colors.borderSubtle,
+  panelStrokeMarcado: colors.error,
   wheelFill: colors.bg,
   wheelStroke: colors.borderSubtle,
   hubFill: colors.surface,
@@ -153,14 +157,14 @@ export default function PickupCabinaSimpleDiagram({
       ))}
 
       {PANELS.map((panel) => {
-        const tipo = danios[panel.id] ? TIPOS_DANIO[danios[panel.id]] : null;
+        const marcado = danios[panel.id]?.tipos?.length > 0;
         return (
           <Path
             key={panel.id}
             d={panel.d}
-            fill={tipo ? tipo.color : c.panelFill}
-            stroke={tipo ? tipo.color : c.panelStroke}
-            strokeWidth={1.25}
+            fill={c.panelFill}
+            stroke={marcado ? c.panelStrokeMarcado : c.panelStroke}
+            strokeWidth={marcado ? 2 : 1.25}
             onPress={onPanelPress ? () => onPanelPress(panel.id) : undefined}
           />
         );

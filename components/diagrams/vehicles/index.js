@@ -23,3 +23,15 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
     panelLabels: PICKUP_CABINA_SIMPLE_PANEL_LABELS,
   },
 };
+
+// Resuelve la clave de este registro a partir de los datos de "Tipo de
+// vehículo" del wizard de Trabajo Nuevo (tipoVehiculo + grupo elegidos en
+// TipoVehiculoStep). Vive acá para que tanto TipoVehiculoStep (arma la nota
+// de qué diagrama vas a ver) como InspeccionVisualStep (lo renderiza) usen
+// siempre la misma lógica.
+export function obtenerClaveDiagrama({ tipoVehiculo, grupo }) {
+  if (tipoVehiculo === "camioneta" && grupo === "Cabina simple") {
+    return "pickup_cabina_simple";
+  }
+  return null;
+}
