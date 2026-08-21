@@ -7,11 +7,12 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 const ITEMS_PRINCIPALES = [
   { ruta: "Home", titulo: "Inicio", icono: "home-outline" },
   { ruta: "Clientes", titulo: "Clientes", icono: "person-outline" },
-  { ruta: "DatosPrincipales", titulo: "Datos Principales", icono: "document-text-outline" },
-  { ruta: "MiEquipo", titulo: "Mi Equipo", icono: "people-outline" },
-  { ruta: "MisInsumos", titulo: "Mis Insumos", icono: "cube-outline" },
-  { ruta: "MisHorarios", titulo: "Mis Horarios", icono: "time-outline" },
-  { ruta: "MisServicios", titulo: "Mis Servicios", icono: "construct-outline" },
+  { ruta: "MiTaller", titulo: "Mi Taller", icono: "storefront-outline" },
+  { ruta: "Finanzas", titulo: "Finanzas", icono: "stats-chart-outline" },
+  { ruta: "Agenda", titulo: "Agenda", icono: "calendar-outline" },
+  { ruta: "Configuracion", titulo: "Configuración", icono: "settings-outline" },
+  { ruta: "Soporte", titulo: "Soporte", icono: "help-circle-outline" },
+  { ruta: "Notificaciones", titulo: "Notificaciones", icono: "notifications-outline" },
 ];
 
 function ItemMenu({ icono, titulo, activo, color, onPress }) {
@@ -44,13 +45,6 @@ export default function DrawerContent({ navigation, state, onLogout }) {
         <Text style={styles.email}>{usuarioActual.email}</Text>
       </View>
 
-      <ItemMenu
-        icono="settings-outline"
-        titulo="Configuración"
-        activo={rutaActiva === "Configuracion"}
-        onPress={() => irA("Configuracion")}
-      />
-
       <View style={styles.separador} />
 
       <ScrollView style={styles.lista} showsVerticalScrollIndicator={false}>
@@ -67,18 +61,6 @@ export default function DrawerContent({ navigation, state, onLogout }) {
 
       <View style={styles.footer}>
         <View style={styles.separador} />
-        <ItemMenu
-          icono="help-circle-outline"
-          titulo="Soporte"
-          activo={rutaActiva === "Soporte"}
-          onPress={() => irA("Soporte")}
-        />
-        <ItemMenu
-          icono="notifications-outline"
-          titulo="Notificaciones"
-          activo={rutaActiva === "Notificaciones"}
-          onPress={() => irA("Notificaciones")}
-        />
         <ItemMenu
           icono="log-out-outline"
           titulo="Cerrar sesión"

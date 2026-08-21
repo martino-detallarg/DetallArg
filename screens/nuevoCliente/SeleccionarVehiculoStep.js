@@ -1,12 +1,10 @@
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
-import { useData } from "../../data/DataContext";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 export default function SeleccionarVehiculoStep({ cliente, paso, totalPasos, onAtras, onSeleccionar }) {
-  const { getAutosByClienteId } = useData();
-  const autos = getAutosByClienteId(cliente.id);
+  const vehiculos = cliente.vehiculos;
 
   return (
     <View style={styles.pantalla}>
@@ -18,7 +16,7 @@ export default function SeleccionarVehiculoStep({ cliente, paso, totalPasos, onA
       />
 
       <FlatList
-        data={autos}
+        data={vehiculos}
         keyExtractor={(a) => a.id}
         contentContainerStyle={styles.lista}
         renderItem={({ item }) => (

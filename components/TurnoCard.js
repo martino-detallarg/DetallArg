@@ -4,7 +4,8 @@ import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 const COLORES_ESTADO = {
   Pendiente: "#D9A441",
   "En proceso": colors.accent,
-  Terminado: "#4C9A6A",
+  Finalizado: "#4C9A6A",
+  Entregado: colors.accentLight,
 };
 
 export default function TurnoCard({ turno, cliente, auto, onPress }) {

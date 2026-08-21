@@ -8,11 +8,16 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 export default function PlaceholderScreen({ navigation }) {
   const route = useRoute();
   const titulo = route.params?.titulo ?? route.name;
+  const volverA = route.params?.volverA;
 
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
+      {volverA ? (
+        <ScreenHeader onVolver={() => navigation.navigate(volverA)} />
+      ) : (
+        <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
+      )}
 
       <View style={styles.contenido}>
         <View style={styles.icono}>

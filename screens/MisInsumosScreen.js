@@ -1,70 +1,138 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { FlatList, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import AgregarInsumoModal from "../components/AgregarInsumoModal";
+import CategoriaInsumosModal from "../components/CategoriaInsumosModal";
+import ProductoCasillero from "../components/ProductoCasillero";
 import { useData } from "../data/DataContext";
-import { CATEGORIAS } from "../data/mockInsumos";
+import { CATEGORIAS, ORDEN_CATEGORIAS, PAGINAS_ESTANTERIA } from "../data/mockInsumos";
 import { colors, continuousCorner, fonts, radii, shadow, shadowSubtle } from "../theme";
 
 const COLUMNAS = 3;
+const MAX_COMPACTO = 3;
 const PADDING_GRILLA = 20;
 const ESPACIO_CASILLERO = 12;
+
+function CategoriaSection({ categoriaKey, productos, tamanoCasillero, onAbrir }) {
+  const categoria = CATEGORIAS[categoriaKey];
+  const visibles = productos.slice(0, MAX_COMPACTO);
+
+  return (
+    <View style={styles.seccion}>
+      <TouchableOpacity style={styles.seccionHeader} onPress={onAbrir} activeOpacity={0.7}>
+        <Text style={styles.seccionTitulo} numberOfLines={1}>
+          {categoria.etiqueta} <Text style={styles.seccionCantidad}>({productos.length})</Text>
+        </Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+      </TouchableOpacity>
+
+      {productos.length === 0 ? (
+        <View style={styles.vacioCategoria}>
+          <Text style={styles.vacioCategoriaTexto}>Sin productos cargados todavía</Text>
+        </View>
+      ) : (
+        <View style={styles.filaCasilleros}>
+          {visibles.map((producto) => (
+            <ProductoCasillero key={producto.id} producto={producto} tamano={tamanoCasillero} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function MisInsumosScreen({ navigation }) {
   const { misInsumos } = useData();
   const { width } = useWindowDimensions();
   const [modalVisible, setModalVisible] = useState(false);
+  const [categoriaAbierta, setCategoriaAbierta] = useState(null);
+  const [paginaActiva, setPaginaActiva] = useState(0);
 
   const tamanoCasillero =
     (width - PADDING_GRILLA * 2 - ESPACIO_CASILLERO * (COLUMNAS - 1)) / COLUMNAS;
 
+  const productosPorCategoria = useMemo(() => {
+    const mapa = {};
+    ORDEN_CATEGORIAS.forEach((clave) => {
+      mapa[clave] = [];
+    });
+    misInsumos.forEach((insumo) => {
+      if (mapa[insumo.categoria]) {
+        mapa[insumo.categoria].push(insumo);
+      }
+    });
+    return mapa;
+  }, [misInsumos]);
+
+  function handleScrollFin(evento) {
+    const indice = Math.round(evento.nativeEvent.contentOffset.x / width);
+    setPaginaActiva(indice);
+  }
+
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
+      <ScreenHeader onVolver={() => navigation.navigate("MiTaller")} />
 
       <Text style={styles.titulo}>Mis Insumos</Text>
 
-      <FlatList
-        data={misInsumos}
-        keyExtractor={(insumo) => insumo.id}
-        numColumns={COLUMNAS}
-        columnWrapperStyle={misInsumos.length > 0 ? styles.filaCasilleros : undefined}
-        ItemSeparatorComponent={() => <View style={styles.repisa} />}
-        contentContainerStyle={styles.grilla}
-        renderItem={({ item }) => (
-          <View style={[styles.casillero, { width: tamanoCasillero, height: tamanoCasillero }]}>
-            {item.imagen ? (
-              <Image source={item.imagen} style={styles.imagenProducto} resizeMode="contain" />
-            ) : (
-              <Ionicons
-                name={CATEGORIAS[item.categoria]?.icono ?? "cube-outline"}
-                size={tamanoCasillero * 0.4}
-                color={colors.accentLight}
-              />
-            )}
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.vacioContenedor}>
-            <View style={styles.vacioIcono}>
-              <Ionicons name="cube-outline" size={32} color={colors.accent} />
-            </View>
-            <Text style={styles.vacioTitulo}>Todavía no cargaste insumos</Text>
-            <Text style={styles.vacioTexto}>
-              Tocá el botón + para sumar productos a tu estantería.
-            </Text>
-          </View>
-        }
-      />
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScrollFin}
+        style={styles.estanteria}
+      >
+        {PAGINAS_ESTANTERIA.map((categoriasPagina, indicePagina) => (
+          <ScrollView
+            key={indicePagina}
+            style={{ width }}
+            contentContainerStyle={styles.pagina}
+            showsVerticalScrollIndicator={false}
+          >
+            {categoriasPagina.map((claveCategoria, indice) => (
+              <View key={claveCategoria}>
+                <CategoriaSection
+                  categoriaKey={claveCategoria}
+                  productos={productosPorCategoria[claveCategoria]}
+                  tamanoCasillero={tamanoCasillero}
+                  onAbrir={() => setCategoriaAbierta(claveCategoria)}
+                />
+                {indice < categoriasPagina.length - 1 && <View style={styles.repisa} />}
+              </View>
+            ))}
+          </ScrollView>
+        ))}
+      </ScrollView>
+
+      <View style={styles.puntos}>
+        {PAGINAS_ESTANTERIA.map((_, indice) => (
+          <View key={indice} style={[styles.punto, indice === paginaActiva && styles.puntoActivo]} />
+        ))}
+      </View>
 
       <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <Text style={styles.fabTexto}>+</Text>
       </TouchableOpacity>
 
       <AgregarInsumoModal visible={modalVisible} onClose={() => setModalVisible(false)} />
+
+      <CategoriaInsumosModal
+        visible={categoriaAbierta !== null}
+        categoriaKey={categoriaAbierta}
+        productos={categoriaAbierta ? productosPorCategoria[categoriaAbierta] : []}
+        onClose={() => setCategoriaAbierta(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -82,30 +150,54 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 14,
   },
-  grilla: {
+  estanteria: {
+    flex: 1,
+  },
+  pagina: {
     paddingHorizontal: PADDING_GRILLA,
-    paddingBottom: 100,
-    flexGrow: 1,
+    paddingBottom: 20,
+  },
+  seccion: {
+    marginBottom: 4,
+  },
+  seccionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+  },
+  seccionTitulo: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  seccionCantidad: {
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    color: colors.textMuted,
   },
   filaCasilleros: {
+    flexDirection: "row",
     gap: ESPACIO_CASILLERO,
   },
-  casillero: {
-    backgroundColor: colors.surface,
+  vacioCategoria: {
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.borderSubtle,
     borderRadius: radii.card,
     ...continuousCorner,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
   },
-  imagenProducto: {
-    width: "70%",
-    height: "70%",
+  vacioCategoriaTexto: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
   },
-  // Barra metálica que separa cada fila de casilleros, simulando las repisas
-  // de una estantería industrial de taller.
+  // Barra metálica que separa cada sección de categoría, simulando las
+  // repisas de una estantería industrial de taller.
   repisa: {
     height: 14,
     backgroundColor: colors.surface2,
@@ -117,37 +209,21 @@ const styles = StyleSheet.create({
     marginVertical: ESPACIO_CASILLERO,
     ...shadowSubtle,
   },
-  vacioContenedor: {
-    flex: 1,
-    alignItems: "center",
+  puntos: {
+    flexDirection: "row",
     justifyContent: "center",
-    marginTop: 60,
+    gap: 8,
+    paddingVertical: 14,
   },
-  vacioIcono: {
-    width: 64,
-    height: 64,
-    borderRadius: radii.card,
-    ...continuousCorner,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderAccent,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
+  punto: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.borderSubtle,
   },
-  vacioTitulo: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    color: colors.textPrimary,
-    textAlign: "center",
-  },
-  vacioTexto: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 6,
-    textAlign: "center",
-    paddingHorizontal: 32,
+  puntoActivo: {
+    width: 18,
+    backgroundColor: colors.accent,
   },
   fab: {
     position: "absolute",

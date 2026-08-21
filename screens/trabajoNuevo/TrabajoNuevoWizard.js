@@ -4,9 +4,10 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import SeleccionarClienteStep from "../nuevoCliente/SeleccionarClienteStep";
 import SeleccionarVehiculoStep from "../nuevoCliente/SeleccionarVehiculoStep";
 import DatosServicioStep from "./DatosServicioStep";
-import SeleccionVehiculoStep from "./SeleccionVehiculoStep";
+import TipoVehiculoStep from "./TipoVehiculoStep";
+import InspeccionVisualStep from "./InspeccionVisualStep";
 import ConfirmacionTrabajoStep from "./ConfirmacionTrabajoStep";
-import { useData } from "../../data/DataContext";
+import { useClientes } from "../../data/ClienteContext";
 import { colors } from "../../theme";
 
 function datosVacios(clienteId, autoId) {
@@ -19,7 +20,9 @@ function datosVacios(clienteId, autoId) {
       grupo: null,
       subdivision: null,
       nivelNafta: 50,
-      danios: [],
+      // Mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada zona
+      // puede tener varios tipos de daño previo a la vez, no uno solo.
+      danios: {},
       fotosDano: [],
     },
   };
@@ -35,9 +38,9 @@ export default function TrabajoNuevoWizard({
   clienteIdInicial,
   autoIdInicial,
 }) {
-  const { getClienteById } = useData();
+  const { getClienteById } = useClientes();
   const seSaltaSeleccion = !!(clienteIdInicial && autoIdInicial);
-  const totalPasos = seSaltaSeleccion ? 2 : 3;
+  const totalPasos = seSaltaSeleccion ? 3 : 4;
 
   const [fase, setFase] = useState(seSaltaSeleccion ? "servicio" : "elegirCliente");
   const [datos, setDatos] = useState(datosVacios(clienteIdInicial, autoIdInicial));
@@ -97,7 +100,8 @@ export default function TrabajoNuevoWizard({
     elegirCliente: 1,
     elegirVehiculo: 1,
     servicio: seSaltaSeleccion ? 1 : 2,
-    inspeccion: seSaltaSeleccion ? 2 : 3,
+    tipoVehiculo: seSaltaSeleccion ? 2 : 3,
+    inspeccionVisual: seSaltaSeleccion ? 3 : 4,
   }[fase];
 
   const clienteSeleccionado = datos.clienteId ? getClienteById(datos.clienteId) : null;
@@ -131,16 +135,26 @@ export default function TrabajoNuevoWizard({
               totalPasos={totalPasos}
               onCambiar={actualizarServicio}
               onAtras={seSaltaSeleccion ? cerrar : () => setFase("elegirVehiculo")}
-              onContinuar={() => setFase("inspeccion")}
+              onContinuar={() => setFase("tipoVehiculo")}
             />
           )}
-          {fase === "inspeccion" && (
-            <SeleccionVehiculoStep
+          {fase === "tipoVehiculo" && (
+            <TipoVehiculoStep
               datos={datos.inspeccion}
               paso={pasoActual}
               totalPasos={totalPasos}
               onCambiar={actualizarInspeccion}
               onAtras={() => setFase("servicio")}
+              onContinuar={() => setFase("inspeccionVisual")}
+            />
+          )}
+          {fase === "inspeccionVisual" && (
+            <InspeccionVisualStep
+              datos={datos.inspeccion}
+              paso={pasoActual}
+              totalPasos={totalPasos}
+              onCambiar={actualizarInspeccion}
+              onAtras={() => setFase("tipoVehiculo")}
               onFinalizar={handleFinalizar}
             />
           )}

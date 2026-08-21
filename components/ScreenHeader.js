@@ -5,14 +5,21 @@ import { colors } from "../theme";
 
 const TAMANO_ICONO = 26;
 
-export default function ScreenHeader({ onAbrirMenu }) {
+// Si se pasa onVolver, el header muestra una flecha de volver (mismo ícono
+// que WizardHeader) en vez del ícono de menú — para pantallas a las que solo
+// se llega navegando desde otra pantalla, no directamente desde el drawer.
+export default function ScreenHeader({ onAbrirMenu, onVolver }) {
   return (
     <View style={styles.header}>
       <TouchableOpacity
-        onPress={onAbrirMenu}
+        onPress={onVolver ?? onAbrirMenu}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Ionicons name="menu-outline" size={TAMANO_ICONO} color={colors.textPrimary} />
+        <Ionicons
+          name={onVolver ? "chevron-back" : "menu-outline"}
+          size={TAMANO_ICONO}
+          color={colors.textPrimary}
+        />
       </TouchableOpacity>
 
       <Logo size={26} />
