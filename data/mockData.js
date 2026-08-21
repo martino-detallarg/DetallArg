@@ -4,11 +4,11 @@
 // tratamiento sin tener que rehacer esas pantallas.
 export const ESTADOS_TRABAJO = ["Pendiente", "En proceso", "Finalizado", "Entregado"];
 
-// Los clientes/autos de ejemplo que originaban c1/c2/a1/a2/a3 se migraron a
-// ClienteContext (que arranca vacío). Estos turnos de ejemplo quedan con
-// referencias sin resolver hasta que se carguen clientes reales desde la
-// pantalla de Clientes; TurnoCard ya contempla ese caso mostrando "Cliente
-// sin datos" / "Auto sin datos".
+// Los clienteId/autoId de acá (c1/c2, a1/a2/a3) tienen que coincidir con los
+// IDs de los clientes/vehículos de ejemplo en ClienteContext.js — si se
+// cambian los de un lado sin el otro, estos turnos vuelven a quedar con
+// referencias sin resolver (TurnoCard lo contempla mostrando "Cliente sin
+// datos" / "Auto sin datos", pero no debería pasar con los datos de fábrica).
 export const turnosIniciales = [
   { id: "t1", clienteId: "c1", autoId: "a1", hora: "09:00", servicio: "Lavado + encerado", estado: "Pendiente" },
   { id: "t2", clienteId: "c2", autoId: "a3", hora: "10:30", servicio: "Limpieza de tapizados", estado: "En proceso" },
