@@ -1,6 +1,7 @@
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import HomeScreen from "../screens/HomeScreen";
 import ClientesScreen from "../screens/ClientesScreen";
+import AgendaScreen from "../screens/AgendaScreen";
 import MiTallerScreen from "../screens/MiTallerScreen";
 import MisDatosScreen from "../screens/MisDatosScreen";
 import MisInsumosScreen from "../screens/MisInsumosScreen";
@@ -15,7 +16,6 @@ const Drawer = createDrawerNavigator();
 
 // Pantallas del menú del drawer que todavía no tienen funcionalidad propia.
 const PANTALLAS_PLACEHOLDER = [
-  { ruta: "Agenda", titulo: "Agenda" },
   { ruta: "Configuracion", titulo: "Configuración" },
   { ruta: "Soporte", titulo: "Soporte" },
 ];
@@ -40,6 +40,7 @@ export default function DashboardNavigator({ onLogout }) {
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name="Clientes" component={ClientesScreen} />
+      <Drawer.Screen name="Agenda" component={AgendaScreen} />
       <Drawer.Screen name="MiTaller" component={MiTallerScreen} />
       <Drawer.Screen name="Finanzas" component={FinanzasScreen} />
       <Drawer.Screen name="CostosFijos" component={CostosFijosScreen} />
