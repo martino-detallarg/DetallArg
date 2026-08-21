@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import DatosClienteStep from "./DatosClienteStep";
 import DatosVehiculoStep from "./DatosVehiculoStep";
 import SeleccionarClienteStep from "./SeleccionarClienteStep";
+import PreguntaTrabajoStep from "./PreguntaTrabajoStep";
 import { separarMarcaModelo } from "../../data/mockData";
 import { useData } from "../../data/DataContext";
 import { colors } from "../../theme";
@@ -22,6 +23,7 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
   const [clienteExistente, setClienteExistente] = useState(null);
   const [datosCliente, setDatosCliente] = useState(CLIENTE_VACIO);
   const [datosVehiculo, setDatosVehiculo] = useState(VEHICULO_VACIO);
+  const [clienteVehiculoCreado, setClienteVehiculoCreado] = useState(null);
 
   useEffect(() => {
     if (visible) {
@@ -29,6 +31,7 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
       setClienteExistente(null);
       setDatosCliente(CLIENTE_VACIO);
       setDatosVehiculo(VEHICULO_VACIO);
+      setClienteVehiculoCreado(null);
     }
   }, [visible, modo]);
 
@@ -42,6 +45,9 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
   }
 
   function handleFinalizarVehiculo() {
+    const nombreCliente = esVehiculoNuevo
+      ? clienteExistente.nombre
+      : datosCliente.nombre.trim();
     const clienteId = esVehiculoNuevo
       ? clienteExistente.id
       : agregarCliente({
@@ -61,7 +67,16 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
       observaciones: datosVehiculo.observaciones.trim(),
     });
 
-    onListo(clienteId, nuevoAuto.id);
+    setClienteVehiculoCreado({ clienteId, autoId: nuevoAuto.id, nombreCliente });
+    setPaso("preguntaTrabajo");
+  }
+
+  function handleSiCargarTrabajo() {
+    onListo(clienteVehiculoCreado.clienteId, clienteVehiculoCreado.autoId);
+  }
+
+  function handleNoCargarTrabajo() {
+    onClose();
   }
 
   const pasoNumero = paso === "vehiculo" ? 2 : 1;
@@ -97,6 +112,13 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
               onCambiar={(c) => setDatosVehiculo((d) => ({ ...d, ...c }))}
               onAtras={() => setPaso(esVehiculoNuevo ? "elegirCliente" : "cliente")}
               onContinuar={handleFinalizarVehiculo}
+            />
+          )}
+          {paso === "preguntaTrabajo" && (
+            <PreguntaTrabajoStep
+              nombreCliente={clienteVehiculoCreado?.nombreCliente}
+              onSi={handleSiCargarTrabajo}
+              onNo={handleNoCargarTrabajo}
             />
           )}
         </SafeAreaView>
