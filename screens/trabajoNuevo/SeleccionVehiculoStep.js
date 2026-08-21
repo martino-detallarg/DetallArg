@@ -43,7 +43,7 @@ const TIPOS = Object.entries(TIPOS_VEHICULO).map(([id, valor]) => ({ id, ...valo
 // El diagrama de paneles reales de "pickup cabina simple" aplica cuando el
 // tipo de vehículo es "camioneta" y el grupo elegido es "Cabina simple"
 // (el tamaño, Chico o Mediano, no cambia la disposición de los paneles).
-// Cualquier otra combinación cae al diagrama genérico de 5 zonas.
+// Cualquier otra combinación cae al diagrama genérico (vista Frente).
 function obtenerClaveDiagrama(datos) {
   if (datos.tipoVehiculo === "camioneta" && datos.grupo === "Cabina simple") {
     return "pickup_cabina_simple";
@@ -148,7 +148,7 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
             <Text style={styles.notaPlaceholder}>
               {tieneDiagramaEspecifico
                 ? "Esta carrocería ya tiene su propio diagrama de paneles reales."
-                : "Por ahora esta carrocería usa el diagrama genérico de 5 zonas — más adelante se puede sumar su modelo real."}
+                : "Por ahora esta carrocería usa el diagrama genérico, con solo la vista de Frente disponible — más adelante se suman las otras vistas y su modelo real."}
             </Text>
           </View>
         )}
