@@ -40,9 +40,13 @@ const TIPOS_VEHICULO = {
 const TIPOS = Object.entries(TIPOS_VEHICULO).map(([id, valor]) => ({ id, ...valor }));
 
 export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambiar, onAtras, onFinalizar }) {
-  function alternarDanio(id) {
-    const yaEsta = datos.danios.includes(id);
-    const nuevos = yaEsta ? datos.danios.filter((d) => d !== id) : [...datos.danios, id];
+  function handleCambiarZona(zonaId, tipoDanio) {
+    const nuevos = { ...datos.danios };
+    if (tipoDanio) {
+      nuevos[zonaId] = tipoDanio;
+    } else {
+      delete nuevos[zonaId];
+    }
     onCambiar({ danios: nuevos });
   }
 
@@ -68,7 +72,7 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
     onCambiar({ grupo, subdivision: opcion });
   }
 
-  const puedeAgregarFoto = datos.danios.length > 0;
+  const puedeAgregarFoto = Object.keys(datos.danios).length > 0;
   const tipoInfo = datos.tipoVehiculo ? TIPOS_VEHICULO[datos.tipoVehiculo] : null;
   const puedeFinalizar = !!datos.subdivision;
 
@@ -140,7 +144,7 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
             <FuelGauge nivel={datos.nivelNafta} onCambiar={(n) => onCambiar({ nivelNafta: n })} />
 
             <Text style={styles.texto}>Marcá los sectores con daño previo</Text>
-            <DamageDiagram danios={datos.danios} onAlternar={alternarDanio} />
+            <DamageDiagram danios={datos.danios} onCambiarZona={handleCambiarZona} />
 
             <TouchableOpacity
               style={[styles.fotoDanoBox, !puedeAgregarFoto && styles.fotoDanoBoxDeshabilitado]}

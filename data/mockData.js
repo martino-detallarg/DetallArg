@@ -1,3 +1,9 @@
+// Orden de las etapas por las que pasa un trabajo, de menos a más avanzado.
+// Vive acá (no hardcodeado en TrabajoDetalleModal ni en TurnoCard) para
+// poder ampliarlo más adelante a etapas más específicas por tipo de
+// tratamiento sin tener que rehacer esas pantallas.
+export const ESTADOS_TRABAJO = ["Pendiente", "En proceso", "Finalizado", "Entregado"];
+
 // Los clientes/autos de ejemplo que originaban c1/c2/a1/a2/a3 se migraron a
 // ClienteContext (que arranca vacío). Estos turnos de ejemplo quedan con
 // referencias sin resolver hasta que se carguen clientes reales desde la

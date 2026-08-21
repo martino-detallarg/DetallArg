@@ -4,7 +4,7 @@ import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from
 import ScreenHeader from "../components/ScreenHeader";
 import StatCard from "../components/StatCard";
 import TurnoCard from "../components/TurnoCard";
-import DetalleTurnoModal from "../components/DetalleTurnoModal";
+import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
 import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
 import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
 import ConfirmarTrabajoModal from "../components/ConfirmarTrabajoModal";
@@ -28,7 +28,7 @@ function formatearMonto(valor) {
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
   const [turnos, setTurnos] = useState(turnosIniciales);
-  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
+  const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
 
   const [opcionesVisibles, setOpcionesVisibles] = useState(false);
   const [submenuClienteVisible, setSubmenuClienteVisible] = useState(false);
@@ -40,10 +40,17 @@ export default function HomeScreen({ navigation }) {
   const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
 
   const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
+  const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
 
   function agregarTrabajo(datosTrabajo) {
     const nuevoTrabajo = { id: `t${Date.now()}`, ...datosTrabajo };
     setTurnos((actuales) => [...actuales, nuevoTrabajo]);
+  }
+
+  function actualizarEstadoTrabajo(turnoId, nuevoEstado) {
+    setTurnos((actuales) =>
+      actuales.map((t) => (t.id === turnoId ? { ...t, estado: nuevoEstado } : t))
+    );
   }
 
   function handleAbrirClienteNuevo() {
@@ -112,7 +119,7 @@ export default function HomeScreen({ navigation }) {
             turno={item}
             cliente={getClienteById(item.clienteId)}
             auto={getVehiculoById(item.autoId)}
-            onPress={() => setTurnoSeleccionado(item)}
+            onPress={() => setTurnoSeleccionadoId(item.id)}
           />
         )}
         ListEmptyComponent={
@@ -138,12 +145,13 @@ export default function HomeScreen({ navigation }) {
         onVehiculoNuevo={() => handleElegirModoCliente("vehiculo")}
       />
 
-      <DetalleTurnoModal
+      <TrabajoDetalleModal
         visible={turnoSeleccionado !== null}
         turno={turnoSeleccionado}
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
         auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
-        onClose={() => setTurnoSeleccionado(null)}
+        onCambiarEstado={(nuevoEstado) => actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado)}
+        onClose={() => setTurnoSeleccionadoId(null)}
       />
 
       <NuevoClienteWizard

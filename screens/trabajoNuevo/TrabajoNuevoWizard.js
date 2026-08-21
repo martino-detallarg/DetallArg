@@ -19,7 +19,9 @@ function datosVacios(clienteId, autoId) {
       grupo: null,
       subdivision: null,
       nivelNafta: 50,
-      danios: [],
+      // Mapa { zonaId: tipoDanio }, no un array de zonas marcadas: cada
+      // zona guarda qué tipo de daño previo tiene.
+      danios: {},
       fotosDano: [],
     },
   };
