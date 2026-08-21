@@ -1,125 +1,87 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { colors, continuousCorner, fonts, radii } from "../../theme";
+import { Image, StyleSheet, View } from "react-native";
+import Svg, { Polygon } from "react-native-svg";
+import { FRENTE_REFERENCIA_IMG } from "./frenteReferenciaImagen";
+import { colors } from "../../theme";
 
-export default function DamageDiagram({ danios, onAlternar }) {
-  const marcado = (id) => danios.includes(id);
+// Diagrama genérico de check-in visual: por ahora es SOLO la vista de
+// Frente (con una foto de referencia), usado como fallback para cualquier
+// tipo de vehículo que no tenga un diagrama de paneles reales propio en
+// components/diagrams/vehicles. Las otras 4 vistas (Techo, Izquierda,
+// Derecha, Atrás) todavía no están listas, así que no se simulan acá — se
+// van a sumar más adelante, junto con el resto de las carrocerías.
+//
+// Es puramente visual: recibe `danios` (mapa panelId -> { tipos, nota }) y
+// avisa los toques por `onPanelPress`, el mismo contrato que usan los
+// diagramas específicos por carrocería (por ejemplo
+// PickupCabinaSimpleDiagram). Como una zona puede tener varios tipos de
+// daño a la vez, acá no se pinta con el color de ningún tipo puntual: solo
+// se resalta con un borde neutro cuando tiene uno o más — el detalle de
+// cuáles se ve en la lista resumen de DiagramaDanios.
+export const PANEL_IDS = [
+  "capot",
+  "vidrio",
+  "parante_izq",
+  "parante_der",
+  "optica_izq",
+  "optica_der",
+  "frente_completo",
+];
 
-  return (
-    <View style={styles.contenedor}>
-      <View style={styles.auto}>
-        <Zona id="frente" etiqueta="Frente" marcado={marcado} onAlternar={onAlternar} style={styles.zonaFrente} />
+export const PANEL_LABELS = {
+  vidrio: "Parabrisas",
+  capot: "Capó",
+  optica_izq: "Óptica izquierda",
+  optica_der: "Óptica derecha",
+  parante_izq: "Parante izquierdo",
+  parante_der: "Parante derecho",
+  frente_completo: "Frente / paragolpes",
+};
 
-        <View style={styles.filaMedia}>
-          <Zona id="izquierdo" etiqueta="Izq." marcado={marcado} onAlternar={onAlternar} style={styles.zonaLateral} />
-          <Zona id="techo" etiqueta="Techo" marcado={marcado} onAlternar={onAlternar} style={styles.techo} />
-          <Zona id="derecho" etiqueta="Der." marcado={marcado} onAlternar={onAlternar} style={styles.zonaLateral} />
-        </View>
+const VIEW_W = 692;
+const VIEW_H = 499;
 
-        <Zona id="atras" etiqueta="Atrás" marcado={marcado} onAlternar={onAlternar} style={styles.zonaAtras} />
-      </View>
+const ZONES = {
+  vidrio: [[126, 130], [173, 52], [406, 38], [530, 56], [565, 134], [138, 144]],
+  capot: [[138, 144], [565, 134], [624, 220], [481, 258], [346, 235], [212, 258], [67, 220]],
+  optica_izq: [[58, 205], [200, 195], [210, 270], [160, 288], [75, 278], [45, 240]],
+  optica_der: [[634, 205], [492, 195], [482, 270], [532, 288], [617, 278], [647, 240]],
+  parante_izq: [[95, 18], [178, 18], [173, 52], [126, 130], [85, 148], [60, 90]],
+  parante_der: [[597, 18], [514, 18], [519, 52], [566, 130], [607, 148], [632, 90]],
+  frente_completo: [[20, 290], [672, 290], [660, 470], [30, 470]],
+};
 
-      <Text style={styles.ayuda}>Tocá un sector para marcar un daño</Text>
-    </View>
-  );
+function pointsToStr(pts) {
+  return pts.map((p) => `${p[0]},${p[1]}`).join(" ");
 }
 
-function Zona({ id, etiqueta, marcado, onAlternar, style }) {
-  const activo = marcado(id);
+export default function DamageDiagram({ danios, onPanelPress, width = "100%" }) {
   return (
-    <TouchableOpacity
-      style={[style, activo && styles.zonaMarcada]}
-      onPress={() => onAlternar(id)}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.zonaTexto, activo && styles.zonaTextoMarcado]}>{etiqueta}</Text>
-      {activo && <View style={styles.punto} />}
-    </TouchableOpacity>
+    <View style={[styles.contenedor, { width }]}>
+      <Image source={{ uri: FRENTE_REFERENCIA_IMG }} style={StyleSheet.absoluteFill} resizeMode="contain" />
+      <Svg style={StyleSheet.absoluteFill} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
+        {PANEL_IDS.map((id) => {
+          const marcado = danios[id]?.tipos?.length > 0;
+          return (
+            <Polygon
+              key={id}
+              points={pointsToStr(ZONES[id])}
+              fill={colors.textPrimary}
+              fillOpacity={marcado ? 0.12 : 0.05}
+              stroke={marcado ? colors.error : colors.textPrimary}
+              strokeOpacity={marcado ? 1 : 0.3}
+              strokeWidth={marcado ? 2 : 1.25}
+              strokeDasharray={marcado ? undefined : "4,4"}
+              onPress={() => onPanelPress(id)}
+            />
+          );
+        })}
+      </Svg>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   contenedor: {
-    alignItems: "center",
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  auto: {
-    width: 180,
-    borderRadius: 32,
-    ...continuousCorner,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    overflow: "hidden",
-  },
-  filaMedia: {
-    flexDirection: "row",
-    height: 140,
-  },
-  zonaFrente: {
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    margin: 4,
-    borderRadius: radii.button,
-    ...continuousCorner,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  zonaAtras: {
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    margin: 4,
-    borderRadius: radii.button,
-    ...continuousCorner,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  zonaLateral: {
-    width: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    margin: 4,
-    borderRadius: radii.button,
-    ...continuousCorner,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  techo: {
-    flex: 1,
-    margin: 4,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radii.button,
-    ...continuousCorner,
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  zonaMarcada: {
-    borderColor: colors.error,
-  },
-  zonaTexto: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    color: colors.textMuted,
-    textTransform: "uppercase",
-  },
-  zonaTextoMarcado: {
-    color: colors.error,
-  },
-  punto: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.error,
-    marginTop: 4,
-  },
-  ayuda: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 10,
+    aspectRatio: VIEW_W / VIEW_H,
   },
 });

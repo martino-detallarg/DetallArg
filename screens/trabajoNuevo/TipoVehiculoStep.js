@@ -1,10 +1,9 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import Button from "../../components/Button";
 import FuelGauge from "../../components/wizard/FuelGauge";
-import DamageDiagram from "../../components/wizard/DamageDiagram";
+import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 const TIPOS_VEHICULO = {
@@ -39,27 +38,10 @@ const TIPOS_VEHICULO = {
 
 const TIPOS = Object.entries(TIPOS_VEHICULO).map(([id, valor]) => ({ id, ...valor }));
 
-export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambiar, onAtras, onFinalizar }) {
-  function alternarDanio(id) {
-    const yaEsta = datos.danios.includes(id);
-    const nuevos = yaEsta ? datos.danios.filter((d) => d !== id) : [...datos.danios, id];
-    onCambiar({ danios: nuevos });
-  }
-
-  async function handleAgregarFotoDano() {
-    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permiso.granted) return;
-
-    const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.6,
-    });
-
-    if (!resultado.canceled) {
-      onCambiar({ fotosDano: [...datos.fotosDano, ...resultado.assets.map((a) => a.uri)] });
-    }
-  }
-
+// Pantalla 1 de la inspección: elige la forma del vehículo (tipo,
+// subdivisión) y el nivel de nafta. La parte visual de daños (diagramas,
+// foto, guardar) quedó en InspeccionVisualStep.
+export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
   function elegirTipo(tipoId) {
     onCambiar({ tipoVehiculo: tipoId, grupo: null, subdivision: null });
   }
@@ -68,13 +50,14 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
     onCambiar({ grupo, subdivision: opcion });
   }
 
-  const puedeAgregarFoto = datos.danios.length > 0;
   const tipoInfo = datos.tipoVehiculo ? TIPOS_VEHICULO[datos.tipoVehiculo] : null;
-  const puedeFinalizar = !!datos.subdivision;
+  const puedeContinuar = !!datos.subdivision;
+  const claveDiagrama = obtenerClaveDiagrama(datos);
+  const tieneDiagramaEspecifico = !!DIAGRAMAS_POR_TIPO_VEHICULO[claveDiagrama];
 
   return (
     <View style={styles.pantalla}>
-      <WizardHeader titulo="Selección de Vehículo" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
+      <WizardHeader titulo="Tipo de Vehículo" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
       <ScrollView contentContainerStyle={styles.contenido}>
         <Text style={styles.texto}>Seleccioná el tipo de vehículo</Text>
@@ -128,8 +111,9 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
             ))}
 
             <Text style={styles.notaPlaceholder}>
-              Por ahora todas las subdivisiones usan el mismo diagrama genérico — más adelante se
-              puede reemplazar por el modelo real de cada una.
+              {tieneDiagramaEspecifico
+                ? "Esta carrocería ya tiene su propio diagrama de paneles reales."
+                : "Por ahora esta carrocería usa el diagrama genérico, con solo la vista de Frente disponible — más adelante se suman las otras vistas y su modelo real."}
             </Text>
           </View>
         )}
@@ -138,36 +122,11 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
           <>
             <Text style={styles.texto}>Nivel de nafta</Text>
             <FuelGauge nivel={datos.nivelNafta} onCambiar={(n) => onCambiar({ nivelNafta: n })} />
-
-            <Text style={styles.texto}>Marcá los sectores con daño previo</Text>
-            <DamageDiagram danios={datos.danios} onAlternar={alternarDanio} />
-
-            <TouchableOpacity
-              style={[styles.fotoDanoBox, !puedeAgregarFoto && styles.fotoDanoBoxDeshabilitado]}
-              onPress={puedeAgregarFoto ? handleAgregarFotoDano : undefined}
-              disabled={!puedeAgregarFoto}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.fotoDanoTexto, !puedeAgregarFoto && styles.fotoDanoTextoDeshabilitado]}>
-                + Agregar foto del daño
-              </Text>
-            </TouchableOpacity>
-
-            {datos.fotosDano.length > 0 && (
-              <Text style={styles.fotosContador}>
-                {datos.fotosDano.length} foto{datos.fotosDano.length > 1 ? "s" : ""} agregada
-                {datos.fotosDano.length > 1 ? "s" : ""}
-              </Text>
-            )}
           </>
         )}
 
         <View style={styles.boton}>
-          <Button
-            title="Finalizar y Guardar Trabajo"
-            onPress={onFinalizar}
-            disabled={!puedeFinalizar}
-          />
+          <Button title="Siguiente" onPress={onContinuar} disabled={!puedeContinuar} />
         </View>
       </ScrollView>
     </View>
@@ -268,35 +227,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 10,
     fontStyle: "italic",
-  },
-  fotoDanoBox: {
-    marginTop: 16,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.borderAccent,
-    borderRadius: radii.button,
-    ...continuousCorner,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  fotoDanoBoxDeshabilitado: {
-    borderColor: colors.borderSubtle,
-    opacity: 0.5,
-  },
-  fotoDanoTexto: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    color: colors.accentLight,
-  },
-  fotoDanoTextoDeshabilitado: {
-    color: colors.textMuted,
-  },
-  fotosContador: {
-    fontFamily: fonts.mono,
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 8,
-    textAlign: "center",
   },
   boton: {
     marginTop: 28,

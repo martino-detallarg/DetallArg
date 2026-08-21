@@ -1,13 +1,15 @@
-import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Button from "./Button";
-import { useData } from "../data/DataContext";
+import { ESTADOS_TRABAJO } from "../data/mockData";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
-export default function DetalleTurnoModal({ visible, turno, cliente, auto, onClose }) {
-  const { getAutosByClienteId } = useData();
+// Detalle de solo lectura de un trabajo ya cargado (cliente, vehículo y
+// datos del servicio), con un selector de estado debajo para ir avanzando
+// (o volviendo) por las etapas del trabajo.
+export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onCambiarEstado, onClose }) {
   if (!turno || !cliente) return null;
 
-  const autosDelCliente = getAutosByClienteId(cliente.id);
+  const vehiculosDelCliente = cliente.vehiculos;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -23,15 +25,15 @@ export default function DetalleTurnoModal({ visible, turno, cliente, auto, onClo
               <Text style={styles.filaValor}>{cliente.nombre}</Text>
               <Text style={styles.filaLabel}>Teléfono</Text>
               <Text style={styles.filaValor}>{cliente.telefono}</Text>
-              <Text style={styles.filaLabel}>Autos</Text>
-              {autosDelCliente.map((a) => (
-                <Text key={a.id} style={styles.filaValor}>
-                  · {a.marca} {a.modelo} ({a.patente})
+              <Text style={styles.filaLabel}>Vehículos</Text>
+              {vehiculosDelCliente.map((v) => (
+                <Text key={v.id} style={styles.filaValor}>
+                  · {v.marca} {v.modelo} ({v.patente})
                 </Text>
               ))}
             </View>
 
-            <Text style={styles.seccion}>Ficha del auto de este turno</Text>
+            <Text style={styles.seccion}>Ficha del vehículo de este turno</Text>
             <View style={styles.tarjeta}>
               <Text style={styles.filaLabel}>Marca y modelo</Text>
               <Text style={styles.filaValor}>
@@ -43,6 +45,38 @@ export default function DetalleTurnoModal({ visible, turno, cliente, auto, onClo
               <Text style={styles.filaValor}>{auto?.color ?? "-"}</Text>
               <Text style={styles.filaLabel}>Dueño</Text>
               <Text style={styles.filaValor}>{cliente.nombre}</Text>
+            </View>
+
+            <Text style={styles.seccion}>Datos del servicio</Text>
+            <View style={styles.tarjeta}>
+              <Text style={styles.filaLabel}>Fecha</Text>
+              <Text style={styles.filaValor}>{turno.fecha || "-"}</Text>
+              <Text style={styles.filaLabel}>Hora</Text>
+              <Text style={styles.filaValor}>{turno.hora || "-"}</Text>
+              <Text style={styles.filaLabel}>Tiempo estimado</Text>
+              <Text style={styles.filaValor}>{turno.tiempoEstimado || "-"}</Text>
+              <Text style={styles.filaLabel}>Observaciones</Text>
+              <Text style={styles.filaValor}>{turno.observaciones || "Sin observaciones"}</Text>
+            </View>
+
+            <Text style={styles.seccion}>Estado del trabajo</Text>
+            <View style={styles.chips}>
+              {ESTADOS_TRABAJO.map((estado) => {
+                const activo = turno.estado === estado;
+                return (
+                  <TouchableOpacity
+                    key={estado}
+                    style={[styles.chip, activo && styles.chipSeleccionado]}
+                    onPress={() => onCambiarEstado(estado)}
+                    disabled={activo}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
+                      {estado}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </ScrollView>
 
@@ -69,7 +103,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: 20,
-    maxHeight: "80%",
+    maxHeight: "85%",
     ...shadow,
     shadowOffset: { width: 0, height: -4 },
   },
@@ -113,6 +147,33 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 15,
     color: colors.textPrimary,
+  },
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 4,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface2,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  chipSeleccionado: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  chipTexto: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  chipTextoSeleccionado: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.bg,
   },
   botonCerrar: {
     marginTop: 16,

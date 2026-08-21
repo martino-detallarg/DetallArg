@@ -5,17 +5,17 @@ import DatosClienteStep from "./DatosClienteStep";
 import DatosVehiculoStep from "./DatosVehiculoStep";
 import SeleccionarClienteStep from "./SeleccionarClienteStep";
 import { separarMarcaModelo } from "../../data/mockData";
-import { useData } from "../../data/DataContext";
+import { useClientes } from "../../data/ClienteContext";
 import { colors } from "../../theme";
 
-const CLIENTE_VACIO = { nombre: "", telefono: "", direccion: "" };
-const VEHICULO_VACIO = { patente: "", marcaModelo: "", color: "", kilometros: "", observaciones: "" };
+const CLIENTE_VACIO = { nombre: "", telefono: "" };
+const VEHICULO_VACIO = { patente: "", marcaModelo: "", anio: "", color: "" };
 const TOTAL_PASOS = 2;
 
-// modo "cliente": Datos del Cliente -> Datos del Vehículo (crea cliente + auto nuevos)
-// modo "vehiculo": Elegir Cliente -> Datos del Vehículo (crea auto nuevo para un cliente existente)
+// modo "cliente": Datos del Cliente -> Datos del Vehículo (crea cliente + vehículo nuevos)
+// modo "vehiculo": Elegir Cliente -> Datos del Vehículo (crea vehículo nuevo para un cliente existente)
 export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) {
-  const { agregarAuto, agregarCliente } = useData();
+  const { agregarVehiculo, agregarCliente } = useClientes();
   const esVehiculoNuevo = modo === "vehiculo";
 
   const [paso, setPaso] = useState(esVehiculoNuevo ? "elegirCliente" : "cliente");
@@ -47,21 +47,18 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
       : agregarCliente({
           nombre: datosCliente.nombre.trim(),
           telefono: datosCliente.telefono.trim(),
-          direccion: datosCliente.direccion.trim(),
         }).id;
 
     const { marca, modelo } = separarMarcaModelo(datosVehiculo.marcaModelo);
-    const nuevoAuto = agregarAuto({
+    const nuevoVehiculo = agregarVehiculo(clienteId, {
       marca,
       modelo,
+      anio: datosVehiculo.anio.trim(),
       patente: datosVehiculo.patente.trim(),
       color: datosVehiculo.color.trim(),
-      clienteId,
-      kilometros: datosVehiculo.kilometros.trim(),
-      observaciones: datosVehiculo.observaciones.trim(),
     });
 
-    onListo(clienteId, nuevoAuto.id);
+    onListo(clienteId, nuevoVehiculo.id);
   }
 
   const pasoNumero = paso === "vehiculo" ? 2 : 1;

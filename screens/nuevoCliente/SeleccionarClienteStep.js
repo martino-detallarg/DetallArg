@@ -3,11 +3,11 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import Input from "../../components/Input";
-import { useData } from "../../data/DataContext";
+import { useClientes } from "../../data/ClienteContext";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 export default function SeleccionarClienteStep({ titulo, paso, totalPasos, onAtras, onSeleccionar }) {
-  const { clientes, getAutosByClienteId } = useData();
+  const { clientes } = useClientes();
   const [busqueda, setBusqueda] = useState("");
 
   const filtrados = clientes.filter((c) =>
@@ -32,7 +32,7 @@ export default function SeleccionarClienteStep({ titulo, paso, totalPasos, onAtr
         contentContainerStyle={styles.lista}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => {
-          const cantidadAutos = getAutosByClienteId(item.id).length;
+          const cantidadAutos = item.vehiculos.length;
           return (
             <TouchableOpacity
               style={styles.fila}

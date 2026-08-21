@@ -5,6 +5,7 @@ import MiTallerScreen from "../screens/MiTallerScreen";
 import MisDatosScreen from "../screens/MisDatosScreen";
 import MisInsumosScreen from "../screens/MisInsumosScreen";
 import FinanzasScreen from "../screens/FinanzasScreen";
+import CostosFijosScreen from "../screens/CostosFijosScreen";
 import NotificacionesScreen from "../screens/NotificacionesScreen";
 import PlaceholderScreen from "../screens/PlaceholderScreen";
 import DrawerContent from "../components/DrawerContent";
@@ -41,6 +42,7 @@ export default function DashboardNavigator({ onLogout }) {
       <Drawer.Screen name="Clientes" component={ClientesScreen} />
       <Drawer.Screen name="MiTaller" component={MiTallerScreen} />
       <Drawer.Screen name="Finanzas" component={FinanzasScreen} />
+      <Drawer.Screen name="CostosFijos" component={CostosFijosScreen} />
       <Drawer.Screen name="MisDatos" component={MisDatosScreen} />
       <Drawer.Screen name="MisInsumos" component={MisInsumosScreen} />
       <Drawer.Screen name="Notificaciones" component={NotificacionesScreen} />

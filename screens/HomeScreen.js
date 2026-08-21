@@ -4,12 +4,14 @@ import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from
 import ScreenHeader from "../components/ScreenHeader";
 import StatCard from "../components/StatCard";
 import TurnoCard from "../components/TurnoCard";
-import DetalleTurnoModal from "../components/DetalleTurnoModal";
+import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
 import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
 import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
+import ConfirmarTrabajoModal from "../components/ConfirmarTrabajoModal";
 import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
-import { useData } from "../data/DataContext";
+import { useClientes } from "../data/ClienteContext";
+import { useTurnos } from "../data/TurnoContext";
 import { usuarioActual } from "../data/mockUser";
 import { colors, fonts, shadow } from "../theme";
 
@@ -24,8 +26,9 @@ function formatearMonto(valor) {
 }
 
 export default function HomeScreen({ navigation }) {
-  const { turnos, agregarTurno, getClienteById, getAutoById } = useData();
-  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
+  const { getClienteById, getVehiculoById } = useClientes();
+  const { turnos, agregarTurno, actualizarEstadoTrabajo } = useTurnos();
+  const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
 
   const [opcionesVisibles, setOpcionesVisibles] = useState(false);
   const [submenuClienteVisible, setSubmenuClienteVisible] = useState(false);
@@ -33,8 +36,11 @@ export default function HomeScreen({ navigation }) {
   const [wizardClienteVisible, setWizardClienteVisible] = useState(false);
   const [wizardTrabajoVisible, setWizardTrabajoVisible] = useState(false);
   const [prefillTrabajo, setPrefillTrabajo] = useState(null);
+  const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
+  const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
 
   const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
+  const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
 
   function handleAbrirClienteNuevo() {
     setOpcionesVisibles(false);
@@ -55,8 +61,20 @@ export default function HomeScreen({ navigation }) {
 
   function handleClienteVehiculoListo(clienteId, autoId) {
     setWizardClienteVisible(false);
-    setPrefillTrabajo({ clienteId, autoId });
+    setClienteVehiculoPendiente({ clienteId, autoId });
+    setConfirmacionTrabajoVisible(true);
+  }
+
+  function handleConfirmarTrabajoSi() {
+    setConfirmacionTrabajoVisible(false);
+    setPrefillTrabajo(clienteVehiculoPendiente);
+    setClienteVehiculoPendiente(null);
     setWizardTrabajoVisible(true);
+  }
+
+  function handleConfirmarTrabajoNo() {
+    setConfirmacionTrabajoVisible(false);
+    setClienteVehiculoPendiente(null);
   }
 
   function handleCerrarTrabajo() {
@@ -89,8 +107,8 @@ export default function HomeScreen({ navigation }) {
           <TurnoCard
             turno={item}
             cliente={getClienteById(item.clienteId)}
-            auto={getAutoById(item.autoId)}
-            onPress={() => setTurnoSeleccionado(item)}
+            auto={getVehiculoById(item.autoId)}
+            onPress={() => setTurnoSeleccionadoId(item.id)}
           />
         )}
         ListEmptyComponent={
@@ -116,12 +134,13 @@ export default function HomeScreen({ navigation }) {
         onVehiculoNuevo={() => handleElegirModoCliente("vehiculo")}
       />
 
-      <DetalleTurnoModal
+      <TrabajoDetalleModal
         visible={turnoSeleccionado !== null}
         turno={turnoSeleccionado}
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
-        auto={turnoSeleccionado ? getAutoById(turnoSeleccionado.autoId) : null}
-        onClose={() => setTurnoSeleccionado(null)}
+        auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
+        onCambiarEstado={(nuevoEstado) => actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado)}
+        onClose={() => setTurnoSeleccionadoId(null)}
       />
 
       <NuevoClienteWizard
@@ -129,6 +148,12 @@ export default function HomeScreen({ navigation }) {
         modo={modoClienteWizard}
         onClose={() => setWizardClienteVisible(false)}
         onListo={handleClienteVehiculoListo}
+      />
+
+      <ConfirmarTrabajoModal
+        visible={confirmacionTrabajoVisible}
+        onSi={handleConfirmarTrabajoSi}
+        onNo={handleConfirmarTrabajoNo}
       />
 
       <TrabajoNuevoWizard

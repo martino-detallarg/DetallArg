@@ -24,6 +24,9 @@ import VerifyEmailScreen from "./screens/VerifyEmailScreen";
 import DashboardNavigator from "./navigation/DashboardNavigator";
 import { DataProvider } from "./data/DataContext";
 import { TallerProvider } from "./data/TallerContext";
+import { PedidoProvider } from "./data/PedidoContext";
+import { ClienteProvider } from "./data/ClienteContext";
+import { TurnoProvider } from "./data/TurnoContext";
 import { colors } from "./theme";
 
 SplashScreenNativo.preventAutoHideAsync();
@@ -87,11 +90,17 @@ export default function App() {
 
           {pantalla === "app" && (
             <DataProvider>
-              <TallerProvider>
-                <NavigationContainer>
-                  <DashboardNavigator onLogout={() => setPantalla("login")} />
-                </NavigationContainer>
-              </TallerProvider>
+              <ClienteProvider>
+                <TurnoProvider>
+                  <TallerProvider>
+                    <PedidoProvider>
+                      <NavigationContainer>
+                        <DashboardNavigator onLogout={() => setPantalla("login")} />
+                      </NavigationContainer>
+                    </PedidoProvider>
+                  </TallerProvider>
+                </TurnoProvider>
+              </ClienteProvider>
             </DataProvider>
           )}
         </View>

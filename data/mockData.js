@@ -1,14 +1,14 @@
-export const clientes = [
-  { id: "c1", nombre: "Juan Pérez", telefono: "11 2345-6789" },
-  { id: "c2", nombre: "Marina López", telefono: "11 3456-7890" },
-];
+// Orden de las etapas por las que pasa un trabajo, de menos a más avanzado.
+// Vive acá (no hardcodeado en TrabajoDetalleModal ni en TurnoCard) para
+// poder ampliarlo más adelante a etapas más específicas por tipo de
+// tratamiento sin tener que rehacer esas pantallas.
+export const ESTADOS_TRABAJO = ["Pendiente", "En proceso", "Finalizado", "Entregado"];
 
-export const autos = [
-  { id: "a1", marca: "Volkswagen", modelo: "Golf", patente: "AB123CD", color: "Gris", clienteId: "c1" },
-  { id: "a2", marca: "Toyota", modelo: "Hilux", patente: "AC456EF", color: "Blanca", clienteId: "c1" },
-  { id: "a3", marca: "Fiat", modelo: "Cronos", patente: "AD789GH", color: "Negro", clienteId: "c2" },
-];
-
+// Los clientes/autos de ejemplo que originaban c1/c2/a1/a2/a3 se migraron a
+// ClienteContext (que arranca vacío). Estos turnos de ejemplo quedan con
+// referencias sin resolver hasta que se carguen clientes reales desde la
+// pantalla de Clientes; TurnoCard ya contempla ese caso mostrando "Cliente
+// sin datos" / "Auto sin datos".
 export const turnosIniciales = [
   { id: "t1", clienteId: "c1", autoId: "a1", hora: "09:00", servicio: "Lavado + encerado", estado: "Pendiente" },
   { id: "t2", clienteId: "c2", autoId: "a3", hora: "10:30", servicio: "Limpieza de tapizados", estado: "En proceso" },
