@@ -9,7 +9,6 @@ import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
 import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
 import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
-import { turnosIniciales } from "../data/mockData";
 import { useData } from "../data/DataContext";
 import { usuarioActual } from "../data/mockUser";
 import { colors, fonts, shadow } from "../theme";
@@ -25,8 +24,7 @@ function formatearMonto(valor) {
 }
 
 export default function HomeScreen({ navigation }) {
-  const { getClienteById, getAutoById } = useData();
-  const [turnos, setTurnos] = useState(turnosIniciales);
+  const { turnos, agregarTurno, getClienteById, getAutoById } = useData();
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
 
   const [opcionesVisibles, setOpcionesVisibles] = useState(false);
@@ -37,11 +35,6 @@ export default function HomeScreen({ navigation }) {
   const [prefillTrabajo, setPrefillTrabajo] = useState(null);
 
   const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
-
-  function agregarTrabajo(datosTrabajo) {
-    const nuevoTrabajo = { id: `t${Date.now()}`, ...datosTrabajo };
-    setTurnos((actuales) => [...actuales, nuevoTrabajo]);
-  }
 
   function handleAbrirClienteNuevo() {
     setOpcionesVisibles(false);
@@ -141,7 +134,7 @@ export default function HomeScreen({ navigation }) {
       <TrabajoNuevoWizard
         visible={wizardTrabajoVisible}
         onClose={handleCerrarTrabajo}
-        onGuardarTrabajo={agregarTrabajo}
+        onGuardarTrabajo={agregarTurno}
         clienteIdInicial={prefillTrabajo?.clienteId}
         autoIdInicial={prefillTrabajo?.autoId}
       />

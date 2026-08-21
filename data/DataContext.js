@@ -1,5 +1,9 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { autos as autosIniciales, clientes as clientesIniciales } from "./mockData";
+import {
+  autos as autosIniciales,
+  clientes as clientesIniciales,
+  turnosIniciales,
+} from "./mockData";
 import { misInsumosIniciales } from "./mockInsumos";
 
 const DataContext = createContext(null);
@@ -8,6 +12,7 @@ export function DataProvider({ children }) {
   const [clientes, setClientes] = useState(clientesIniciales);
   const [autos, setAutos] = useState(autosIniciales);
   const [misInsumos, setMisInsumos] = useState(misInsumosIniciales);
+  const [turnos, setTurnos] = useState(turnosIniciales);
 
   function agregarCliente({ nombre, telefono, ...resto }) {
     const nuevoCliente = { id: `c${Date.now()}`, nombre, telefono, ...resto };
@@ -41,6 +46,20 @@ export function DataProvider({ children }) {
     return autos.filter((a) => a.clienteId === clienteId);
   }
 
+  function agregarTurno(datosTurno) {
+    const nuevoTurno = { id: `t${Date.now()}`, ...datosTurno };
+    setTurnos((actuales) => [...actuales, nuevoTurno]);
+    return nuevoTurno;
+  }
+
+  function actualizarTurno(id, cambios) {
+    setTurnos((actuales) => actuales.map((t) => (t.id === id ? { ...t, ...cambios } : t)));
+  }
+
+  function getTurnoById(id) {
+    return turnos.find((t) => t.id === id);
+  }
+
   function agregarInsumo({ productoId, marca, nombre, categoria, ph, dilucion, rendimiento, imagen }) {
     const nuevoInsumo = {
       id: `mi${Date.now()}`,
@@ -65,6 +84,7 @@ export function DataProvider({ children }) {
       clientes,
       autos,
       misInsumos,
+      turnos,
       agregarCliente,
       agregarAuto,
       actualizarCliente,
@@ -73,8 +93,11 @@ export function DataProvider({ children }) {
       getAutoById,
       getAutosByClienteId,
       agregarInsumo,
+      agregarTurno,
+      actualizarTurno,
+      getTurnoById,
     }),
-    [clientes, autos, misInsumos]
+    [clientes, autos, misInsumos, turnos]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

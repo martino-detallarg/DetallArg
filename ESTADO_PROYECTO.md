@@ -69,7 +69,7 @@ detallarg-app/
 ├── assets/                    # Íconos de la app, splash icon, logos (blanco/negro) en PNG
 │
 ├── data/                      # "Backend" simulado — toda la data vive acá, en memoria
-│   ├── DataContext.js         # Context de React con clientes[] y autos[] + funciones CRUD-ish
+│   ├── DataContext.js         # Context de React con clientes[], autos[], turnos[] y misInsumos[] + funciones CRUD-ish
 │   ├── mockData.js            # Clientes, autos y turnos iniciales hardcodeados + helper separarMarcaModelo()
 │   └── mockUser.js            # Usuario "logueado" hardcodeado (usuarioActual)
 │
@@ -177,7 +177,7 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 **Totalmente pendiente / no implementado:**
 - Autenticación real (ver sección 5 y 6) — hoy es 100% simulada.
 - Persistencia de datos: todo vive en memoria (React state), se pierde al cerrar sesión o recargar la app.
-- Borrado de clientes, vehículos o turnos — solo existe alta (`agregarCliente`, `agregarAuto`) y edición (`actualizarCliente`, `actualizarAuto`), no hay funciones de delete en `DataContext.js`.
+- Borrado de clientes, vehículos o turnos — solo existe alta (`agregarCliente`, `agregarAuto`, `agregarTurno`) y edición (`actualizarCliente`, `actualizarAuto`, `actualizarTurno`), no hay funciones de delete en `DataContext.js`.
 - Edición o cambio de estado de un turno ya creado (el modal de detalle de turno es de solo lectura; no se puede marcar como "En proceso" o "Terminado" desde la UI).
 - Cálculo real de ingresos: `INGRESOS_DEL_MES` en `HomeScreen.js` es una constante fija (`1245000`), no se calcula a partir de turnos ni de ningún dato real.
 - Recuperación de contraseña: el link "¿Olvidaste tu contraseña?" en `LoginScreen.js` no tiene `onPress` (no hace nada).
@@ -189,8 +189,8 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 ## 5. Decisiones de arquitectura importantes
 
 **Manejo de estado:**
-- Todo el estado de datos de negocio (clientes y autos) vive en un único React Context: `data/DataContext.js`, expuesto por el hook `useData()`. Internamente usa `useState` (no hay `useReducer` ni librería externa) y expone funciones `agregarCliente`, `agregarAuto`, `actualizarCliente`, `actualizarAuto`, `getClienteById`, `getAutoById`, `getAutosByClienteId`. Está memoizado con `useMemo`.
-- **Importante — asimetría a tener en cuenta:** los **turnos NO viven en `DataContext`**. Viven en un `useState` local dentro de `HomeScreen.js` (`turnosIniciales` de `mockData.js`). Esto significa que si en el futuro se necesita mostrar turnos desde otra pantalla (por ejemplo, una futura Agenda o desde `ClientesScreen`), hay que primero "subir" ese estado a `DataContext` — hoy no es accesible fuera de `HomeScreen`.
+- Todo el estado de datos de negocio (clientes, autos y turnos) vive en un único React Context: `data/DataContext.js`, expuesto por el hook `useData()`. Internamente usa `useState` (no hay `useReducer` ni librería externa) y expone funciones `agregarCliente`, `agregarAuto`, `actualizarCliente`, `actualizarAuto`, `getClienteById`, `getAutoById`, `getAutosByClienteId`, `agregarTurno`, `actualizarTurno`, `getTurnoById`. Está memoizado con `useMemo` (dependencias: `clientes`, `autos`, `misInsumos`, `turnos`).
+- **Turnos ya unificados en `DataContext`:** hasta agosto de 2026 los turnos vivían en un `useState` local dentro de `HomeScreen.js`, separados de clientes/autos. Se migraron a `DataContext` con el mismo patrón (`agregarTurno`, `actualizarTurno`, `getTurnoById`), así que ahora son accesibles desde cualquier pantalla vía `useData()` — por ejemplo, una futura Agenda o `ClientesScreen` ya no necesitan "subir" ese estado primero. `HomeScreen.js` pasa `agregarTurno` directo como `onGuardarTrabajo` al wizard de Trabajo Nuevo (antes había una función local `agregarTrabajo` que hacía lo mismo).
 - El `DataProvider` solo envuelve la parte autenticada de la app (`pantalla === "app"` en `App.js`). Esto implica que **al cerrar sesión, todo el estado de clientes/autos se destruye** (el Provider se desmonta) y al volver a loguearse arranca de cero con los datos mock originales.
 
 **Navegación:**
@@ -212,7 +212,7 @@ Toda la "data" de la app es mock, definida en archivos estáticos:
 - `data/mockData.js`: 2 clientes, 3 autos y 3 turnos de ejemplo, más el helper `separarMarcaModelo(texto)` que parte un string tipo "Volkswagen Golf" en `{ marca: "Volkswagen", modelo: "Golf" }`.
 - `data/mockUser.js`: un único usuario hardcodeado (`usuarioActual`), usado para mostrar el nombre en el saludo de Home y el email/empresa en el drawer.
 
-Cualquier dato que se carga desde la UI (nuevo cliente, nuevo vehículo, nuevo turno) se guarda **solo en memoria**, vía los `useState` de `DataContext.js` y `HomeScreen.js` respectivamente. No hay ninguna base de datos local (no hay AsyncStorage, SQLite, ni Realm) ni remota.
+Cualquier dato que se carga desde la UI (nuevo cliente, nuevo vehículo, nuevo turno) se guarda **solo en memoria**, vía los `useState` de `DataContext.js`. No hay ninguna base de datos local (no hay AsyncStorage, SQLite, ni Realm) ni remota.
 
 ---
 
@@ -268,7 +268,6 @@ Lo único que hace falta para correr el proyecto localmente es tener el entorno 
 ## 9. Bugs conocidos o cosas pendientes de arreglar
 
 - **Inconsistencia en `app.json`:** `"userInterfaceStyle": "light"` está seteado, pero toda la UI está diseñada exclusivamente en modo oscuro (`colors.bg` casi negro, `StatusBar style="light"` en todas las pantallas). Esto puede afectar cómo el sistema operativo trata la interfaz nativa (splash screen, controles del sistema) en algunos casos. Habría que revisar si conviene cambiarlo a `"dark"` o dejarlo así intencionalmente.
-- **Turnos fuera de `DataContext`:** como se explica en la sección 5, los turnos viven en un `useState` local de `HomeScreen.js` en vez de estar en `DataContext` junto con clientes y autos. Esto es deuda técnica: cualquier pantalla nueva que necesite leer/escribir turnos (ej. una futura Agenda) va a requerir primero mover ese estado al Context.
 - **Sin borrado de datos:** no hay forma de eliminar un cliente, un vehículo o un turno desde la UI ni desde `DataContext` — solo alta y edición.
 - **`separarMarcaModelo` es ingenuo:** parte el string por espacios y asume que la primera palabra es la marca y el resto el modelo (`data/mockData.js`). Un input como "BMW" (sin modelo) genera `modelo: ""`, y una marca de dos palabras (ej. "Alfa Romeo") se partiría mal (marca: "Alfa", modelo: "Romeo ..."). No hay selector de marca/modelo desde una lista.
 - **IDs por `Date.now()`:** en teoría dos registros creados en el mismo milisegundo (poco probable con interacción humana, pero posible en tests automatizados o llamadas programáticas) generarían el mismo ID.
@@ -310,8 +309,7 @@ Lo único que hace falta para correr el proyecto localmente es tener el entorno 
 - Antes de escribir código que use APIs de Expo o React Native, revisar la doc versionada de Expo SDK indicada en `AGENTS.md` (`https://docs.expo.dev/versions/v57.0.0/`) en vez de asumir comportamientos de memoria — la API cambia seguido entre versiones de Expo.
 
 ### Partes delicadas que no conviene romper sin querer
-- **`DataContext.js`:** es la única fuente de verdad para clientes y autos. Cualquier cambio en la forma de los objetos `cliente`/`auto` (agregar/quitar campos) hay que propagarlo a todos los lugares que los leen: `HomeScreen`, `ClientesScreen`, `ClienteDetalleModal`, los steps de ambos wizards, y `TurnoCard`/`DetalleTurnoModal`.
-- **La asimetría de los turnos** (viven en `HomeScreen`, no en `DataContext`): si se necesita acceso a turnos desde otra pantalla, hay que decidir conscientemente si conviene subirlos al Context antes de duplicar lógica.
+- **`DataContext.js`:** es la única fuente de verdad para clientes, autos y turnos. Cualquier cambio en la forma de los objetos `cliente`/`auto`/`turno` (agregar/quitar campos) hay que propagarlo a todos los lugares que los leen: `HomeScreen`, `ClientesScreen`, `ClienteDetalleModal`, los steps de ambos wizards, y `TurnoCard`/`DetalleTurnoModal`.
 - **Los wizards (`NuevoClienteWizard`, `TrabajoNuevoWizard`) se resetean por `useEffect` cuando `visible` pasa a `true`** — si se agrega un nuevo campo de estado a un wizard, hay que acordarse de resetearlo ahí también, o va a persistir de una apertura del modal a la siguiente.
 - **El flujo de "Cliente nuevo" → pregunta → "Trabajo nuevo"** (agregado recientemente) depende de que `handleFinalizarVehiculo` en `NuevoClienteWizard.js` guarde el cliente/auto **antes** de mostrar la pregunta — si se reordena esa lógica, hay que asegurarse de que el guardado siga ocurriendo independientemente de si el usuario responde "Sí" o "No".
 - **`App.js` es el único lugar donde se decide si el usuario está "autenticado"** (variable `pantalla`). Si en el futuro se conecta un backend real de auth, este es el punto de entrada a modificar (hoy no hay ningún guard real, es solo UI).
