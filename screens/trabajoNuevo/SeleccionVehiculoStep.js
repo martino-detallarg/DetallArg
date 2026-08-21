@@ -4,7 +4,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import Button from "../../components/Button";
 import FuelGauge from "../../components/wizard/FuelGauge";
-import DamageDiagram from "../../components/wizard/DamageDiagram";
+import DiagramaDanios from "../../components/wizard/DiagramaDanios";
+import { DIAGRAMAS_POR_TIPO_VEHICULO } from "../../components/diagrams/vehicles";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 const TIPOS_VEHICULO = {
@@ -38,6 +39,17 @@ const TIPOS_VEHICULO = {
 };
 
 const TIPOS = Object.entries(TIPOS_VEHICULO).map(([id, valor]) => ({ id, ...valor }));
+
+// El diagrama de paneles reales de "pickup cabina simple" aplica cuando el
+// tipo de vehículo es "camioneta" y el grupo elegido es "Cabina simple"
+// (el tamaño, Chico o Mediano, no cambia la disposición de los paneles).
+// Cualquier otra combinación cae al diagrama genérico de 5 zonas.
+function obtenerClaveDiagrama(datos) {
+  if (datos.tipoVehiculo === "camioneta" && datos.grupo === "Cabina simple") {
+    return "pickup_cabina_simple";
+  }
+  return null;
+}
 
 export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambiar, onAtras, onFinalizar }) {
   function handleCambiarZona(zonaId, tipoDanio) {
@@ -75,6 +87,8 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
   const puedeAgregarFoto = Object.keys(datos.danios).length > 0;
   const tipoInfo = datos.tipoVehiculo ? TIPOS_VEHICULO[datos.tipoVehiculo] : null;
   const puedeFinalizar = !!datos.subdivision;
+  const claveDiagrama = obtenerClaveDiagrama(datos);
+  const tieneDiagramaEspecifico = !!DIAGRAMAS_POR_TIPO_VEHICULO[claveDiagrama];
 
   return (
     <View style={styles.pantalla}>
@@ -132,8 +146,9 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
             ))}
 
             <Text style={styles.notaPlaceholder}>
-              Por ahora todas las subdivisiones usan el mismo diagrama genérico — más adelante se
-              puede reemplazar por el modelo real de cada una.
+              {tieneDiagramaEspecifico
+                ? "Esta carrocería ya tiene su propio diagrama de paneles reales."
+                : "Por ahora esta carrocería usa el diagrama genérico de 5 zonas — más adelante se puede sumar su modelo real."}
             </Text>
           </View>
         )}
@@ -144,7 +159,7 @@ export default function SeleccionVehiculoStep({ datos, paso, totalPasos, onCambi
             <FuelGauge nivel={datos.nivelNafta} onCambiar={(n) => onCambiar({ nivelNafta: n })} />
 
             <Text style={styles.texto}>Marcá los sectores con daño previo</Text>
-            <DamageDiagram danios={datos.danios} onCambiarZona={handleCambiarZona} />
+            <DiagramaDanios claveVehiculo={claveDiagrama} danios={datos.danios} onCambiarZona={handleCambiarZona} />
 
             <TouchableOpacity
               style={[styles.fotoDanoBox, !puedeAgregarFoto && styles.fotoDanoBoxDeshabilitado]}
