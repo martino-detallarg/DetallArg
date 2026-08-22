@@ -75,3 +75,14 @@ export function formatearDiaSemanaCorto(fecha) {
 export function formatearFechaLarga(fecha) {
   return `${DIAS_SEMANA_LARGO[fecha.getDay()]} ${fecha.getDate()} de ${MESES_LARGO[fecha.getMonth()]}`;
 }
+
+// Inversa de parsearFechaDDMMAAAA: arma el string "DD/MM/AAAA" a partir de
+// la fecha elegida en el date picker nativo, para que el valor guardado
+// siga siendo compatible con el resto de la app (que todavía trata la
+// fecha del turno como texto plano, no como Date/ISO).
+export function formatearFechaDDMMAAAA(fecha) {
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const anio = fecha.getFullYear();
+  return `${dia}/${mes}/${anio}`;
+}
