@@ -1,0 +1,91 @@
+{
+  "vehicleType": "auto",
+  "subdivision": "sedan",
+  "view": "cenital",
+  "viewBox": "0 0 1260 590",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "techo",
+      "label": "Techo / vidrios",
+      "points": [
+        [
+          420,
+          100
+        ],
+        [
+          1050,
+          100
+        ],
+        [
+          1050,
+          490
+        ],
+        [
+          420,
+          490
+        ]
+      ]
+    },
+    {
+      "id": "parante_izq",
+      "label": "Parante izquierdo",
+      "points": [
+        [
+          340,
+          60
+        ],
+        [
+          700,
+          45
+        ],
+        [
+          1050,
+          55
+        ],
+        [
+          1180,
+          90
+        ],
+        [
+          1150,
+          100
+        ],
+        [
+          365,
+          100
+        ]
+      ]
+    },
+    {
+      "id": "parante_der",
+      "label": "Parante derecho",
+      "points": [
+        [
+          340,
+          540
+        ],
+        [
+          700,
+          548
+        ],
+        [
+          1050,
+          543
+        ],
+        [
+          1180,
+          510
+        ],
+        [
+          1150,
+          490
+        ],
+        [
+          365,
+          490
+        ]
+      ]
+    }
+  ]
+}

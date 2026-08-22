@@ -94,5 +94,11 @@ Para no duplicar zonas entre vistas, cada parte real del auto se marca una sola 
 - `auto/coupe/atras/` — listo (5 zonas: vidrio trasero, baúl completo como una sola pieza sin subdividir, luz izq/der, paragolpes trasero). Sin parantes — esos van en la vista cenital.
 - `auto/coupe/lateral/` — listo (4 zonas: guardabarro, puerta, vidrio, cola). Es un solo lado — ver nota arriba sobre el lado espejado. Llantas sin zona propia todavía.
 - `auto/coupe/cenital/` — listo (3 zonas: techo/vidrios como una sola zona sin dividir, parante izq, parante der). Ver nota arriba sobre el solape con los parantes de Frente.
-- **`auto/coupe` completo — Frente, Atrás, Lateral y Cenital ✅.** Es la primera carrocería con las 4 vistas terminadas; sirve de plantilla/proceso probado para el resto de las subdivisiones.
-- Existe también una carpeta vieja `auto-sedan/` con el mismo contenido de Frente, armada antes de tener este árbol — se puede borrar, quedó reemplazada por `auto/coupe/frente/`.
+- **`auto/coupe` completo — Frente, Atrás, Lateral y Cenital ✅.**
+- `auto/sedan/frente/` — listo (9 zonas, prácticamente calcadas de `auto/coupe/frente/` — misma proporción de referencia).
+- `auto/sedan/atras/` — listo (5 zonas, igual criterio que `auto/coupe/atras/`).
+- `auto/sedan/lateral/` — listo (**5 zonas**, no 4 como el Coupé: se suma `puerta_trasera` porque el Sedán tiene 2 puertas por lado — cortada justo por el parante B real de la imagen).
+- `auto/sedan/cenital/` — listo (3 zonas, igual que el Coupé — la franja de "parante" incluye tanto el A como el B, no se separan).
+- **`auto/sedan` completo — Frente, Atrás, Lateral y Cenital ✅.** Reutilizó casi todas las coordenadas de `auto/coupe` (misma familia de imagen de referencia) — el único cambio real de zonas fue la puerta trasera en Lateral.
+- Con esto ya son 2 de las 16 subdivisiones completas — sirven de plantilla/proceso probado para el resto.
+- ⚠️ Ojo con no confundir: existe una carpeta vieja **`auto-sedan/`** (con guion, en la raíz de `checkin-diagrams/`, NO adentro de `auto/`) con contenido de una prueba de Frente armada antes de tener este árbol — es distinta de la carpeta real **`auto/sedan/`** de arriba. La vieja se puede borrar, quedó reemplazada por `auto/coupe/frente/` (fue una mala clasificación inicial, ese Audi era en realidad un Coupé, no un Sedán).

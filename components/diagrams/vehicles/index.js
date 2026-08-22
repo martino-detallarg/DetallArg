@@ -4,6 +4,7 @@ import PickupCabinaSimpleDiagram, {
   PANEL_LABELS as PICKUP_CABINA_SIMPLE_PANEL_LABELS,
 } from "./PickupCabinaSimpleDiagram";
 import { AUTO_COUPE_VISTAS, VEHICLE_TYPE as AUTO_COUPE } from "./autoCoupe";
+import { AUTO_SEDAN_VISTAS, VEHICLE_TYPE as AUTO_SEDAN } from "./autoSedan";
 
 // Mapeo tipoDeVehiculo -> diagramas de paneles reales, para no tener que
 // rehacer el selector de estado de DiagramaDanios ni el carrusel de
@@ -40,6 +41,9 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [AUTO_COUPE]: {
     vistas: AUTO_COUPE_VISTAS,
   },
+  [AUTO_SEDAN]: {
+    vistas: AUTO_SEDAN_VISTAS,
+  },
 };
 
 // Resuelve la clave de este registro a partir de los datos de "Tipo de
@@ -53,6 +57,9 @@ export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
   }
   if (tipoVehiculo === "auto" && subdivision === "Coupé") {
     return AUTO_COUPE;
+  }
+  if (tipoVehiculo === "auto" && subdivision === "Sedán") {
+    return AUTO_SEDAN;
   }
   return null;
 }
