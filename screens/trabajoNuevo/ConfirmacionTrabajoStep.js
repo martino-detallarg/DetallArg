@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { formatearPesos } from "../../utils/formato";
 import { colors, fonts } from "../../theme";
 
 const DURACION_MS = 1800;
@@ -20,7 +21,8 @@ export default function ConfirmacionTrabajoStep({ cliente, servicio, onTerminar 
       <Text style={styles.texto}>
         {servicio.tipo || "Servicio"} para {cliente.nombre}
         {servicio.fecha ? ` el ${servicio.fecha}` : ""}
-        {servicio.hora ? ` a las ${servicio.hora}` : ""}.
+        {servicio.hora ? ` a las ${servicio.hora}` : ""}
+        {servicio.precio ? ` — ${formatearPesos(servicio.precio)}` : ""}.
       </Text>
     </View>
   );

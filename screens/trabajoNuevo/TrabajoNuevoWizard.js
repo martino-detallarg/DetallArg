@@ -14,7 +14,7 @@ function datosVacios(clienteId, autoId) {
   return {
     clienteId: clienteId ?? null,
     autoId: autoId ?? null,
-    servicio: { tipo: "", fecha: "", hora: "", tiempoEstimado: "", observaciones: "" },
+    servicio: { tipo: "", servicioId: null, precio: null, fecha: "", hora: "", tiempoEstimado: "", observaciones: "" },
     inspeccion: {
       tipoVehiculo: null,
       grupo: null,
@@ -81,6 +81,8 @@ export default function TrabajoNuevoWizard({
       clienteId: datos.clienteId,
       autoId: datos.autoId,
       servicio: datos.servicio.tipo,
+      servicioId: datos.servicio.servicioId,
+      precio: datos.servicio.precio,
       fecha: datos.servicio.fecha,
       hora: datos.servicio.hora,
       tiempoEstimado: datos.servicio.tiempoEstimado,

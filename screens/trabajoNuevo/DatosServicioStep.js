@@ -7,17 +7,12 @@ import Input from "../../components/Input";
 import Button from "../../components/Button";
 import SelectorFechaModal from "../../components/wizard/SelectorFechaModal";
 import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../../utils/fecha";
+import { useServicios } from "../../data/ServicioContext";
+import { formatearPesos } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
-const SERVICIOS = [
-  "Lavado exterior",
-  "Lavado completo",
-  "Pulido",
-  "Ceramic coating",
-  "Detailing interior",
-];
-
 export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
+  const { servicios } = useServicios();
   const [errores, setErrores] = useState({});
   const [mostrarPicker, setMostrarPicker] = useState(false);
 
@@ -27,7 +22,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
 
   function validar() {
     const nuevosErrores = {};
-    if (!datos.tipo) nuevosErrores.tipo = "Elegí un servicio";
+    if (!datos.servicioId) nuevosErrores.tipo = "Elegí un servicio";
     if (!datos.fecha.trim()) nuevosErrores.fecha = "Ingresá la fecha";
     if (!datos.hora.trim()) nuevosErrores.hora = "Ingresá la hora";
     if (!datos.tiempoEstimado.trim()) nuevosErrores.tiempoEstimado = "Ingresá el tiempo estimado";
@@ -39,8 +34,12 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     if (validar()) onContinuar();
   }
 
+  function seleccionarServicio(servicio) {
+    onCambiar({ tipo: servicio.nombre, servicioId: servicio.id, precio: servicio.precio });
+  }
+
   const esValido =
-    !!datos.tipo &&
+    !!datos.servicioId &&
     datos.fecha.trim() !== "" &&
     datos.hora.trim() !== "" &&
     datos.tiempoEstimado.trim() !== "";
@@ -54,20 +53,28 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
 
       <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Servicio</Text>
-        <View style={styles.chips}>
-          {SERVICIOS.map((s) => {
-            const activo = datos.tipo === s;
-            return (
-              <TouchableOpacity
-                key={s}
-                style={[styles.chip, activo && styles.chipSeleccionado]}
-                onPress={() => onCambiar({ tipo: s })}
-              >
-                <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>{s}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {servicios.length === 0 ? (
+          <Text style={styles.vacioAviso}>
+            Todavía no cargaste servicios en Mis Servicios. Cargalos desde Mi Taller para poder elegirlos acá.
+          </Text>
+        ) : (
+          <View style={styles.chips}>
+            {servicios.map((s) => {
+              const activo = datos.servicioId === s.id;
+              return (
+                <TouchableOpacity
+                  key={s.id}
+                  style={[styles.chip, activo && styles.chipSeleccionado]}
+                  onPress={() => seleccionarServicio(s)}
+                >
+                  <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
+                    {s.nombre} · {formatearPesos(s.precio)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
         {errores.tipo && <Text style={styles.error}>{errores.tipo}</Text>}
 
         <View style={styles.fechaContenedor}>
@@ -191,6 +198,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.error,
     marginTop: 6,
+  },
+  vacioAviso: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 4,
   },
   fechaContenedor: {
     marginBottom: 16,

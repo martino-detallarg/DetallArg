@@ -5,6 +5,8 @@ import AgendaScreen from "../screens/AgendaScreen";
 import MiTallerScreen from "../screens/MiTallerScreen";
 import MisDatosScreen from "../screens/MisDatosScreen";
 import MisInsumosScreen from "../screens/MisInsumosScreen";
+import MisServiciosScreen from "../screens/MisServiciosScreen";
+import MiEquipoScreen from "../screens/MiEquipoScreen";
 import FinanzasScreen from "../screens/FinanzasScreen";
 import CostosFijosScreen from "../screens/CostosFijosScreen";
 import NotificacionesScreen from "../screens/NotificacionesScreen";
@@ -23,9 +25,7 @@ const PANTALLAS_PLACEHOLDER = [
 // Pantallas a las que solo se llega desde adentro de "Mi Taller", no están
 // listadas como ítems propios del drawer.
 const PANTALLAS_MI_TALLER_PLACEHOLDER = [
-  { ruta: "MiEquipo", titulo: "Mi Equipo", volverA: "MiTaller" },
   { ruta: "MisHorarios", titulo: "Mis Horarios", volverA: "MiTaller" },
-  { ruta: "MisServicios", titulo: "Mis Servicios", volverA: "MiTaller" },
 ];
 
 export default function DashboardNavigator({ onLogout }) {
@@ -46,6 +46,8 @@ export default function DashboardNavigator({ onLogout }) {
       <Drawer.Screen name="CostosFijos" component={CostosFijosScreen} />
       <Drawer.Screen name="MisDatos" component={MisDatosScreen} />
       <Drawer.Screen name="MisInsumos" component={MisInsumosScreen} />
+      <Drawer.Screen name="MisServicios" component={MisServiciosScreen} />
+      <Drawer.Screen name="MiEquipo" component={MiEquipoScreen} />
       <Drawer.Screen name="Notificaciones" component={NotificacionesScreen} />
       {PANTALLAS_PLACEHOLDER.map(({ ruta, titulo }) => (
         <Drawer.Screen
