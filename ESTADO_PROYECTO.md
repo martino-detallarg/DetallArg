@@ -70,7 +70,7 @@ detallarg-app/
 ├── assets/                    # Íconos de la app, splash icon, logos (blanco/negro) en PNG
 │
 ├── utils/                      # Helpers puros sin estado, compartidos entre pantallas
-│   ├── fecha.js                 # Parseo/formateo de fechas "DD/MM/AAAA" para la Agenda y el date picker del wizard (parsearFechaDDMMAAAA, formatearFechaDDMMAAAA, obtenerDiasDeLaSemana, etc.)
+│   ├── fecha.js                 # Parseo/formateo de fechas "DD/MM/AAAA" para la Agenda y el date picker del wizard (parsearFechaDDMMAAAA, formatearFechaDDMMAAAA, obtenerDiasDeLaSemana, etc.), más parsearHoraHHMM/formatearHoraHHMM para el time picker de Mis Horarios
 │   └── formato.js                # formatearPesos(): Intl.NumberFormat es-AR/ARS compartido por las pantallas de Finanzas
 │
 ├── data/                      # "Backend" simulado — toda la data vive acá, en memoria, repartida en un Context por dominio (ver sección 5)
@@ -78,11 +78,11 @@ detallarg-app/
 │   ├── ClienteContext.js      # Context de clientes[], cada uno con vehiculos[] anidados
 │   ├── TurnoContext.js        # Context de turnos[] (agregarTurno, actualizarTurno/actualizarEstadoTrabajo, getTurnoById)
 │   ├── PedidoContext.js       # Context del carrito de "pedido a proveedor" (agregarAlPedido, quitarDelPedido, estaEnPedido), compartido entre Mis Insumos y Notificaciones
-│   ├── TallerContext.js       # Context de datos del taller: nombre/logo, "Mis Datos" del titular, y plan de suscripción + límite de empleados (PLANES)
+│   ├── TallerContext.js       # Context de datos del taller: nombre/logo, "Mis Datos" del titular, plan de suscripción + límite de empleados (PLANES), y horario de atención (horarios/actualizarHorario, ver Mis Horarios)
 │   ├── ServicioContext.js     # Context del catálogo de "Mis Servicios" (agregarServicio, editarServicio, eliminarServicio, getServicioById)
 │   ├── EquipoContext.js       # Context de empleados de "Mi Equipo" (agregarEmpleado, editarEmpleado, eliminarEmpleado) — no valida el límite del plan, eso lo hace MiEquipoScreen.js antes de abrir el alta
 │   ├── mockData.js            # turnosIniciales + ESTADOS_TRABAJO + helper separarMarcaModelo() (ya no exporta clientes/autos, migrados a ClienteContext)
-│   ├── mockInsumos.js / mockFinanzas.js / mockTaller.js / mockServicios.js / mockEquipo.js  # Datos iniciales de insumos, costos fijos, taller/planes, catálogo de servicios y equipo
+│   ├── mockInsumos.js / mockFinanzas.js / mockTaller.js / mockServicios.js / mockEquipo.js  # Datos iniciales de insumos, costos fijos, taller/planes/horarios, catálogo de servicios y equipo
 │   ├── tiposDanio.js          # Catálogo de tipos de daño (TIPOS_DANIO) para cualquier diagrama de check-in visual
 │   └── mockUser.js            # Usuario "logueado" hardcodeado (usuarioActual)
 │
@@ -104,6 +104,7 @@ detallarg-app/
 │   ├── OpcionesNuevoModal.js                   # Modal bottom-sheet del botón "+" de Home: "Cliente nuevo" vs "Trabajo nuevo"
 │   ├── ConfirmarTrabajoModal.js                 # "¿Querés cargar un trabajo para este cliente?" tras guardar un cliente/vehículo nuevo desde Home
 │   ├── EditarTallerModal.js                      # Editar nombre y logo del taller (usa expo-image-picker), desde Mi Taller
+│   ├── SelectorHoraModal.js                       # Wrapper bottom-sheet del time picker nativo, solo para iOS — análogo a wizard/SelectorFechaModal.js, usado por Mis Horarios
 │   ├── PanelPruebasPlan.js                        # Panel temporal de desarrollo en Mi Equipo: cambiar el plan del taller a mano para probar los límites (sin pagos reales)
 │   ├── EmpleadoModal.js                            # Alta/edición de empleado de Mi Equipo, mismo patrón que ClienteModal
 │   ├── ServicioModal.js                             # Alta/edición de un servicio del catálogo de Mis Servicios
@@ -138,13 +139,14 @@ detallarg-app/
 │   ├── MiTallerScreen.js              # Hub: nombre/logo del taller (editable) + accesos a Mis Datos, Mi Equipo, Mis Insumos, Mis Horarios, Mis Servicios
 │   ├── MisDatosScreen.js               # Datos personales/de contacto del titular del taller (formulario, no un hub)
 │   ├── MisServiciosScreen.js            # Catálogo de servicios de detailing que se ofrecen (precio, categoría)
+│   ├── MisHorariosScreen.js              # Horario de atención por día (abierto/cerrado + apertura/cierre con time picker nativo), solo informativo (ver sección 3 y 4)
 │   ├── MiEquipoScreen.js                 # Empleados del taller, con límite según el plan de suscripción
 │   ├── MisInsumosScreen.js                # "Estantería" de insumos por categoría, con niveles de stock
 │   ├── FinanzasScreen.js                   # Costos del mes (dona) + ingresos de ejemplo (barras), en un pager de 2 páginas
 │   ├── CostosFijosScreen.js                 # Alta/edición/borrado de costos fijos mensuales, accedida desde Finanzas
 │   ├── NotificacionesScreen.js               # Alertas de stock bajo (con botón "Solicitar pedido") + placeholder de recordatorios a clientes, en un pager de 2 páginas
 │   ├── SoporteScreen.js                       # Contacto (WhatsApp/mail), preguntas frecuentes en acordeón, y "reportar un problema" vía mailto (ver sección 3)
-│   ├── PlaceholderScreen.js                    # Pantalla genérica "Próximamente", reusada por "Configuración" y por "Mis Horarios" (ver sección 4)
+│   ├── PlaceholderScreen.js                    # Pantalla genérica "Próximamente", reusada solo por "Configuración" (ver sección 4)
 │   │
 │   ├── nuevoCliente/                 # Wizard de "Cliente nuevo" / "Vehículo nuevo"
 │   │   ├── NuevoClienteWizard.js      # Componente contenedor con la máquina de estados del wizard
@@ -210,13 +212,17 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 
 **Mi Taller (`MiTallerScreen.js`) — hub:**
 - Header con logo (editable) y nombre del taller, con acceso a `EditarTallerModal` (cambiar nombre y logo vía `expo-image-picker`).
-- Lista de accesos a Mis Datos, Mi Equipo, Mis Insumos, Mis Horarios (todavía placeholder) y Mis Servicios.
+- Lista de accesos a Mis Datos, Mi Equipo, Mis Insumos, Mis Horarios y Mis Servicios.
 
 **Mis Datos (`MisDatosScreen.js`):**
 - Formulario (no un hub) con los datos personales/de contacto del titular: nombre personal, web, correo, teléfono, ubicación, y situación fiscal opcional (chips: Monotributista, Responsable Inscripto, Exento, Consumidor Final, Prefiero no decir). Guarda en `TallerContext` (`misDatos`).
 
 **Mis Servicios (`MisServiciosScreen.js`):**
 - Catálogo de servicios de detailing que ofrece el taller (nombre, precio, categoría), con alta/edición (`ServicioModal`) y borrado. Arranca con 12 servicios de ejemplo (`data/mockServicios.js`, dos por categoría). Este catálogo es el que alimenta los chips de "Servicio" del wizard de Trabajo Nuevo.
+
+**Mis Horarios (`MisHorariosScreen.js`):**
+- Horario de atención por día de la semana: un `Switch` para abierto/cerrado, y si está abierto, dos botones "Desde"/"Hasta" que abren un time picker nativo (mismo mecanismo que la fecha del wizard: diálogo en Android, bottom-sheet propio en iOS vía `SelectorHoraModal`). Se guarda en `TallerContext` (`horarios`, `actualizarHorario`). Arranca con un horario de ejemplo (L-V 9 a 18, sábado 9 a 13, domingo cerrado).
+- **Es solo informativo:** no restringe en absoluto qué horas se pueden elegir al cargar un turno en el wizard de Trabajo Nuevo, que sigue aceptando cualquier hora como texto libre — ver sección 4.
 
 **Mi Equipo (`MiEquipoScreen.js`) — con límite por plan:**
 - Listado de empleados (nombre, rol, teléfono), con alta/edición (`EmpleadoModal`) y borrado. Arranca vacío.
@@ -247,7 +253,7 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 ## 4. Funcionalidades a medio hacer o pendientes
 
 **A medio hacer:**
-- **1 pantalla del drawer sigue siendo placeholder**: Configuración renderiza `PlaceholderScreen.js` con un ícono y el texto "Próximamente", sin lógica ni UI propia. Fuera del drawer, "Mis Horarios" (accedida desde el hub Mi Taller) también sigue siendo ese mismo placeholder.
+- **1 pantalla del drawer sigue siendo placeholder**: Configuración renderiza `PlaceholderScreen.js` con un ícono y el texto "Próximamente", sin lógica ni UI propia. Fuera del drawer, ya no queda ninguna pantalla placeholder (Mis Horarios, la última, ya tiene UI propia — ver sección 3).
 - **Diagrama de daños específico por carrocería, parcial:** ya no es 100% genérico — `components/diagrams/vehicles/PickupCabinaSimpleDiagram.js` es un diagrama real de 12 paneles para "Camioneta / Cabina simple", vectorizado de una foto de referencia. El registro (`components/diagrams/vehicles/index.js`) está preparado para sumar más carrocerías, pero por ahora es la única implementada: el resto de las combinaciones de tipo/subdivisión siguen cayendo al diagrama genérico de 7 zonas (`DamageDiagram.js`, solo vista "Frente").
 - **Carrusel de vistas de inspección con una sola vista:** `InspeccionVisualStep.js` ya soporta un carrusel de varias vistas (Frente/Techo/Izquierda/Derecha/Atrás), pero `VISTAS_INSPECCION` hoy solo tiene "Frente" cargada.
 
@@ -259,6 +265,7 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 - Recuperación de contraseña: el link "¿Olvidaste tu contraseña?" en `LoginScreen.js` no tiene `onPress` (no hace nada).
 - Perfil de usuario editable: `usuarioActual` en `data/mockUser.js` está hardcodeado y no se actualiza con los datos que carga el usuario en Signup.
 - Selector nativo de **hora** en el wizard de Trabajo Nuevo: la fecha ya tiene date picker nativo (ver sección 1 y 3), pero la hora sigue siendo un input de texto libre, sin validación de formato ni time picker.
+- **Restringir horas por horario de atención:** hoy Mis Horarios (`MisHorariosScreen.js`, `TallerContext.js`) es solo informativo (ver sección 3) — no está conectado al wizard de Trabajo Nuevo de ninguna forma. Queda pendiente como tarea aparte: primero convertir "Hora" a un time picker real (el punto anterior), y después cruzar la fecha elegida con el día de semana correspondiente en `horarios` para restringir las horas seleccionables (o avisar si ese día está marcado como cerrado).
 - Pagos / flujo de compra de plan real: el plan de suscripción del taller (Básico/Intermedio/PRO) hoy solo se puede cambiar desde el panel de pruebas de desarrollo (`PanelPruebasPlan.js` en Mi Equipo), no hay ningún flujo de compra ni checkout.
 - Envío real del pedido a proveedor (Mis Insumos/Notificaciones) y del "reportar un problema" de Soporte: ambos son placeholders de UI — el pedido arma un resumen local sin enviarlo a ningún lado, y "reportar un problema" abre el cliente de mail del usuario (`mailto:`) en vez de mandar algo a un backend propio.
 
@@ -270,7 +277,7 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 - El estado de negocio no vive en un único Context genérico. Cada dominio tiene su propio Context + Provider, todos con la misma forma interna (`useState` en memoria, sin `useReducer` ni librería externa, `value` memoizado con `useMemo`):
   - **`data/ClienteContext.js`** (`useClientes()`): clientes, cada uno con sus vehículos **anidados** en `cliente.vehiculos` (no hay una tabla `autos` separada). Expone `agregarCliente`, `editarCliente`, `eliminarCliente`, `agregarVehiculo`, `editarVehiculo`, `eliminarVehiculo`, `getClienteById`, `getVehiculoById` (esta última recorre todos los clientes buscando el vehículo por id, para los casos —como un turno— que solo tienen el id a mano).
   - **`data/TurnoContext.js`** (`useTurnos()`): turnos, expone `agregarTurno`, `actualizarTurno`, `actualizarEstadoTrabajo` (atajo sobre `actualizarTurno` para cambiar solo el campo `estado`), `getTurnoById`. Sin `eliminarTurno` (ver sección 4).
-  - **`data/TallerContext.js`** (`useTaller()`): datos del taller (`nombreTaller`, `logoTaller`, `actualizarTaller`), los datos personales del titular ("Mis Datos": `misDatos`, `actualizarMisDatos`), y el **plan de suscripción** (`plan`, `limiteEmpleados` derivado de `PLANES[plan]` en `data/mockTaller.js`, y `cambiarPlan` — hoy solo lo llama el panel de pruebas de Mi Equipo, sin pagos reales conectados).
+  - **`data/TallerContext.js`** (`useTaller()`): datos del taller (`nombreTaller`, `logoTaller`, `actualizarTaller`), los datos personales del titular ("Mis Datos": `misDatos`, `actualizarMisDatos`), el **plan de suscripción** (`plan`, `limiteEmpleados` derivado de `PLANES[plan]` en `data/mockTaller.js`, y `cambiarPlan` — hoy solo lo llama el panel de pruebas de Mi Equipo, sin pagos reales conectados), y el **horario de atención** (`horarios`, array de 7 días con `{ dia, abierto, horaApertura, horaCierre }`, y `actualizarHorario(dia, cambios)` — solo informativo, no lo consume ningún otro Context ni el wizard de Trabajo Nuevo, ver sección 4).
   - **`data/PedidoContext.js`** (`usePedido()`): el carrito de "pedido a proveedor" compartido entre Mis Insumos y Notificaciones — `pedido`, `agregarAlPedido`, `quitarDelPedido`, `estaEnPedido`.
   - **`data/ServicioContext.js`** (`useServicios()`): catálogo de "Mis Servicios" — `servicios`, `agregarServicio`, `editarServicio`, `eliminarServicio`, `getServicioById`.
   - **`data/EquipoContext.js`** (`useEquipo()`): empleados de "Mi Equipo" — `empleados`, `agregarEmpleado`, `editarEmpleado`, `eliminarEmpleado`. No valida el límite del plan a nivel de Context: esa validación la hace `MiEquipoScreen.js` antes de abrir el alta (oculta el botón "+" si `empleados.length >= limiteEmpleados`).
@@ -299,7 +306,7 @@ Toda la "data" de la app es mock, definida en archivos estáticos y repartida po
   - **Detalle a tener en cuenta:** los `clienteId`/`autoId` (`c1`, `c2`, `a1`, `a3`, `a2`) de los turnos de ejemplo en `turnosIniciales` están coordinados a mano con los clientes/vehículos de ejemplo hardcodeados en `ClienteContext.js` — si se edita uno de los dos lados sin el otro, esos turnos de ejemplo dejan de resolver a un cliente/vehículo real y `TurnoCard` cae al fallback "Cliente sin datos" / "Auto sin datos" que tiene para ese caso.
 - `data/mockInsumos.js`: catálogo investigado de insumos (`catalogoInsumos`, con marca/pH/dilución/rendimiento/precio de compra) más `misInsumosIniciales`, la estantería de ejemplo con niveles de stock variados. Algunas categorías (Protecciones, Interiores, Rejuvenecedores) todavía usan un producto placeholder "A definir" mientras se investigan productos reales.
 - `data/mockFinanzas.js`: categorías y `costosFijosIniciales` (3 costos fijos de ejemplo) para Costos Fijos.
-- `data/mockTaller.js`: `PLANES` (catálogo de planes de suscripción y su `limiteEmpleados`: Básico 0, Intermedio 1, PRO 3), `tallerInicial` (arranca en plan Básico) y `misDatosIniciales` (datos personales del titular, precargados con `usuarioActual`).
+- `data/mockTaller.js`: `PLANES` (catálogo de planes de suscripción y su `limiteEmpleados`: Básico 0, Intermedio 1, PRO 3), `tallerInicial` (arranca en plan Básico), `misDatosIniciales` (datos personales del titular, precargados con `usuarioActual`) y `horariosIniciales` (horario de ejemplo: L-V 9 a 18, sábado 9 a 13, domingo cerrado).
 - `data/mockServicios.js`: `CATEGORIAS_SERVICIOS` y `serviciosIniciales` — 12 servicios de ejemplo del catálogo de Mis Servicios (dos por categoría).
 - `data/mockEquipo.js`: `empleadosIniciales`, hoy un array vacío (coherente con el plan Básico por defecto).
 - `data/mockUser.js`: un único usuario hardcodeado (`usuarioActual`), usado para mostrar el nombre en el saludo de Home, el email/empresa en el drawer, y como valores por defecto de "Mis Datos".

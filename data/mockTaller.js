@@ -38,3 +38,17 @@ export const SITUACIONES_FISCALES = [
   "Consumidor Final",
   "Prefiero no decir",
 ];
+
+// Horario de atención de referencia (Mis Horarios). Por ahora es solo
+// informativo: no restringe qué horas se pueden elegir en el wizard de
+// Trabajo Nuevo. Arranca con un horario típico de taller (L-V 9 a 18,
+// sábado medio día, domingo cerrado) para no mostrar la pantalla vacía.
+export const horariosIniciales = [
+  { dia: "Lunes", abierto: true, horaApertura: "09:00", horaCierre: "18:00" },
+  { dia: "Martes", abierto: true, horaApertura: "09:00", horaCierre: "18:00" },
+  { dia: "Miércoles", abierto: true, horaApertura: "09:00", horaCierre: "18:00" },
+  { dia: "Jueves", abierto: true, horaApertura: "09:00", horaCierre: "18:00" },
+  { dia: "Viernes", abierto: true, horaApertura: "09:00", horaCierre: "18:00" },
+  { dia: "Sábado", abierto: true, horaApertura: "09:00", horaCierre: "13:00" },
+  { dia: "Domingo", abierto: false, horaApertura: "09:00", horaCierre: "18:00" },
+];

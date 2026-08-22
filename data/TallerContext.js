@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { tallerInicial, misDatosIniciales, PLANES } from "./mockTaller";
+import { tallerInicial, misDatosIniciales, horariosIniciales, PLANES } from "./mockTaller";
 
 const TallerContext = createContext(null);
 
@@ -12,6 +12,7 @@ export function TallerProvider({ children }) {
   const [logoTaller, setLogoTaller] = useState(tallerInicial.logo);
   const [misDatos, setMisDatos] = useState(misDatosIniciales);
   const [plan, setPlan] = useState(tallerInicial.plan);
+  const [horarios, setHorarios] = useState(horariosIniciales);
 
   function actualizarTaller({ nombre, logo }) {
     if (nombre !== undefined) setNombreTaller(nombre);
@@ -20,6 +21,14 @@ export function TallerProvider({ children }) {
 
   function actualizarMisDatos(cambios) {
     setMisDatos((actuales) => ({ ...actuales, ...cambios }));
+  }
+
+  // Actualiza un solo día del horario de atención (Mis Horarios). Todavía
+  // no restringe nada del wizard de Trabajo Nuevo, es solo de referencia.
+  function actualizarHorario(dia, cambios) {
+    setHorarios((actuales) =>
+      actuales.map((horario) => (horario.dia === dia ? { ...horario, ...cambios } : horario))
+    );
   }
 
   // Sin pagos reales conectados: hoy solo lo llama el panel de pruebas de
@@ -41,8 +50,10 @@ export function TallerProvider({ children }) {
       plan,
       limiteEmpleados,
       cambiarPlan,
+      horarios,
+      actualizarHorario,
     }),
-    [nombreTaller, logoTaller, misDatos, plan, limiteEmpleados]
+    [nombreTaller, logoTaller, misDatos, plan, limiteEmpleados, horarios]
   );
 
   return <TallerContext.Provider value={value}>{children}</TallerContext.Provider>;

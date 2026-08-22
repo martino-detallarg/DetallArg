@@ -1,7 +1,8 @@
-// Helpers de fecha para la Agenda. El campo `fecha` de un turno es texto
-// libre cargado a mano en el wizard (placeholder "Ej: 18/08/2026", sin date
-// picker todavía), así que el parseo es best-effort: si no matchea
-// DD/MM/AAAA o el día no existe en ese mes/año, se trata como sin fecha.
+// Helpers de fecha para la Agenda. El campo `fecha` de un turno se carga hoy
+// con el date picker nativo del wizard (ver DatosServicioStep.js), pero el
+// parseo sigue siendo best-effort por si llega un valor con otro formato: si
+// no matchea DD/MM/AAAA o el día no existe en ese mes/año, se trata como sin
+// fecha.
 
 const DIAS_SEMANA_CORTO = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const DIAS_SEMANA_LARGO = [
@@ -85,4 +86,28 @@ export function formatearFechaDDMMAAAA(fecha) {
   const mes = String(fecha.getMonth() + 1).padStart(2, "0");
   const anio = fecha.getFullYear();
   return `${dia}/${mes}/${anio}`;
+}
+
+// Par de helpers análogos a los de fecha, pero para el campo "HH:MM" de los
+// horarios de atención (Mis Horarios). parsearHoraHHMM devuelve un Date con
+// esa hora seteada sobre el día actual (solo importan horas/minutos) para
+// poder inicializar el date picker en modo "time".
+export function parsearHoraHHMM(texto) {
+  if (!texto) return null;
+  const match = texto.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+
+  const horas = Number(match[1]);
+  const minutos = Number(match[2]);
+  if (horas > 23 || minutos > 59) return null;
+
+  const fecha = new Date();
+  fecha.setHours(horas, minutos, 0, 0);
+  return fecha;
+}
+
+export function formatearHoraHHMM(fecha) {
+  const horas = String(fecha.getHours()).padStart(2, "0");
+  const minutos = String(fecha.getMinutes()).padStart(2, "0");
+  return `${horas}:${minutos}`;
 }
