@@ -87,7 +87,7 @@ detallarg-app/
 │   └── mockUser.js            # Usuario "logueado" hardcodeado (usuarioActual)
 │
 ├── navigation/
-│   └── DashboardNavigator.js  # Drawer navigator: Home, Clientes, Agenda, Mi Taller, Finanzas, Mis Datos/Insumos/Servicios, Mi Equipo, Notificaciones, Soporte, y "Configuración" como única ruta placeholder restante
+│   └── DashboardNavigator.js  # Drawer navigator: Home, Clientes, Agenda, Mi Taller, Finanzas, Mis Datos/Insumos/Servicios/Horarios, Mi Equipo, Notificaciones, Soporte, Configuración (con sus rutas de Términos/Privacidad) — ya no quedan rutas placeholder
 │
 ├── components/                # Componentes reutilizables, uno por archivo
 │   ├── Button.js                     # Botón primario/secundario con loading/disabled
@@ -146,7 +146,8 @@ detallarg-app/
 │   ├── CostosFijosScreen.js                 # Alta/edición/borrado de costos fijos mensuales, accedida desde Finanzas
 │   ├── NotificacionesScreen.js               # Alertas de stock bajo (con botón "Solicitar pedido") + placeholder de recordatorios a clientes, en un pager de 2 páginas
 │   ├── SoporteScreen.js                       # Contacto (WhatsApp/mail), preguntas frecuentes en acordeón, y "reportar un problema" vía mailto (ver sección 3)
-│   ├── PlaceholderScreen.js                    # Pantalla genérica "Próximamente", reusada solo por "Configuración" (ver sección 4)
+│   ├── ConfiguracionScreen.js                  # Cuenta (datos de solo lectura + acceso a Mis Datos), Legal, Acerca de, y Cerrar sesión (ver sección 3)
+│   ├── DocumentoLegalScreen.js                  # Pantalla genérica de "documento sin redactar todavía", reusada por Términos y por Privacidad (ver sección 4)
 │   │
 │   ├── nuevoCliente/                 # Wizard de "Cliente nuevo" / "Vehículo nuevo"
 │   │   ├── NuevoClienteWizard.js      # Componente contenedor con la máquina de estados del wizard
@@ -241,8 +242,14 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 **Soporte (`SoporteScreen.js`):**
 - Tres secciones de solo lectura / acciones externas, sin backend: Contacto (WhatsApp vía `wa.me` y mail vía `mailto:` a `soporte@detallarg.com`), Preguntas frecuentes (acordeón con 5 preguntas fijas sobre el uso de la app) y "Reportar un problema" (botón que abre `mailto:` con asunto prellenado — mismo mail que Contacto, no hay un canal separado). El número de WhatsApp es un placeholder inventado hasta que se defina el real (comentario explícito en el código marcando dónde reemplazarlo).
 
+**Configuración (`ConfiguracionScreen.js`):**
+- **Cuenta**: tarjeta de solo lectura con nombre/empresa/email (`usuarioActual`) y el plan actual (`TallerContext`), más un acceso "Editar mis datos" que navega a `MisDatosScreen` (no duplica esos campos acá).
+- **Legal**: "Términos y condiciones" y "Política de privacidad", ambos navegan a `DocumentoLegalScreen.js` — una pantalla genérica con el mismo texto de relleno ("Este documento todavía no fue redactado") porque no hay contenido legal real todavía.
+- **Acerca de**: versión de la app (`VERSION_APP = "1.0.0"`, constante hardcodeada a mano — no hay `expo-constants` instalado para leer `app.json` en runtime, hay que mantenerla sincronizada manualmente).
+- **Cerrar sesión**: mismo `onLogout` que ya existe en el drawer (`DashboardNavigator.js` se lo pasa a `ConfiguracionScreen` como prop, vía función hija de `<Drawer.Screen>` en vez de `component`) — es intencional que el logout esté accesible desde los dos lugares.
+
 **Navegación y menú lateral:**
-- Drawer con: Home, Clientes, Mi Taller, Finanzas, Agenda, Configuración (placeholder), Soporte, Notificaciones (`components/DrawerContent.js`, array `ITEMS_PRINCIPALES`). Mis Datos, Mi Equipo, Mis Insumos, Mis Horarios y Mis Servicios no son ítems propios del drawer: se llega a ellos desde el hub Mi Taller. Costos Fijos tampoco es ítem del drawer: se llega desde Finanzas.
+- Drawer con: Home, Clientes, Mi Taller, Finanzas, Agenda, Configuración, Soporte, Notificaciones (`components/DrawerContent.js`, array `ITEMS_PRINCIPALES`). Mis Datos, Mi Equipo, Mis Insumos, Mis Horarios y Mis Servicios no son ítems propios del drawer: se llega a ellos desde el hub Mi Taller. Costos Fijos tampoco es ítem del drawer: se llega desde Finanzas. Términos y Privacidad tampoco: se llega desde Configuración.
 - Header con nombre de empresa y email del usuario, resaltado de la ruta activa, botón de cerrar sesión.
 
 **Sistema de diseño:**
@@ -253,7 +260,8 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 ## 4. Funcionalidades a medio hacer o pendientes
 
 **A medio hacer:**
-- **1 pantalla del drawer sigue siendo placeholder**: Configuración renderiza `PlaceholderScreen.js` con un ícono y el texto "Próximamente", sin lógica ni UI propia. Fuera del drawer, ya no queda ninguna pantalla placeholder (Mis Horarios, la última, ya tiene UI propia — ver sección 3).
+- **Ya no queda ninguna pantalla placeholder** (ni en el drawer ni fuera de él): Configuración, la última, ya tiene UI propia — ver sección 3. `PlaceholderScreen.js` se borró del repo por quedar sin ningún uso.
+- **Términos y condiciones / Política de privacidad sin contenido real:** ambas rutas (`Terminos`, `Privacidad`) navegan a la misma pantalla genérica (`DocumentoLegalScreen.js`) con un texto de relleno ("Este documento todavía no fue redactado"), solo para dejar el enganche de navegación listo desde Configuración.
 - **Diagrama de daños específico por carrocería, parcial:** ya no es 100% genérico — `components/diagrams/vehicles/PickupCabinaSimpleDiagram.js` es un diagrama real de 12 paneles para "Camioneta / Cabina simple", vectorizado de una foto de referencia. El registro (`components/diagrams/vehicles/index.js`) está preparado para sumar más carrocerías, pero por ahora es la única implementada: el resto de las combinaciones de tipo/subdivisión siguen cayendo al diagrama genérico de 7 zonas (`DamageDiagram.js`, solo vista "Frente").
 - **Carrusel de vistas de inspección con una sola vista:** `InspeccionVisualStep.js` ya soporta un carrusel de varias vistas (Frente/Techo/Izquierda/Derecha/Atrás), pero `VISTAS_INSPECCION` hoy solo tiene "Frente" cargada.
 

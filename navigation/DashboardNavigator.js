@@ -12,14 +12,19 @@ import CostosFijosScreen from "../screens/CostosFijosScreen";
 import NotificacionesScreen from "../screens/NotificacionesScreen";
 import SoporteScreen from "../screens/SoporteScreen";
 import MisHorariosScreen from "../screens/MisHorariosScreen";
-import PlaceholderScreen from "../screens/PlaceholderScreen";
+import ConfiguracionScreen from "../screens/ConfiguracionScreen";
+import DocumentoLegalScreen from "../screens/DocumentoLegalScreen";
 import DrawerContent from "../components/DrawerContent";
 import { colors } from "../theme";
 
 const Drawer = createDrawerNavigator();
 
-// Pantallas del menú del drawer que todavía no tienen funcionalidad propia.
-const PANTALLAS_PLACEHOLDER = [{ ruta: "Configuracion", titulo: "Configuración" }];
+// Documentos legales sin contenido real todavía: ambos reusan la misma
+// pantalla genérica (ver DocumentoLegalScreen.js), solo cambia el título.
+const PANTALLAS_LEGAL = [
+  { ruta: "Terminos", titulo: "Términos y condiciones" },
+  { ruta: "Privacidad", titulo: "Política de privacidad" },
+];
 
 export default function DashboardNavigator({ onLogout }) {
   return (
@@ -44,11 +49,14 @@ export default function DashboardNavigator({ onLogout }) {
       <Drawer.Screen name="Notificaciones" component={NotificacionesScreen} />
       <Drawer.Screen name="Soporte" component={SoporteScreen} />
       <Drawer.Screen name="MisHorarios" component={MisHorariosScreen} />
-      {PANTALLAS_PLACEHOLDER.map(({ ruta, titulo }) => (
+      <Drawer.Screen name="Configuracion">
+        {(props) => <ConfiguracionScreen {...props} onLogout={onLogout} />}
+      </Drawer.Screen>
+      {PANTALLAS_LEGAL.map(({ ruta, titulo }) => (
         <Drawer.Screen
           key={ruta}
           name={ruta}
-          component={PlaceholderScreen}
+          component={DocumentoLegalScreen}
           initialParams={{ titulo }}
         />
       ))}
