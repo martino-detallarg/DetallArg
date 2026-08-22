@@ -10,6 +10,7 @@ import MiEquipoScreen from "../screens/MiEquipoScreen";
 import FinanzasScreen from "../screens/FinanzasScreen";
 import CostosFijosScreen from "../screens/CostosFijosScreen";
 import NotificacionesScreen from "../screens/NotificacionesScreen";
+import SoporteScreen from "../screens/SoporteScreen";
 import PlaceholderScreen from "../screens/PlaceholderScreen";
 import DrawerContent from "../components/DrawerContent";
 import { colors } from "../theme";
@@ -17,10 +18,7 @@ import { colors } from "../theme";
 const Drawer = createDrawerNavigator();
 
 // Pantallas del menú del drawer que todavía no tienen funcionalidad propia.
-const PANTALLAS_PLACEHOLDER = [
-  { ruta: "Configuracion", titulo: "Configuración" },
-  { ruta: "Soporte", titulo: "Soporte" },
-];
+const PANTALLAS_PLACEHOLDER = [{ ruta: "Configuracion", titulo: "Configuración" }];
 
 // Pantallas a las que solo se llega desde adentro de "Mi Taller", no están
 // listadas como ítems propios del drawer.
@@ -49,6 +47,7 @@ export default function DashboardNavigator({ onLogout }) {
       <Drawer.Screen name="MisServicios" component={MisServiciosScreen} />
       <Drawer.Screen name="MiEquipo" component={MiEquipoScreen} />
       <Drawer.Screen name="Notificaciones" component={NotificacionesScreen} />
+      <Drawer.Screen name="Soporte" component={SoporteScreen} />
       {PANTALLAS_PLACEHOLDER.map(({ ruta, titulo }) => (
         <Drawer.Screen
           key={ruta}
