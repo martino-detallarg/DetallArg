@@ -4,17 +4,10 @@ import * as ImagePicker from "expo-image-picker";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import Button from "../../components/Button";
 import DiagramaDanios from "../../components/wizard/DiagramaDanios";
-import { obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
+import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 const PADDING_PANTALLA = 20;
-
-// Vistas del check-in visual, en el orden en que se muestran en el
-// carrusel. Por ahora solo está lista "Frente" (el diagrama genérico o el
-// de la carrocería específica, según corresponda); Techo/Izquierda/
-// Derecha/Atrás se suman acá cuando estén sus diagramas — el carrusel de
-// abajo (swipe + puntitos) ya está armado para cualquier cantidad de vistas.
-const VISTAS_INSPECCION = [{ id: "frente", etiqueta: "Frente" }];
 
 // Pantalla 2 de la inspección: un diagrama de daños por vista, a pantalla
 // completa, navegado con swipe (mismo patrón de Mis Insumos/Finanzas). El
@@ -26,6 +19,16 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
 
   const anchoDiagrama = width - PADDING_PANTALLA * 2;
   const claveDiagrama = obtenerClaveDiagrama(datos);
+  const diagramaVehiculo = DIAGRAMAS_POR_TIPO_VEHICULO[claveDiagrama];
+  // Las vistas del carrusel salen del registro de diagramas del vehículo
+  // elegido (una página por vista real, ej. Frente/Atrás/Lateral/Cenital de
+  // Auto Coupé). Si todavía no hay un diagrama específico para ese
+  // vehículo, cae a una sola vista genérica (Frente) — el carrusel en sí ya
+  // soporta cualquier cantidad de vistas, para sumar más alcanza con
+  // registrarlas en components/diagrams/vehicles.
+  const vistas = diagramaVehiculo
+    ? Object.entries(diagramaVehiculo.vistas).map(([id, v]) => ({ id, etiqueta: v.etiqueta }))
+    : [{ id: "frente", etiqueta: "Frente" }];
   const puedeAgregarFoto = Object.keys(datos.danios).length > 0;
 
   function handleCambiarZona(zonaId, datosZona) {
@@ -68,7 +71,7 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
         onMomentumScrollEnd={handleScrollFin}
         style={styles.pager}
       >
-        {VISTAS_INSPECCION.map((vista) => (
+        {vistas.map((vista) => (
           <ScrollView
             key={vista.id}
             style={{ width }}
@@ -78,6 +81,7 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
             <Text style={styles.vistaTitulo}>Vista: {vista.etiqueta}</Text>
             <DiagramaDanios
               claveVehiculo={claveDiagrama}
+              vista={vista.id}
               danios={datos.danios}
               onCambiarZona={handleCambiarZona}
               ancho={anchoDiagrama}
@@ -87,7 +91,7 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
       </ScrollView>
 
       <View style={styles.puntos}>
-        {VISTAS_INSPECCION.map((vista, indice) => (
+        {vistas.map((vista, indice) => (
           <View key={vista.id} style={[styles.punto, indice === vistaActiva && styles.puntoActivo]} />
         ))}
       </View>

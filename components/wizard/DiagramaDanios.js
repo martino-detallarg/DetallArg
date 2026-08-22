@@ -8,24 +8,25 @@ import { TIPOS_DANIO } from "../../data/tiposDanio";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 // Envuelve al diagrama de check-in visual que corresponda según
-// `claveVehiculo` (el diagrama de paneles reales de esa carrocería si existe
-// en components/diagrams/vehicles, o el genérico de Frente si no) y le
-// suma, siempre igual sin importar qué diagrama se esté mostrando: el
-// selector de tipos de daño por panel (selección múltiple) y la lista
-// resumen "Daños registrados". Así, cuando se sumen las próximas
-// carrocerías, alcanza con agregarlas al registro de
+// `claveVehiculo` + `vista` (el diagrama de paneles reales de esa vista de
+// esa carrocería si existe en components/diagrams/vehicles, o el genérico
+// de Frente si no) y le suma, siempre igual sin importar qué diagrama se
+// esté mostrando: el selector de tipos de daño por panel (selección
+// múltiple) y la lista resumen "Daños registrados". Así, cuando se sumen
+// las próximas carrocerías o vistas, alcanza con agregarlas al registro de
 // components/diagrams/vehicles — no hay que tocar este selector.
 //
 // `danios` es un mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada
 // zona puede tener varios tipos de daño a la vez (por eso `tipos` es un
 // array), y `nota` solo se usa cuando "otro" está entre los tipos elegidos.
-export default function DiagramaDanios({ claveVehiculo, danios, onCambiarZona, ancho = 220 }) {
+export default function DiagramaDanios({ claveVehiculo, vista, danios, onCambiarZona, ancho = 220 }) {
   const [zonaActiva, setZonaActiva] = useState(null);
 
-  const diagrama = DIAGRAMAS_POR_TIPO_VEHICULO[claveVehiculo];
-  const Diagrama = diagrama?.Componente ?? DamageDiagram;
-  const panelIds = diagrama?.panelIds ?? ZONAS_IDS;
-  const panelLabels = diagrama?.panelLabels ?? ZONAS_LABELS;
+  const diagramaVehiculo = DIAGRAMAS_POR_TIPO_VEHICULO[claveVehiculo];
+  const diagramaVista = diagramaVehiculo?.vistas?.[vista];
+  const Diagrama = diagramaVista?.Componente ?? DamageDiagram;
+  const panelIds = diagramaVista?.panelIds ?? ZONAS_IDS;
+  const panelLabels = diagramaVista?.panelLabels ?? ZONAS_LABELS;
 
   function handleTocarZona(id) {
     setZonaActiva((actual) => (actual === id ? null : id));
