@@ -78,6 +78,12 @@ Para no duplicar zonas entre vistas, cada parte real del auto se marca una sola 
 
 ⚠️ **Excepción ya en el repo**: `auto/coupe/frente/` se armó ANTES de definir este criterio, así que todavía tiene sus propias zonas `parante_izq`/`parante_der` (el parante A visto de frente), que ahora se solapan conceptualmente con `parante_izq`/`parante_der` de `auto/coupe/cenital/`. No se tocó Frente para no romper lo ya confirmado — queda a criterio de Augusto si conviene sacarle esas dos zonas a Frente (para que el parante se marque solo desde la Cenital) o dejarlo así (mismo panel tocable desde dos vistas, sin problema real más que la duplicación de datos).
 
+## ⚠️ Importante — cómo cargar `diagrama.png` en la app (bug ya encontrado y resuelto)
+
+`require(".../diagrama.png")` (el PNG suelto de este repo, referenciado como asset bundleado de Metro) causó un bug real en Auto/Coupé: las 4 vistas se veían recortadas/zoomeadas en pantalla, aunque las zonas del `zonas.json` se posicionaban bien. La vista vieja de prueba (con logo, la que carga la imagen como base64 embebido en un archivo `.js` en vez de `require()` de un PNG) nunca tuvo este problema — cambiar Auto/Coupé al mismo esquema de base64 embebido lo solucionó.
+
+**Por eso, de acá en adelante, además de `diagrama.png` en cada carpeta de vista, el chat de diseño va a entregar también un archivo `.js` con la imagen en base64** (mismo contenido, mismo `diagrama.png` de siempre, solo que codificado como string `data:image/png;base64,...` dentro de un `export const`) — para que la integración use ese archivo como `imageSource` en vez de `require()` del PNG. El PNG se deja igual en la carpeta por si sirve de referencia visual rápida (para ver la imagen sin abrir código), pero no debería ser lo que carga el componente en runtime.
+
 ## Nota — vista Lateral es de un solo lado
 
 `auto/coupe/lateral/` trae la imagen y las zonas de UN lado del auto (el de la foto de referencia). Para el lado opuesto no hace falta procesar una imagen nueva: como el auto es simétrico, alcanza con reflejar horizontalmente `diagrama.png` y invertir la coordenada x de cada punto de zona (`x' = viewBox_width - x`). Todavía no se generó/guardó esa versión espejada — queda pendiente de decidir cómo se van a llamar las dos carpetas (ej. `lateral_izquierdo` / `lateral_derecho`) antes de guardarla.
