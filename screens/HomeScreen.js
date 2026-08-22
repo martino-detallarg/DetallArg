@@ -42,6 +42,15 @@ export default function HomeScreen({ navigation }) {
   const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
 
+  // Solo para el anillo de progreso de la card "Turnos de hoy": cuántos de
+  // los turnos de hoy ya están en un estado de cierre (Finalizado o
+  // Entregado) sobre el total. Es un cálculo derivado nada más para mostrar
+  // en el anillo, no cambia el dato ni el flujo de estados del turno.
+  const turnosCompletados = turnosOrdenados.filter(
+    (t) => t.estado === "Finalizado" || t.estado === "Entregado"
+  ).length;
+  const progresoTurnosHoy = turnosOrdenados.length > 0 ? turnosCompletados / turnosOrdenados.length : 0;
+
   function handleAbrirClienteNuevo() {
     setOpcionesVisibles(false);
     setSubmenuClienteVisible(true);
@@ -96,7 +105,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.saludo}>Hola, {usuarioActual.nombre} 👋</Text>
 
             <View style={styles.stats}>
-              <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} />
+              <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
               <StatCard label="Ingresos del mes" valor={formatearMonto(INGRESOS_DEL_MES)} />
             </View>
 
