@@ -18,6 +18,8 @@ export function DataProvider({ children }) {
     rendimiento,
     imagen,
     precioCompra,
+    capacidadTotal,
+    capacidadUnidad,
   }) {
     const nuevoInsumo = {
       id: `mi${Date.now()}`,
@@ -30,12 +32,37 @@ export function DataProvider({ children }) {
       rendimiento,
       imagen,
       precioCompra,
+      capacidadTotal,
+      capacidadUnidad,
       // Un insumo recién agregado se asume lleno hasta que carguemos control
       // real de stock.
       nivel: 100,
     };
     setMisInsumos((actuales) => [...actuales, nuevoInsumo]);
     return nuevoInsumo;
+  }
+
+  function getInsumoById(id) {
+    return misInsumos.find((i) => i.id === id);
+  }
+
+  // Descuenta stock de insumos según una receta de servicio ([{ insumoId,
+  // cantidad }], cantidad en la unidad de `capacidadUnidad` de ese insumo).
+  // Se llama una sola vez por trabajo, desde TurnoContext.actualizarEstadoTrabajo
+  // al pasar a "Finalizado" — ver ese archivo para la lógica de "no descontar
+  // dos veces". Un insumo sin `capacidadTotal` cargada o que ya no exista
+  // (borrado de Mis Insumos) se ignora en vez de romper el descuento del
+  // resto de la receta.
+  function descontarInsumos(receta) {
+    if (!receta || receta.length === 0) return;
+    setMisInsumos((actuales) =>
+      actuales.map((insumo) => {
+        const item = receta.find((r) => r.insumoId === insumo.id);
+        if (!item || !insumo.capacidadTotal) return insumo;
+        const puntosADescontar = (item.cantidad / insumo.capacidadTotal) * 100;
+        return { ...insumo, nivel: Math.max(0, insumo.nivel - puntosADescontar) };
+      })
+    );
   }
 
   function agregarCostoFijo({ categoria, monto }) {
@@ -57,6 +84,8 @@ export function DataProvider({ children }) {
       misInsumos,
       costosFijos,
       agregarInsumo,
+      getInsumoById,
+      descontarInsumos,
       agregarCostoFijo,
       actualizarCostoFijo,
       eliminarCostoFijo,

@@ -93,19 +93,19 @@ export default function App() {
           {pantalla === "app" && (
             <DataProvider>
               <ClienteProvider>
-                <TurnoProvider>
-                  <TallerProvider>
-                    <PedidoProvider>
-                      <ServicioProvider>
+                <ServicioProvider>
+                  <TurnoProvider>
+                    <TallerProvider>
+                      <PedidoProvider>
                         <EquipoProvider>
                           <NavigationContainer>
                             <DashboardNavigator onLogout={() => setPantalla("login")} />
                           </NavigationContainer>
                         </EquipoProvider>
-                      </ServicioProvider>
-                    </PedidoProvider>
-                  </TallerProvider>
-                </TurnoProvider>
+                      </PedidoProvider>
+                    </TallerProvider>
+                  </TurnoProvider>
+                </ServicioProvider>
               </ClienteProvider>
             </DataProvider>
           )}

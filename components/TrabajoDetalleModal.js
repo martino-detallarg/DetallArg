@@ -59,6 +59,19 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
               <Text style={styles.filaValor}>{turno.observaciones || "Sin observaciones"}</Text>
             </View>
 
+            {turno.recetaAplicada?.length > 0 && (
+              <>
+                <Text style={styles.seccion}>Insumos usados</Text>
+                <View style={styles.tarjeta}>
+                  {turno.recetaAplicada.map((linea) => (
+                    <Text key={linea.insumoId} style={styles.filaValor}>
+                      · {linea.nombreInsumo} — {linea.cantidad} {linea.unidad}
+                    </Text>
+                  ))}
+                </View>
+              </>
+            )}
+
             <Text style={styles.seccion}>Estado del trabajo</Text>
             <View style={styles.chips}>
               {ESTADOS_TRABAJO.map((estado) => {

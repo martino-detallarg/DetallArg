@@ -24,6 +24,10 @@ export const PAGINAS_ESTANTERIA = [
 // roja) y las notificaciones de "quedan pocos usos".
 export const UMBRAL_STOCK_BAJO = 25;
 
+// Unidades disponibles para `capacidadTotal` de un insumo (envase) y para
+// la cantidad de una receta de servicio (ver ServicioContext.js).
+export const UNIDADES_CAPACIDAD = ["ml", "g", "unidades"];
+
 // Catálogo real e investigado. Protecciones, Interiores y Rejuvenecedores
 // todavía no tienen productos investigados: usan un producto placeholder
 // (marca "A definir") solo para que la categoría no se vea vacía mientras
@@ -170,33 +174,43 @@ export const catalogoInsumos = [
 // 3 productos). Protecciones, Interiores y Rejuvenecedores muestran su
 // producto placeholder hasta que investiguemos productos reales para esas
 // categorías.
+//
+// `capacidadTotal`/`capacidadUnidad` son valores de ejemplo (igual que
+// `precioCompra`): el tamaño de envase real depende de qué presentación
+// compre cada taller. Son necesarios para poder convertir la cantidad de una
+// receta de servicio (ej. "50ml") en puntos de `nivel` a descontar (ver
+// ServicioContext.js y TurnoContext.js).
 function buscarProducto(id) {
   const producto = catalogoInsumos.find((p) => p.id === id);
   return { ...producto };
 }
 
 export const misInsumosIniciales = [
-  { ...buscarProducto("carpro-iron-x"), id: "mi-iron-x", productoId: "carpro-iron-x", nivel: 80, imagen: null },
-  { ...buscarProducto("koch-green-star"), id: "mi-green-star", productoId: "koch-green-star", nivel: 15, imagen: null },
+  { ...buscarProducto("carpro-iron-x"), id: "mi-iron-x", productoId: "carpro-iron-x", nivel: 80, imagen: null, capacidadTotal: 500, capacidadUnidad: "ml" },
+  { ...buscarProducto("koch-green-star"), id: "mi-green-star", productoId: "koch-green-star", nivel: 15, imagen: null, capacidadTotal: 1000, capacidadUnidad: "ml" },
   {
     ...buscarProducto("sonax-wheel-cleaner-full-effect"),
     id: "mi-wheel-cleaner-full-effect",
     productoId: "sonax-wheel-cleaner-full-effect",
     nivel: 55,
     imagen: null,
+    capacidadTotal: 500,
+    capacidadUnidad: "ml",
   },
-  { ...buscarProducto("vonixx-v-floc"), id: "mi-v-floc", productoId: "vonixx-v-floc", nivel: 90, imagen: null },
-  { ...buscarProducto("carpro-reset"), id: "mi-reset", productoId: "carpro-reset", nivel: 20, imagen: null },
-  { ...buscarProducto("sonax-xtreme-shampoo"), id: "mi-xtreme-shampoo", productoId: "sonax-xtreme-shampoo", nivel: 45, imagen: null },
-  { ...buscarProducto("3d-wash-wax"), id: "mi-wash-wax", productoId: "3d-wash-wax", nivel: 60, imagen: null },
-  { ...buscarProducto("vonixx-v-cut"), id: "mi-v-cut", productoId: "vonixx-v-cut", nivel: 70, imagen: null },
-  { ...buscarProducto("menzerna-fg400"), id: "mi-fg400", productoId: "menzerna-fg400", nivel: 10, imagen: null },
+  { ...buscarProducto("vonixx-v-floc"), id: "mi-v-floc", productoId: "vonixx-v-floc", nivel: 90, imagen: null, capacidadTotal: 500, capacidadUnidad: "ml" },
+  { ...buscarProducto("carpro-reset"), id: "mi-reset", productoId: "carpro-reset", nivel: 20, imagen: null, capacidadTotal: 500, capacidadUnidad: "ml" },
+  { ...buscarProducto("sonax-xtreme-shampoo"), id: "mi-xtreme-shampoo", productoId: "sonax-xtreme-shampoo", nivel: 45, imagen: null, capacidadTotal: 500, capacidadUnidad: "ml" },
+  { ...buscarProducto("3d-wash-wax"), id: "mi-wash-wax", productoId: "3d-wash-wax", nivel: 60, imagen: null, capacidadTotal: 500, capacidadUnidad: "ml" },
+  { ...buscarProducto("vonixx-v-cut"), id: "mi-v-cut", productoId: "vonixx-v-cut", nivel: 70, imagen: null, capacidadTotal: 500, capacidadUnidad: "ml" },
+  { ...buscarProducto("menzerna-fg400"), id: "mi-fg400", productoId: "menzerna-fg400", nivel: 10, imagen: null, capacidadTotal: 250, capacidadUnidad: "ml" },
   {
     ...buscarProducto("placeholder-cera-carnauba"),
     id: "mi-cera-carnauba",
     productoId: "placeholder-cera-carnauba",
     nivel: 100,
     imagen: null,
+    capacidadTotal: 250,
+    capacidadUnidad: "g",
   },
   {
     ...buscarProducto("placeholder-protector-plasticos"),
@@ -204,6 +218,8 @@ export const misInsumosIniciales = [
     productoId: "placeholder-protector-plasticos",
     nivel: 100,
     imagen: null,
+    capacidadTotal: 500,
+    capacidadUnidad: "ml",
   },
   {
     ...buscarProducto("placeholder-renovador-cuero"),
@@ -211,5 +227,7 @@ export const misInsumosIniciales = [
     productoId: "placeholder-renovador-cuero",
     nivel: 100,
     imagen: null,
+    capacidadTotal: 250,
+    capacidadUnidad: "ml",
   },
 ];

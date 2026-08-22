@@ -15,7 +15,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
-import { CATEGORIAS, catalogoInsumos } from "../data/mockInsumos";
+import { CATEGORIAS, UNIDADES_CAPACIDAD, catalogoInsumos } from "../data/mockInsumos";
 import { useData } from "../data/DataContext";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../theme";
 
@@ -23,6 +23,11 @@ function FilaProducto({ producto, agregado, onAgregar }) {
   const categoria = CATEGORIAS[producto.categoria];
   const [dilucion, setDilucion] = useState(producto.dilucion);
   const [rendimiento, setRendimiento] = useState(producto.rendimiento);
+  const [capacidadTotal, setCapacidadTotal] = useState("");
+  const [capacidadUnidad, setCapacidadUnidad] = useState(UNIDADES_CAPACIDAD[0]);
+
+  const capacidadNumerica = Number(capacidadTotal.replace(",", "."));
+  const capacidadValida = capacidadTotal.trim() !== "" && !Number.isNaN(capacidadNumerica) && capacidadNumerica > 0;
 
   return (
     <View style={styles.fila}>
@@ -65,12 +70,45 @@ function FilaProducto({ producto, agregado, onAgregar }) {
             />
           </View>
         </View>
+
+        <View style={styles.camposEditables}>
+          <View style={styles.campo}>
+            <Text style={styles.campoLabel}>Capacidad del envase</Text>
+            <TextInput
+              style={styles.campoInput}
+              value={capacidadTotal}
+              onChangeText={setCapacidadTotal}
+              placeholder="Ej. 500"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={styles.campo}>
+            <Text style={styles.campoLabel}>Unidad</Text>
+            <View style={styles.unidadChips}>
+              {UNIDADES_CAPACIDAD.map((unidad) => {
+                const activa = capacidadUnidad === unidad;
+                return (
+                  <TouchableOpacity
+                    key={unidad}
+                    style={[styles.unidadChip, activa && styles.unidadChipActivo]}
+                    onPress={() => setCapacidadUnidad(unidad)}
+                  >
+                    <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}>
+                      {unidad}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
       </View>
 
       <TouchableOpacity
-        style={[styles.botonAgregar, agregado && styles.botonAgregarHecho]}
-        onPress={() => onAgregar({ dilucion, rendimiento })}
-        disabled={agregado}
+        style={[styles.botonAgregar, (agregado || !capacidadValida) && styles.botonAgregarHecho]}
+        onPress={() => onAgregar({ dilucion, rendimiento, capacidadTotal: capacidadNumerica, capacidadUnidad })}
+        disabled={agregado || !capacidadValida}
         activeOpacity={0.85}
       >
         <Ionicons name={agregado ? "checkmark" : "add"} size={20} color={colors.bg} />
@@ -103,7 +141,7 @@ export default function AgregarInsumoModal({ visible, onClose }) {
     onClose();
   }
 
-  function handleAgregar(producto, { dilucion, rendimiento }) {
+  function handleAgregar(producto, { dilucion, rendimiento, capacidadTotal, capacidadUnidad }) {
     agregarInsumo({
       productoId: producto.id,
       marca: producto.marca,
@@ -114,6 +152,8 @@ export default function AgregarInsumoModal({ visible, onClose }) {
       rendimiento,
       imagen: producto.imagen ?? null,
       precioCompra: producto.precioCompra,
+      capacidadTotal,
+      capacidadUnidad,
     });
     setIdsAgregados((actuales) => new Set(actuales).add(producto.id));
   }
@@ -247,6 +287,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     ...shadowSubtle,
+  },
+  unidadChips: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  unidadChip: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface2,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  unidadChipActivo: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  unidadChipTexto: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  unidadChipTextoActivo: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.bg,
   },
   botonAgregar: {
     width: 36,

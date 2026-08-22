@@ -1,12 +1,18 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { turnosIniciales } from "./mockData";
+import { useServicios } from "./ServicioContext";
+import { useData } from "./DataContext";
 
 const TurnoContext = createContext(null);
 
 // Mismo patrón de Context + useState en memoria que ClienteContext,
-// TallerContext y PedidoContext (sin backend).
+// TallerContext y PedidoContext (sin backend). Depende de ServicioContext y
+// DataContext (ver App.js: TurnoProvider queda anidado dentro de ambos) para
+// poder descontar insumos al completar un trabajo.
 export function TurnoProvider({ children }) {
   const [turnos, setTurnos] = useState(turnosIniciales);
+  const { getServicioById } = useServicios();
+  const { getInsumoById, descontarInsumos } = useData();
 
   function agregarTurno(datosTurno) {
     const nuevoTurno = { id: `t${Date.now()}`, ...datosTurno };
@@ -18,7 +24,34 @@ export function TurnoProvider({ children }) {
     setTurnos((actuales) => actuales.map((t) => (t.id === id ? { ...t, ...cambios } : t)));
   }
 
+  // Al pasar un trabajo a "Finalizado" por primera vez, se descuenta stock
+  // según la receta ACTUAL del servicio y se guarda una copia congelada en
+  // `recetaAplicada` (con nombre/unidad incluidos, no solo el id, para que el
+  // registro no dependa de que el insumo siga existiendo igual después). El
+  // guard `!turno.recetaAplicada` evita descontar dos veces si el trabajo se
+  // vuelve a mover a Finalizado tras pasar por otro estado — a propósito no
+  // se repone stock si se revierte hacia atrás (ver ESTADO_PROYECTO.md).
   function actualizarEstadoTrabajo(id, nuevoEstado) {
+    const turno = getTurnoById(id);
+
+    if (nuevoEstado === "Finalizado" && turno && !turno.recetaAplicada && turno.servicioId) {
+      const servicio = getServicioById(turno.servicioId);
+      if (servicio?.receta?.length) {
+        descontarInsumos(servicio.receta);
+        const recetaAplicada = servicio.receta.map((linea) => {
+          const insumo = getInsumoById(linea.insumoId);
+          return {
+            insumoId: linea.insumoId,
+            nombreInsumo: insumo?.nombre ?? "Insumo eliminado",
+            unidad: insumo?.capacidadUnidad ?? "",
+            cantidad: linea.cantidad,
+          };
+        });
+        actualizarTurno(id, { estado: nuevoEstado, recetaAplicada });
+        return;
+      }
+    }
+
     actualizarTurno(id, { estado: nuevoEstado });
   }
 

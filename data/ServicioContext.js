@@ -8,8 +8,8 @@ const ServicioContext = createContext(null);
 export function ServicioProvider({ children }) {
   const [servicios, setServicios] = useState(serviciosIniciales);
 
-  function agregarServicio({ nombre, precio, categoria }) {
-    const nuevoServicio = { id: `sv${Date.now()}`, nombre, precio, categoria };
+  function agregarServicio({ nombre, precio, categoria, duracionEstimada, receta = [] }) {
+    const nuevoServicio = { id: `sv${Date.now()}`, nombre, precio, categoria, duracionEstimada, receta };
     setServicios((actuales) => [...actuales, nuevoServicio]);
     return nuevoServicio;
   }
