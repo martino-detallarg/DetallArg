@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
@@ -48,49 +48,54 @@ export default function EmpleadoModal({ visible, item, onClose }) {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
-          <WizardHeader
-            titulo={editando ? "Editar Empleado" : "Agregar Empleado"}
-            paso={1}
-            totalPasos={1}
-            onAtras={onClose}
-          />
-
-          <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
-            <Input
-              label="Nombre y apellido"
-              value={nombre}
-              onChangeText={setNombre}
-              placeholder="Ej: Carlos Gómez"
-            />
-            <Input
-              label="Rol / puesto"
-              value={rol}
-              onChangeText={setRol}
-              placeholder="Ej: Lavador, Encargado"
-            />
-            <Input
-              label="Teléfono (opcional)"
-              value={telefono}
-              onChangeText={setTelefono}
-              placeholder="11 2345-6789"
-              keyboardType="phone-pad"
+          <KeyboardAvoidingView
+            style={styles.flexUno}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <WizardHeader
+              titulo={editando ? "Editar Empleado" : "Agregar Empleado"}
+              paso={1}
+              totalPasos={1}
+              onAtras={onClose}
             />
 
-            <View style={styles.boton}>
-              <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} />
-            </View>
+            <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+              <Input
+                label="Nombre y apellido"
+                value={nombre}
+                onChangeText={setNombre}
+                placeholder="Ej: Carlos Gómez"
+              />
+              <Input
+                label="Rol / puesto"
+                value={rol}
+                onChangeText={setRol}
+                placeholder="Ej: Lavador, Encargado"
+              />
+              <Input
+                label="Teléfono (opcional)"
+                value={telefono}
+                onChangeText={setTelefono}
+                placeholder="11 2345-6789"
+                keyboardType="phone-pad"
+              />
 
-            {editando && (
-              <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
-                <Ionicons name="trash-outline" size={16} color={colors.error} />
-                <Text style={styles.eliminarBotonTexto}>Eliminar empleado</Text>
-              </TouchableOpacity>
-            )}
+              <View style={styles.boton}>
+                <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} />
+              </View>
 
-            <View style={styles.botonCancelar}>
-              <Button title="Cancelar" variant="secondary" onPress={onClose} />
-            </View>
-          </ScrollView>
+              {editando && (
+                <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
+                  <Ionicons name="trash-outline" size={16} color={colors.error} />
+                  <Text style={styles.eliminarBotonTexto}>Eliminar empleado</Text>
+                </TouchableOpacity>
+              )}
+
+              <View style={styles.botonCancelar}>
+                <Button title="Cancelar" variant="secondary" onPress={onClose} />
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>
     </Modal>
@@ -101,6 +106,9 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  flexUno: {
+    flex: 1,
   },
   contenido: {
     paddingHorizontal: 20,

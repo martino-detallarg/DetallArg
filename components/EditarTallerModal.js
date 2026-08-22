@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,6 +48,10 @@ export default function EditarTallerModal({ visible, onClose }) {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
+          <KeyboardAvoidingView
+            style={styles.flexUno}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
           <WizardHeader titulo="Editar Mi Taller" paso={1} totalPasos={1} onAtras={onClose} />
 
           <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
@@ -77,6 +81,7 @@ export default function EditarTallerModal({ visible, onClose }) {
               <Button title="Cancelar" variant="secondary" onPress={onClose} />
             </View>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>
     </Modal>
@@ -87,6 +92,9 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  flexUno: {
+    flex: 1,
   },
   contenido: {
     paddingHorizontal: 20,

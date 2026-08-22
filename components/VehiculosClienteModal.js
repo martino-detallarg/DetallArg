@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
@@ -95,6 +95,10 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
+          <KeyboardAvoidingView
+            style={styles.flexUno}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
           <WizardHeader titulo={cliente.nombre} paso={1} totalPasos={1} onAtras={onClose} />
 
           <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
@@ -189,6 +193,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
               </View>
             )}
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>
     </Modal>
@@ -199,6 +204,9 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  flexUno: {
+    flex: 1,
   },
   contenido: {
     paddingHorizontal: 20,

@@ -1,5 +1,16 @@
 import { useMemo, useState } from "react";
-import { FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
@@ -111,33 +122,38 @@ export default function AgregarInsumoModal({ visible, onClose }) {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleCerrar}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
-          <WizardHeader titulo="Agregar Insumo" paso={1} totalPasos={1} onAtras={handleCerrar} />
+          <KeyboardAvoidingView
+            style={styles.flexUno}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <WizardHeader titulo="Agregar Insumo" paso={1} totalPasos={1} onAtras={handleCerrar} />
 
-          <View style={styles.buscador}>
-            <Input
-              placeholder="Buscar por producto, marca o categoría..."
-              value={busqueda}
-              onChangeText={setBusqueda}
-              autoCapitalize="none"
-            />
-          </View>
-
-          <FlatList
-            data={filtrados}
-            keyExtractor={(producto) => producto.id}
-            contentContainerStyle={styles.lista}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <FilaProducto
-                producto={item}
-                agregado={idsAgregados.has(item.id)}
-                onAgregar={(valores) => handleAgregar(item, valores)}
+            <View style={styles.buscador}>
+              <Input
+                placeholder="Buscar por producto, marca o categoría..."
+                value={busqueda}
+                onChangeText={setBusqueda}
+                autoCapitalize="none"
               />
-            )}
-            ListEmptyComponent={
-              <Text style={styles.vacio}>No encontramos productos con ese criterio.</Text>
-            }
-          />
+            </View>
+
+            <FlatList
+              data={filtrados}
+              keyExtractor={(producto) => producto.id}
+              contentContainerStyle={styles.lista}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <FilaProducto
+                  producto={item}
+                  agregado={idsAgregados.has(item.id)}
+                  onAgregar={(valores) => handleAgregar(item, valores)}
+                />
+              )}
+              ListEmptyComponent={
+                <Text style={styles.vacio}>No encontramos productos con ese criterio.</Text>
+              }
+            />
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>
     </Modal>
@@ -148,6 +164,9 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  flexUno: {
+    flex: 1,
   },
   buscador: {
     paddingHorizontal: 20,

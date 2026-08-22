@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
@@ -44,6 +44,10 @@ export default function CostoFijoModal({ visible, item, onClose }) {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
+          <KeyboardAvoidingView
+            style={styles.flexUno}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
           <WizardHeader
             titulo={editando ? "Editar Costo Fijo" : "Agregar Costo Fijo"}
             paso={1}
@@ -93,6 +97,7 @@ export default function CostoFijoModal({ visible, item, onClose }) {
               <Button title="Cancelar" variant="secondary" onPress={onClose} />
             </View>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>
     </Modal>
@@ -103,6 +108,9 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  flexUno: {
+    flex: 1,
   },
   contenido: {
     paddingHorizontal: 20,

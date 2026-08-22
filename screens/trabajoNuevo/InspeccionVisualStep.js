@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import Button from "../../components/Button";
@@ -58,7 +67,10 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
   }
 
   return (
-    <View style={styles.pantalla}>
+    <KeyboardAvoidingView
+      style={styles.pantalla}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <WizardHeader titulo="Inspección Visual" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
       <ScrollView
@@ -115,7 +127,7 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
           <Button title="Finalizar y Guardar Trabajo" onPress={onFinalizar} />
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

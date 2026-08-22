@@ -22,7 +22,7 @@ function ItemMenu({ icono, titulo, activo, color, onPress }) {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Ionicons name={icono} size={20} color={color ?? (activo ? colors.accentLight : colors.textSecondary)} />
+      <Ionicons name={icono} size={24} color={color ?? colors.textPrimary} />
       <Text style={[styles.itemTexto, activo && styles.itemTextoActivo, color && { color }]}>
         {titulo}
       </Text>
@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
   },
   itemTexto: {
     fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 16,
+    color: colors.textPrimary,
   },
   itemTextoActivo: {
     fontFamily: fonts.bodySemiBold,
