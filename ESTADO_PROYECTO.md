@@ -176,7 +176,7 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 ## 4. Funcionalidades a medio hacer o pendientes
 
 **A medio hacer:**
-- **8 pantallas del drawer son placeholders**: Configuración, Datos Principales, Mi Equipo, Mis Insumos, Mis Horarios, Mis Servicios, Soporte, Notificaciones — todas renderizan el mismo `PlaceholderScreen.js` con un ícono y el texto "Próximamente". No tienen ninguna lógica ni UI propia todavía.
+- **7 pantallas del drawer son placeholders**: Configuración, Datos Principales, Mi Equipo, Mis Insumos, Mis Horarios, Mis Servicios, Notificaciones — todas renderizan el mismo `PlaceholderScreen.js` con un ícono y el texto "Próximamente". No tienen ninguna lógica ni UI propia todavía.
 - **Diagrama de daños genérico**: hay un comentario explícito en el código (`SeleccionVehiculoStep.js`) que dice que "por ahora todas las subdivisiones usan el mismo diagrama genérico — más adelante se puede reemplazar por el modelo real de cada una". No hay diagramas específicos por modelo de vehículo.
 - **Agenda**: el historial de commits menciona un "módulo de Agenda", pero en el código actual no existe una pantalla de agenda propiamente dicha más allá de la lista de "Turnos de hoy" en Home. No hay vista de calendario, ni de otros días, ni forma de navegar a fechas pasadas/futuras.
 
