@@ -26,6 +26,9 @@ import { DataProvider } from "./data/DataContext";
 import { TallerProvider } from "./data/TallerContext";
 import { PedidoProvider } from "./data/PedidoContext";
 import { ClienteProvider } from "./data/ClienteContext";
+import { TurnoProvider } from "./data/TurnoContext";
+import { ServicioProvider } from "./data/ServicioContext";
+import { EquipoProvider } from "./data/EquipoContext";
 import { colors } from "./theme";
 
 SplashScreenNativo.preventAutoHideAsync();
@@ -90,13 +93,19 @@ export default function App() {
           {pantalla === "app" && (
             <DataProvider>
               <ClienteProvider>
-                <TallerProvider>
-                  <PedidoProvider>
-                    <NavigationContainer>
-                      <DashboardNavigator onLogout={() => setPantalla("login")} />
-                    </NavigationContainer>
-                  </PedidoProvider>
-                </TallerProvider>
+                <TurnoProvider>
+                  <TallerProvider>
+                    <PedidoProvider>
+                      <ServicioProvider>
+                        <EquipoProvider>
+                          <NavigationContainer>
+                            <DashboardNavigator onLogout={() => setPantalla("login")} />
+                          </NavigationContainer>
+                        </EquipoProvider>
+                      </ServicioProvider>
+                    </PedidoProvider>
+                  </TallerProvider>
+                </TurnoProvider>
               </ClienteProvider>
             </DataProvider>
           )}

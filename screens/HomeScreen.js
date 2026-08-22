@@ -10,8 +10,8 @@ import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
 import ConfirmarTrabajoModal from "../components/ConfirmarTrabajoModal";
 import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
-import { turnosIniciales } from "../data/mockData";
 import { useClientes } from "../data/ClienteContext";
+import { useTurnos } from "../data/TurnoContext";
 import { usuarioActual } from "../data/mockUser";
 import { colors, fonts, shadow } from "../theme";
 
@@ -27,7 +27,7 @@ function formatearMonto(valor) {
 
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
-  const [turnos, setTurnos] = useState(turnosIniciales);
+  const { turnos, agregarTurno, actualizarEstadoTrabajo } = useTurnos();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
 
   const [opcionesVisibles, setOpcionesVisibles] = useState(false);
@@ -41,17 +41,6 @@ export default function HomeScreen({ navigation }) {
 
   const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
-
-  function agregarTrabajo(datosTrabajo) {
-    const nuevoTrabajo = { id: `t${Date.now()}`, ...datosTrabajo };
-    setTurnos((actuales) => [...actuales, nuevoTrabajo]);
-  }
-
-  function actualizarEstadoTrabajo(turnoId, nuevoEstado) {
-    setTurnos((actuales) =>
-      actuales.map((t) => (t.id === turnoId ? { ...t, estado: nuevoEstado } : t))
-    );
-  }
 
   function handleAbrirClienteNuevo() {
     setOpcionesVisibles(false);
@@ -170,7 +159,7 @@ export default function HomeScreen({ navigation }) {
       <TrabajoNuevoWizard
         visible={wizardTrabajoVisible}
         onClose={handleCerrarTrabajo}
-        onGuardarTrabajo={agregarTrabajo}
+        onGuardarTrabajo={agregarTurno}
         clienteIdInicial={prefillTrabajo?.clienteId}
         autoIdInicial={prefillTrabajo?.autoId}
       />

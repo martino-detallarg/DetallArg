@@ -1,24 +1,28 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
-import { colors, continuousCorner, fonts, radii } from "../../theme";
-
-const SERVICIOS = [
-  "Lavado exterior",
-  "Lavado completo",
-  "Pulido",
-  "Ceramic coating",
-  "Detailing interior",
-];
+import SelectorFechaModal from "../../components/wizard/SelectorFechaModal";
+import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../../utils/fecha";
+import { useServicios } from "../../data/ServicioContext";
+import { formatearPesos } from "../../utils/formato";
+import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
 export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
+  const { servicios } = useServicios();
   const [errores, setErrores] = useState({});
+  const [mostrarPicker, setMostrarPicker] = useState(false);
+
+  function obtenerFechaInicialPicker() {
+    return parsearFechaDDMMAAAA(datos.fecha) || new Date();
+  }
 
   function validar() {
     const nuevosErrores = {};
-    if (!datos.tipo) nuevosErrores.tipo = "Elegí un servicio";
+    if (!datos.servicioId) nuevosErrores.tipo = "Elegí un servicio";
     if (!datos.fecha.trim()) nuevosErrores.fecha = "Ingresá la fecha";
     if (!datos.hora.trim()) nuevosErrores.hora = "Ingresá la hora";
     if (!datos.tiempoEstimado.trim()) nuevosErrores.tiempoEstimado = "Ingresá el tiempo estimado";
@@ -30,8 +34,12 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     if (validar()) onContinuar();
   }
 
+  function seleccionarServicio(servicio) {
+    onCambiar({ tipo: servicio.nombre, servicioId: servicio.id, precio: servicio.precio });
+  }
+
   const esValido =
-    !!datos.tipo &&
+    !!datos.servicioId &&
     datos.fecha.trim() !== "" &&
     datos.hora.trim() !== "" &&
     datos.tiempoEstimado.trim() !== "";
@@ -45,29 +53,71 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
 
       <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Servicio</Text>
-        <View style={styles.chips}>
-          {SERVICIOS.map((s) => {
-            const activo = datos.tipo === s;
-            return (
-              <TouchableOpacity
-                key={s}
-                style={[styles.chip, activo && styles.chipSeleccionado]}
-                onPress={() => onCambiar({ tipo: s })}
-              >
-                <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>{s}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {servicios.length === 0 ? (
+          <Text style={styles.vacioAviso}>
+            Todavía no cargaste servicios en Mis Servicios. Cargalos desde Mi Taller para poder elegirlos acá.
+          </Text>
+        ) : (
+          <View style={styles.chips}>
+            {servicios.map((s) => {
+              const activo = datos.servicioId === s.id;
+              return (
+                <TouchableOpacity
+                  key={s.id}
+                  style={[styles.chip, activo && styles.chipSeleccionado]}
+                  onPress={() => seleccionarServicio(s)}
+                >
+                  <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
+                    {s.nombre} · {formatearPesos(s.precio)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
         {errores.tipo && <Text style={styles.error}>{errores.tipo}</Text>}
 
-        <Input
-          label="Fecha"
-          value={datos.fecha}
-          onChangeText={(v) => onCambiar({ fecha: v })}
-          placeholder="Ej: 18/08/2026"
-          error={errores.fecha}
-        />
+        <View style={styles.fechaContenedor}>
+          <Text style={styles.label}>Fecha</Text>
+          <TouchableOpacity
+            style={[styles.fechaWrapper, errores.fecha && styles.fechaWrapperError]}
+            onPress={() => setMostrarPicker(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={datos.fecha ? styles.fechaTexto : styles.fechaPlaceholder}>
+              {datos.fecha || "Elegí una fecha"}
+            </Text>
+            <Ionicons name="calendar-outline" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+          {errores.fecha && <Text style={styles.error}>{errores.fecha}</Text>}
+        </View>
+
+        {Platform.OS === "android" && mostrarPicker && (
+          <DateTimePicker
+            value={obtenerFechaInicialPicker()}
+            mode="date"
+            display="default"
+            onChange={(event, fechaElegida) => {
+              setMostrarPicker(false);
+              if (event.type === "set" && fechaElegida) {
+                onCambiar({ fecha: formatearFechaDDMMAAAA(fechaElegida) });
+              }
+            }}
+          />
+        )}
+
+        {Platform.OS === "ios" && (
+          <SelectorFechaModal
+            visible={mostrarPicker}
+            fechaInicial={obtenerFechaInicialPicker()}
+            onConfirmar={(fecha) => {
+              onCambiar({ fecha: formatearFechaDDMMAAAA(fecha) });
+              setMostrarPicker(false);
+            }}
+            onCancelar={() => setMostrarPicker(false)}
+          />
+        )}
+
         <Input
           label="Hora"
           value={datos.hora}
@@ -148,6 +198,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.error,
     marginTop: 6,
+  },
+  vacioAviso: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 4,
+  },
+  fechaContenedor: {
+    marginBottom: 16,
+  },
+  fechaWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingHorizontal: 14,
+    height: 50,
+    ...shadowSubtle,
+  },
+  fechaWrapperError: {
+    borderColor: colors.error,
+  },
+  fechaTexto: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  fechaPlaceholder: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.textMuted,
   },
   boton: {
     marginTop: 12,
