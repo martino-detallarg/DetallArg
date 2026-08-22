@@ -6,7 +6,13 @@ import WizardHeader from "../../components/wizard/WizardHeader";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import SelectorFechaModal from "../../components/wizard/SelectorFechaModal";
-import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../../utils/fecha";
+import SelectorHoraModal from "../../components/SelectorHoraModal";
+import {
+  formatearFechaDDMMAAAA,
+  formatearHoraHHMM,
+  parsearFechaDDMMAAAA,
+  parsearHoraHHMM,
+} from "../../utils/fecha";
 import { useServicios } from "../../data/ServicioContext";
 import { formatearPesos } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
@@ -15,9 +21,14 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
   const { servicios } = useServicios();
   const [errores, setErrores] = useState({});
   const [mostrarPicker, setMostrarPicker] = useState(false);
+  const [mostrarPickerHora, setMostrarPickerHora] = useState(false);
 
   function obtenerFechaInicialPicker() {
     return parsearFechaDDMMAAAA(datos.fecha) || new Date();
+  }
+
+  function obtenerHoraInicialPicker() {
+    return parsearHoraHHMM(datos.hora) || new Date();
   }
 
   function validar() {
@@ -118,13 +129,48 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
           />
         )}
 
-        <Input
-          label="Hora"
-          value={datos.hora}
-          onChangeText={(v) => onCambiar({ hora: v })}
-          placeholder="Ej: 14:30"
-          error={errores.hora}
-        />
+        <View style={styles.fechaContenedor}>
+          <Text style={styles.label}>Hora</Text>
+          <TouchableOpacity
+            style={[styles.fechaWrapper, errores.hora && styles.fechaWrapperError]}
+            onPress={() => setMostrarPickerHora(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={datos.hora ? styles.fechaTexto : styles.fechaPlaceholder}>
+              {datos.hora || "Elegí una hora"}
+            </Text>
+            <Ionicons name="time-outline" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+          {errores.hora && <Text style={styles.error}>{errores.hora}</Text>}
+        </View>
+
+        {Platform.OS === "android" && mostrarPickerHora && (
+          <DateTimePicker
+            value={obtenerHoraInicialPicker()}
+            mode="time"
+            display="default"
+            is24Hour
+            onChange={(event, horaElegida) => {
+              setMostrarPickerHora(false);
+              if (event.type === "set" && horaElegida) {
+                onCambiar({ hora: formatearHoraHHMM(horaElegida) });
+              }
+            }}
+          />
+        )}
+
+        {Platform.OS === "ios" && (
+          <SelectorHoraModal
+            visible={mostrarPickerHora}
+            horaInicial={obtenerHoraInicialPicker()}
+            onConfirmar={(hora) => {
+              onCambiar({ hora: formatearHoraHHMM(hora) });
+              setMostrarPickerHora(false);
+            }}
+            onCancelar={() => setMostrarPickerHora(false)}
+          />
+        )}
+
         <Input
           label="Tiempo estimado de trabajo"
           value={datos.tiempoEstimado}
