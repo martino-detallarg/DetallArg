@@ -1,0 +1,130 @@
+{
+  "vehicleType": "auto",
+  "subdivision": "coupe",
+  "view": "lateral",
+  "viewBox": "0 0 1368 441",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "guardabarro",
+      "label": "Guardabarro",
+      "points": [
+        [
+          20,
+          250
+        ],
+        [
+          200,
+          160
+        ],
+        [
+          425,
+          148
+        ],
+        [
+          425,
+          340
+        ],
+        [
+          20,
+          340
+        ]
+      ]
+    },
+    {
+      "id": "puerta",
+      "label": "Puerta",
+      "points": [
+        [
+          425,
+          148
+        ],
+        [
+          820,
+          148
+        ],
+        [
+          825,
+          340
+        ],
+        [
+          425,
+          340
+        ]
+      ]
+    },
+    {
+      "id": "vidrio",
+      "label": "Vidrio (ventanilla)",
+      "points": [
+        [
+          465,
+          145
+        ],
+        [
+          490,
+          90
+        ],
+        [
+          620,
+          20
+        ],
+        [
+          750,
+          17
+        ],
+        [
+          900,
+          25
+        ],
+        [
+          985,
+          45
+        ],
+        [
+          995,
+          140
+        ]
+      ]
+    },
+    {
+      "id": "cola",
+      "label": "Cola",
+      "points": [
+        [
+          800,
+          148
+        ],
+        [
+          985,
+          45
+        ],
+        [
+          1150,
+          85
+        ],
+        [
+          1310,
+          122
+        ],
+        [
+          1350,
+          245
+        ],
+        [
+          1355,
+          300
+        ],
+        [
+          1150,
+          350
+        ],
+        [
+          800,
+          345
+        ]
+      ]
+    }
+  ],
+  "note": "Esta imagen y estas zonas son de UN solo lado (tal cual la referencia). Para el lado opuesto, reflejar la imagen horizontalmente y las coordenadas x de cada punto (x' = 1368 - x) en vez de rehacer el trabajo — el auto es simétrico. Las llantas no tienen zona propia todavía."
+}
