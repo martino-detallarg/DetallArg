@@ -21,11 +21,15 @@ const MIS_DATOS_VACIOS = {
 // El ESTADO INICIAL (nombreTaller/logoTaller/misDatos/plan) se trae una
 // sola vez de la fila real de `talleres` en Supabase — la crea
 // automáticamente el trigger handle_new_user al registrarse (ver
-// supabase/trigger_nuevo_usuario.sql). Las MUTACIONES de este Context
-// (actualizarTaller, actualizarMisDatos, cambiarPlan, actualizarHorario)
-// siguen siendo solo en memoria por ahora, igual que antes: esto es
-// únicamente el bootstrap de lectura, no la migración completa de
-// escritura a Supabase (eso queda para más adelante).
+// supabase/trigger_nuevo_usuario.sql).
+//
+// Mutaciones: `actualizarMisDatos` y la parte de `nombre` de
+// `actualizarTaller` escriben de verdad en Supabase (async, tiran si hay
+// error — quien las llama debe hacer await + try/catch). `logo` (sin
+// Storage todavía), `cambiarPlan` (solo lo usa el panel de pruebas de
+// desarrollo) y `actualizarHorario` (la tabla `horarios_atencion` ni
+// siquiera tiene mecanismo de alta, ver ESTADO_PROYECTO.md) siguen siendo
+// solo en memoria a propósito.
 export function TallerProvider({ children }) {
   const { user } = useAuth();
   const [nombreTaller, setNombreTaller] = useState("");
@@ -74,12 +78,31 @@ export function TallerProvider({ children }) {
     };
   }, [user]);
 
-  function actualizarTaller({ nombre, logo }) {
-    if (nombre !== undefined) setNombreTaller(nombre);
+  // `nombre` se escribe de verdad en Supabase. `logo` sigue solo en
+  // memoria: todavía no hay Supabase Storage para subir la imagen (hoy es
+  // una URI local del dispositivo — guardarla en `logo_url` no serviría de
+  // nada entre sesiones/dispositivos, ver ESTADO_PROYECTO.md).
+  async function actualizarTaller({ nombre, logo }) {
+    if (nombre !== undefined) {
+      const { error } = await supabase.from("talleres").update({ nombre }).eq("id", user.id);
+      if (error) throw error;
+      setNombreTaller(nombre);
+    }
     if (logo !== undefined) setLogoTaller(logo);
   }
 
-  function actualizarMisDatos(cambios) {
+  async function actualizarMisDatos(cambios) {
+    const columnas = {};
+    if (cambios.nombrePersonal !== undefined) columnas.nombre_personal = cambios.nombrePersonal;
+    if (cambios.web !== undefined) columnas.web = cambios.web;
+    if (cambios.correo !== undefined) columnas.correo = cambios.correo;
+    if (cambios.telefono !== undefined) columnas.telefono = cambios.telefono;
+    if (cambios.ubicacion !== undefined) columnas.ubicacion = cambios.ubicacion;
+    if (cambios.situacionFiscal !== undefined) columnas.situacion_fiscal = cambios.situacionFiscal;
+
+    const { error } = await supabase.from("talleres").update(columnas).eq("id", user.id);
+    if (error) throw error;
+
     setMisDatos((actuales) => ({ ...actuales, ...cambios }));
   }
 

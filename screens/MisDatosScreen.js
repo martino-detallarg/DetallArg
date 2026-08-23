@@ -10,6 +10,8 @@ import { colors, fonts } from "../theme";
 export default function MisDatosScreen({ navigation }) {
   const { misDatos, actualizarMisDatos } = useTaller();
   const [datos, setDatos] = useState(misDatos);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
 
   function cambiar(campo, valor) {
     setDatos((actuales) => ({ ...actuales, [campo]: valor }));
@@ -22,16 +24,24 @@ export default function MisDatosScreen({ navigation }) {
     }));
   }
 
-  function handleGuardar() {
-    actualizarMisDatos({
-      nombrePersonal: datos.nombrePersonal.trim(),
-      web: datos.web.trim(),
-      correo: datos.correo.trim(),
-      telefono: datos.telefono.trim(),
-      ubicacion: datos.ubicacion.trim(),
-      situacionFiscal: datos.situacionFiscal,
-    });
-    navigation.navigate("MiTaller");
+  async function handleGuardar() {
+    setCargando(true);
+    setError(null);
+    try {
+      await actualizarMisDatos({
+        nombrePersonal: datos.nombrePersonal.trim(),
+        web: datos.web.trim(),
+        correo: datos.correo.trim(),
+        telefono: datos.telefono.trim(),
+        ubicacion: datos.ubicacion.trim(),
+        situacionFiscal: datos.situacionFiscal,
+      });
+      navigation.navigate("MiTaller");
+    } catch (err) {
+      setError("No se pudieron guardar los cambios. Probá de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   }
 
   return (
@@ -94,8 +104,10 @@ export default function MisDatosScreen({ navigation }) {
           })}
         </View>
 
+        {error && <Text style={styles.error}>{error}</Text>}
+
         <View style={styles.boton}>
-          <Button title="Guardar cambios" onPress={handleGuardar} />
+          <Button title="Guardar cambios" onPress={handleGuardar} loading={cargando} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -145,6 +157,13 @@ const styles = StyleSheet.create({
   chipTextoSeleccionado: {
     fontFamily: fonts.bodySemiBold,
     color: colors.bg,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 4,
   },
   boton: {
     marginTop: 12,

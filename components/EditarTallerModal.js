@@ -15,11 +15,14 @@ export default function EditarTallerModal({ visible, onClose }) {
   const { nombreTaller, logoTaller, actualizarTaller } = useTaller();
   const [nombre, setNombre] = useState("");
   const [logo, setLogo] = useState(null);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (visible) {
       setNombre(nombreTaller);
       setLogo(logoTaller);
+      setError(null);
     }
   }, [visible, nombreTaller, logoTaller]);
 
@@ -39,9 +42,17 @@ export default function EditarTallerModal({ visible, onClose }) {
     }
   }
 
-  function handleGuardar() {
-    actualizarTaller({ nombre: nombre.trim(), logo });
-    onClose();
+  async function handleGuardar() {
+    setCargando(true);
+    setError(null);
+    try {
+      await actualizarTaller({ nombre: nombre.trim(), logo });
+      onClose();
+    } catch (err) {
+      setError("No se pudieron guardar los cambios. Probá de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   }
 
   return (
@@ -74,8 +85,15 @@ export default function EditarTallerModal({ visible, onClose }) {
               placeholder="Ej: DetallArg Detailing"
             />
 
+            {error && <Text style={styles.error}>{error}</Text>}
+
             <View style={styles.boton}>
-              <Button title="Guardar cambios" onPress={handleGuardar} disabled={nombre.trim() === ""} />
+              <Button
+                title="Guardar cambios"
+                onPress={handleGuardar}
+                disabled={nombre.trim() === ""}
+                loading={cargando}
+              />
             </View>
             <View style={styles.botonCancelar}>
               <Button title="Cancelar" variant="secondary" onPress={onClose} />
@@ -136,6 +154,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 10,
     marginBottom: 16,
+  },
+  error: {
+    alignSelf: "stretch",
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginTop: 4,
   },
   boton: {
     alignSelf: "stretch",
