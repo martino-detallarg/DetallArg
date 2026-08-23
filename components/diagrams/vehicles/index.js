@@ -13,6 +13,7 @@ import { CAMIONETA_CSM_VISTAS, VEHICLE_TYPE as CAMIONETA_CSM } from "./camioneta
 import { CAMIONETA_DCC_VISTAS, VEHICLE_TYPE as CAMIONETA_DCC } from "./camionetaDobleCabinaChico";
 import { CAMIONETA_DCM_VISTAS, VEHICLE_TYPE as CAMIONETA_DCM } from "./camionetaDobleCabinaMediano";
 import { CAMIONETA_DCG_VISTAS, VEHICLE_TYPE as CAMIONETA_DCG } from "./camionetaDobleCabinaGrande";
+import { UTILITARIO_CHICO_VISTAS, VEHICLE_TYPE as UTILITARIO_CHICO } from "./camionetaUtilitarioChico";
 
 // Mapeo tipoDeVehiculo -> diagramas de paneles reales, para no tener que
 // rehacer el selector de estado de DiagramaDanios ni el carrusel de
@@ -78,6 +79,9 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [CAMIONETA_DCG]: {
     vistas: CAMIONETA_DCG_VISTAS,
   },
+  [UTILITARIO_CHICO]: {
+    vistas: UTILITARIO_CHICO_VISTAS,
+  },
 };
 
 // Resuelve la clave de este registro a partir de los datos de "Tipo de
@@ -109,6 +113,14 @@ export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
   }
   if (tipoVehiculo === "camioneta" && grupo === "Doble cabina" && subdivision === "Grande") {
     return CAMIONETA_DCG;
+  }
+  // Camioneta / Utilitario acarrozado / Chico ya tiene diagrama real
+  // propio — primera Camioneta con carrocería cerrada (sin caja abierta),
+  // ver notas de criterio de zonas en camionetaUtilitarioChico.js. Mediano
+  // todavía no, así que sin `subdivision` propio cae en el fallback
+  // genérico de InspeccionVisualStep (return null más abajo).
+  if (tipoVehiculo === "camioneta" && grupo === "Utilitario acarrozado" && subdivision === "Chico") {
+    return UTILITARIO_CHICO;
   }
   if (tipoVehiculo === "auto" && subdivision === "Coupé") {
     return AUTO_COUPE;

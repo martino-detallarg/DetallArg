@@ -153,4 +153,10 @@ El proceso de "quitar fondo y rellenar" (ink mask → `MORPH_CLOSE` → floodFil
 - `camioneta/doble_cabina_grande/cenital/` — listo (4 zonas: techo, parante izq, parante der, caja — mismo criterio que el resto de Doble cabina).
 - `camioneta/doble_cabina_grande/atras/` — listo (5 zonas: vidrio, compuerta, luz_izquierda, luz_derecha, paragolpes_trasero — mismo criterio que el resto de Doble cabina, paragolpes separado de la compuerta).
 - **`camioneta/doble_cabina_grande` completo — Frente, Atrás, Lateral y Cenital ✅.** Tercera y última de las 3 subdivisiones de Doble cabina — **familia Doble cabina completa**. En total, 10 de las 17 subdivisiones del árbol completo.
-- Sigue el resto de Camioneta (utilitario_acarrozado_chico, utilitario_acarrozado_mediano), después SUV y Motos.
+- ⚠️ **`camioneta/utilitario_acarrozado_chico` es la primera Camioneta con carrocería CERRADA** (furgón, referencia tipo Fiat Fiorino/similar) — a diferencia de Cabina simple y Doble cabina, que tienen caja de carga ABIERTA. Esto cambia el criterio de zonas en 3 de las 4 vistas:
+  - `frente/` — listo (9 zonas, mismo criterio que el resto de Camioneta — el frente no cambia con el tipo de caja).
+  - `lateral/` — listo (**4 zonas**: `guardabarro_delantero`, `puerta_delantera`, `vidrio`, `panel_carga` — `panel_carga` reemplaza a `caja` porque acá el costado de carga es un panel ciego sin ventanilla ni apertura, no una caja abierta). Es un solo lado — ver nota general arriba sobre el lado espejado.
+  - `cenital/` — listo (**3 zonas, no 4**: techo, parante izq, parante der — mismo criterio que la familia Auto, SIN zona de caja separada, porque el techo es una sola chapa continua desde la cabina hasta las puertas traseras, no hay caja abierta que mirar desde arriba).
+  - `atras/` — listo (**4 zonas**: `vidrio_izquierdo`, `vidrio_derecho`, `puerta_izquierda`, `puerta_derecha` — PRIMERA Camioneta con puertas traseras batientes en vez de compuerta/portón único, simétricas, cada una con su propia ventanilla, abisagradas en los bordes exteriores).
+- **`camioneta/utilitario_acarrozado_chico` completo — Frente, Atrás, Lateral y Cenital ✅.** Primera de las 2 subdivisiones de Utilitario acarrozado. En total, 11 de las 17 subdivisiones del árbol completo.
+- Sigue `utilitario_acarrozado_mediano` (con el mismo criterio de carrocería cerrada), después SUV y Motos.
