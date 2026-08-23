@@ -11,15 +11,26 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 export default function MisHorariosScreen({ navigation }) {
   const { horarios, actualizarHorario } = useTaller();
   const [editando, setEditando] = useState(null); // { dia, campo: "horaApertura" | "horaCierre" }
+  const [error, setError] = useState(null);
 
   function abrirPicker(dia, campo) {
     setEditando({ dia, campo });
   }
 
-  function seleccionarHora(hora) {
+  async function guardarCambio(dia, cambios) {
+    setError(null);
+    try {
+      await actualizarHorario(dia, cambios);
+    } catch (err) {
+      setError("No se pudo guardar el cambio. Probá de nuevo.");
+    }
+  }
+
+  async function seleccionarHora(hora) {
     if (!editando) return;
-    actualizarHorario(editando.dia, { [editando.campo]: formatearHoraHHMM(hora) });
+    const { dia, campo } = editando;
     setEditando(null);
+    await guardarCambio(dia, { [campo]: formatearHoraHHMM(hora) });
   }
 
   const horarioEditando = horarios.find((h) => h.dia === editando?.dia);
@@ -38,13 +49,15 @@ export default function MisHorariosScreen({ navigation }) {
           cargar un turno nuevo.
         </Text>
 
+        {error && <Text style={styles.error}>{error}</Text>}
+
         {horarios.map((item) => (
           <View key={item.dia} style={styles.tarjeta}>
             <View style={styles.filaSuperior}>
               <Text style={styles.dia}>{item.dia}</Text>
               <Switch
                 value={item.abierto}
-                onValueChange={(valor) => actualizarHorario(item.dia, { abierto: valor })}
+                onValueChange={(valor) => guardarCambio(item.dia, { abierto: valor })}
                 trackColor={{ false: colors.surface2, true: colors.accentDark }}
                 thumbColor={item.abierto ? colors.accent : colors.textMuted}
               />
@@ -126,6 +139,13 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: 18,
     marginBottom: 20,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 12,
   },
   tarjeta: {
     backgroundColor: colors.surface,

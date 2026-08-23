@@ -14,6 +14,19 @@ const DIAS_SEMANA_LARGO = [
   "viernes",
   "sábado",
 ];
+// Nombres capitalizados "Lunes".."Domingo", en el mismo orden que
+// Date.getDay() (0 = domingo) — para cruzar una fecha del wizard contra
+// `TallerContext.horarios`, que usa exactamente estos strings como `dia`
+// (y así están cargados en la tabla `horarios_atencion` de Supabase).
+const DIAS_SEMANA_HORARIO = [
+  "Domingo",
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+];
 const MESES_LARGO = [
   "enero",
   "febrero",
@@ -71,6 +84,10 @@ export function obtenerDiasDeLaSemana(fechaBase) {
 
 export function formatearDiaSemanaCorto(fecha) {
   return DIAS_SEMANA_CORTO[fecha.getDay()];
+}
+
+export function obtenerDiaSemanaHorario(fecha) {
+  return DIAS_SEMANA_HORARIO[fecha.getDay()];
 }
 
 export function formatearFechaLarga(fecha) {

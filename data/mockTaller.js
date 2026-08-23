@@ -22,10 +22,13 @@ export const SITUACIONES_FISCALES = [
   "Prefiero no decir",
 ];
 
-// Horario de atención de referencia (Mis Horarios). Por ahora es solo
-// informativo: no restringe qué horas se pueden elegir en el wizard de
-// Trabajo Nuevo. Arranca con un horario típico de taller (L-V 9 a 18,
-// sábado medio día, domingo cerrado) para no mostrar la pantalla vacía.
+// Horario de atención de referencia (Mis Horarios). Cumple doble función:
+// (1) valor por defecto de `TallerContext.horarios` mientras se resuelve el
+// fetch a Supabase, y (2) plantilla que `TallerContext` usa para sembrar las
+// 7 filas de `horarios_atencion` en Supabase la primera vez que un taller
+// (nuevo o ya existente de antes de esta migración) no tiene ninguna
+// cargada todavía. Horario típico de taller (L-V 9 a 18, sábado medio día,
+// domingo cerrado).
 export const horariosIniciales = [
   { dia: "Lunes", abierto: true, horaApertura: "09:00", horaCierre: "18:00" },
   { dia: "Martes", abierto: true, horaApertura: "09:00", horaCierre: "18:00" },

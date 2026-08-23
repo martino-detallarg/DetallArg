@@ -10,15 +10,18 @@ import SelectorHoraModal from "../../components/SelectorHoraModal";
 import {
   formatearFechaDDMMAAAA,
   formatearHoraHHMM,
+  obtenerDiaSemanaHorario,
   parsearFechaDDMMAAAA,
   parsearHoraHHMM,
 } from "../../utils/fecha";
 import { useServicios } from "../../data/ServicioContext";
+import { useTaller } from "../../data/TallerContext";
 import { formatearPesos } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
 export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
   const { servicios } = useServicios();
+  const { horarios } = useTaller();
   const [errores, setErrores] = useState({});
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [mostrarPickerHora, setMostrarPickerHora] = useState(false);
@@ -31,11 +34,37 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     return parsearHoraHHMM(datos.hora) || new Date();
   }
 
+  // Cruza fecha + hora contra TallerContext.horarios. Se recalcula en cada
+  // render (no solo al tocar "Continuar") a propósito: a diferencia de los
+  // demás campos, acá no alcanza con ver el picker para darse cuenta de que
+  // el valor elegido es inválido — hace falta cruzarlo contra un dato
+  // externo (el horario de atención), así que el aviso tiene que aparecer
+  // apenas se elige la combinación, no recién al intentar continuar.
+  function obtenerErrorHorario() {
+    const fechaObj = parsearFechaDDMMAAAA(datos.fecha);
+    if (!fechaObj || !datos.hora.trim()) return null;
+
+    const diaSemana = obtenerDiaSemanaHorario(fechaObj);
+    const horario = horarios.find((h) => h.dia === diaSemana);
+    if (!horario) return null;
+
+    if (!horario.abierto) {
+      return `Los ${diaSemana.toLowerCase()} el taller está cerrado`;
+    }
+    if (datos.hora < horario.horaApertura || datos.hora >= horario.horaCierre) {
+      return `Ese día atendés de ${horario.horaApertura} a ${horario.horaCierre}`;
+    }
+    return null;
+  }
+
+  const errorHorario = obtenerErrorHorario();
+
   function validar() {
     const nuevosErrores = {};
     if (!datos.servicioId) nuevosErrores.tipo = "Elegí un servicio";
     if (!datos.fecha.trim()) nuevosErrores.fecha = "Ingresá la fecha";
     if (!datos.hora.trim()) nuevosErrores.hora = "Ingresá la hora";
+    else if (errorHorario) nuevosErrores.hora = errorHorario;
     if (!datos.tiempoEstimado.trim()) nuevosErrores.tiempoEstimado = "Ingresá el tiempo estimado";
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -53,6 +82,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     !!datos.servicioId &&
     datos.fecha.trim() !== "" &&
     datos.hora.trim() !== "" &&
+    !errorHorario &&
     datos.tiempoEstimado.trim() !== "";
 
   return (
@@ -132,7 +162,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
         <View style={styles.fechaContenedor}>
           <Text style={styles.label}>Hora</Text>
           <TouchableOpacity
-            style={[styles.fechaWrapper, errores.hora && styles.fechaWrapperError]}
+            style={[styles.fechaWrapper, (errores.hora || errorHorario) && styles.fechaWrapperError]}
             onPress={() => setMostrarPickerHora(true)}
             activeOpacity={0.8}
           >
@@ -141,7 +171,9 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
             </Text>
             <Ionicons name="time-outline" size={20} color={colors.textMuted} />
           </TouchableOpacity>
-          {errores.hora && <Text style={styles.error}>{errores.hora}</Text>}
+          {(errores.hora || errorHorario) && (
+            <Text style={styles.error}>{errores.hora || errorHorario}</Text>
+          )}
         </View>
 
         {Platform.OS === "android" && mostrarPickerHora && (
