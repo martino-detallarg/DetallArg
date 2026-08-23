@@ -12,17 +12,22 @@ import { StatusBar } from "expo-status-bar";
 import Logo from "../components/Logo";
 import Input from "../components/Input";
 import Button from "../components/Button";
+import { useAuth } from "../data/AuthContext";
+import { mensajeErrorAuth } from "../utils/auth";
 import { colors, fonts } from "../theme";
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignupScreen({ onCuentaCreada, onIrALogin }) {
+  const { signUp } = useAuth();
   const [nombre, setNombre] = useState("");
+  const [nombreTaller, setNombreTaller] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
   const [confirmarPassword, setConfirmarPassword] = useState("");
   const [errores, setErrores] = useState({});
+  const [cargando, setCargando] = useState(false);
 
   function validar() {
     const nuevosErrores = {};
@@ -51,9 +56,22 @@ export default function SignupScreen({ onCuentaCreada, onIrALogin }) {
     return Object.keys(nuevosErrores).length === 0;
   }
 
-  function handleCrearCuenta() {
-    if (validar()) {
+  async function handleCrearCuenta() {
+    if (!validar()) return;
+    setCargando(true);
+    try {
+      await signUp({
+        email: email.trim(),
+        password,
+        nombre: nombre.trim(),
+        telefono: telefono.trim(),
+        nombreTaller: nombreTaller.trim(),
+      });
       onCuentaCreada(email.trim());
+    } catch (error) {
+      setErrores({ general: mensajeErrorAuth(error) });
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -79,6 +97,12 @@ export default function SignupScreen({ onCuentaCreada, onIrALogin }) {
           onChangeText={setNombre}
           placeholder="Juan Pérez"
           error={errores.nombre}
+        />
+        <Input
+          label="Nombre del taller (opcional)"
+          value={nombreTaller}
+          onChangeText={setNombreTaller}
+          placeholder="Ej: DetallArg Detailing"
         />
         <Input
           label="Email"
@@ -116,7 +140,9 @@ export default function SignupScreen({ onCuentaCreada, onIrALogin }) {
           error={errores.confirmarPassword}
         />
 
-        <Button title="Crear cuenta" onPress={handleCrearCuenta} />
+        {errores.general && <Text style={styles.errorGeneral}>{errores.general}</Text>}
+
+        <Button title="Crear cuenta" onPress={handleCrearCuenta} loading={cargando} />
 
         <View style={styles.footer}>
           <Text style={styles.textoMuted}>¿Ya tenés cuenta? </Text>
@@ -157,6 +183,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 6,
     textAlign: "center",
+  },
+  errorGeneral: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 12,
   },
   footer: {
     flexDirection: "row",

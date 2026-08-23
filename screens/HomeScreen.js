@@ -12,7 +12,7 @@ import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
 import { useClientes } from "../data/ClienteContext";
 import { useTurnos } from "../data/TurnoContext";
-import { usuarioActual } from "../data/mockUser";
+import { useTaller } from "../data/TallerContext";
 import { colors, fonts, shadow } from "../theme";
 
 const INGRESOS_DEL_MES = 1245000;
@@ -28,6 +28,7 @@ function formatearMonto(valor) {
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
   const { turnos, agregarTurno, actualizarEstadoTrabajo } = useTurnos();
+  const { misDatos } = useTaller();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
 
   const [opcionesVisibles, setOpcionesVisibles] = useState(false);
@@ -102,7 +103,7 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={styles.lista}
         ListHeaderComponent={
           <>
-            <Text style={styles.saludo}>Hola, {usuarioActual.nombre} 👋</Text>
+            <Text style={styles.saludo}>Hola{misDatos.nombrePersonal ? `, ${misDatos.nombrePersonal}` : ""} 👋</Text>
 
             <View style={styles.stats}>
               <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />

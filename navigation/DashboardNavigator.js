@@ -26,7 +26,7 @@ const PANTALLAS_LEGAL = [
   { ruta: "Privacidad", titulo: "Política de privacidad" },
 ];
 
-export default function DashboardNavigator({ onLogout }) {
+export default function DashboardNavigator() {
   return (
     <Drawer.Navigator
       screenOptions={{
@@ -34,7 +34,7 @@ export default function DashboardNavigator({ onLogout }) {
         drawerStyle: { backgroundColor: colors.surface, width: "80%" },
         overlayColor: "rgba(4, 3, 3, 0.7)",
       }}
-      drawerContent={(props) => <DrawerContent {...props} onLogout={onLogout} />}
+      drawerContent={(props) => <DrawerContent {...props} />}
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name="Clientes" component={ClientesScreen} />
@@ -49,9 +49,7 @@ export default function DashboardNavigator({ onLogout }) {
       <Drawer.Screen name="Notificaciones" component={NotificacionesScreen} />
       <Drawer.Screen name="Soporte" component={SoporteScreen} />
       <Drawer.Screen name="MisHorarios" component={MisHorariosScreen} />
-      <Drawer.Screen name="Configuracion">
-        {(props) => <ConfiguracionScreen {...props} onLogout={onLogout} />}
-      </Drawer.Screen>
+      <Drawer.Screen name="Configuracion" component={ConfiguracionScreen} />
       {PANTALLAS_LEGAL.map(({ ruta, titulo }) => (
         <Drawer.Screen
           key={ruta}

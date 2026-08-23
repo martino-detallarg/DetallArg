@@ -12,14 +12,18 @@ import { StatusBar } from "expo-status-bar";
 import Logo from "../components/Logo";
 import Input from "../components/Input";
 import Button from "../components/Button";
+import { useAuth } from "../data/AuthContext";
+import { mensajeErrorAuth } from "../utils/auth";
 import { colors, fonts } from "../theme";
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function LoginScreen({ onLoginExitoso, onIrARegistro }) {
+export default function LoginScreen({ onIrARegistro }) {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errores, setErrores] = useState({});
+  const [cargando, setCargando] = useState(false);
 
   function validar() {
     const nuevosErrores = {};
@@ -35,9 +39,17 @@ export default function LoginScreen({ onLoginExitoso, onIrARegistro }) {
     return Object.keys(nuevosErrores).length === 0;
   }
 
-  function handleIniciarSesion() {
-    if (validar()) {
-      onLoginExitoso();
+  async function handleIniciarSesion() {
+    if (!validar()) return;
+    setCargando(true);
+    try {
+      await signIn(email.trim(), password);
+      // No hace falta navegar acá: FlujoApp (App.js) escucha la sesión y
+      // pasa solo a "app" apenas signIn() la deja establecida.
+    } catch (error) {
+      setErrores({ general: mensajeErrorAuth(error) });
+    } finally {
+      setCargando(false);
     }
   }
 
@@ -76,7 +88,9 @@ export default function LoginScreen({ onLoginExitoso, onIrARegistro }) {
           error={errores.password}
         />
 
-        <Button title="Iniciar sesión" onPress={handleIniciarSesion} />
+        {errores.general && <Text style={styles.errorGeneral}>{errores.general}</Text>}
+
+        <Button title="Iniciar sesión" onPress={handleIniciarSesion} loading={cargando} />
 
         <TouchableOpacity style={styles.linkOlvido}>
           <Text style={styles.textoLinkChico}>¿Olvidaste tu contraseña?</Text>
@@ -121,6 +135,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 6,
     textAlign: "center",
+  },
+  errorGeneral: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 12,
   },
   linkOlvido: {
     alignSelf: "center",

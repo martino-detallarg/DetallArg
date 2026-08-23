@@ -3,7 +3,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import { useTaller } from "../data/TallerContext";
-import { usuarioActual } from "../data/mockUser";
+import { useAuth } from "../data/AuthContext";
 import { PLANES } from "../data/mockTaller";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -11,8 +11,9 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 // expo-constants instalado para leerlo en runtime).
 const VERSION_APP = "1.0.0";
 
-export default function ConfiguracionScreen({ navigation, onLogout }) {
-  const { plan } = useTaller();
+export default function ConfiguracionScreen({ navigation }) {
+  const { plan, misDatos, nombreTaller } = useTaller();
+  const { user, signOut } = useAuth();
 
   return (
     <SafeAreaView style={styles.pantalla}>
@@ -26,18 +27,18 @@ export default function ConfiguracionScreen({ navigation, onLogout }) {
         <View style={styles.tarjeta}>
           <View style={styles.datoFila}>
             <Text style={styles.datoLabel}>Nombre</Text>
-            <Text style={styles.datoValor}>{usuarioActual.nombre}</Text>
+            <Text style={styles.datoValor}>{misDatos.nombrePersonal || "-"}</Text>
           </View>
           <View style={styles.separador} />
           <View style={styles.datoFila}>
             <Text style={styles.datoLabel}>Empresa</Text>
-            <Text style={styles.datoValor}>{usuarioActual.empresa}</Text>
+            <Text style={styles.datoValor}>{nombreTaller || "-"}</Text>
           </View>
           <View style={styles.separador} />
           <View style={styles.datoFila}>
             <Text style={styles.datoLabel}>Email</Text>
             <Text style={styles.datoValor} numberOfLines={1}>
-              {usuarioActual.email}
+              {user?.email}
             </Text>
           </View>
           <View style={styles.separador} />
@@ -85,7 +86,7 @@ export default function ConfiguracionScreen({ navigation, onLogout }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.cerrarSesion} onPress={onLogout} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.cerrarSesion} onPress={signOut} activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={18} color={colors.error} />
           <Text style={styles.cerrarSesionTexto}>Cerrar sesión</Text>
         </TouchableOpacity>

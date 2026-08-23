@@ -1,7 +1,8 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { usuarioActual } from "../data/mockUser";
+import { useTaller } from "../data/TallerContext";
+import { useAuth } from "../data/AuthContext";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const ITEMS_PRINCIPALES = [
@@ -30,8 +31,10 @@ function ItemMenu({ icono, titulo, activo, color, onPress }) {
   );
 }
 
-export default function DrawerContent({ navigation, state, onLogout }) {
+export default function DrawerContent({ navigation, state }) {
   const rutaActiva = state.routeNames[state.index];
+  const { nombreTaller } = useTaller();
+  const { user, signOut } = useAuth();
 
   function irA(ruta) {
     navigation.navigate(ruta);
@@ -41,8 +44,8 @@ export default function DrawerContent({ navigation, state, onLogout }) {
   return (
     <SafeAreaView style={styles.contenedor} edges={["top", "bottom"]}>
       <View style={styles.perfil}>
-        <Text style={styles.empresa}>{usuarioActual.empresa}</Text>
-        <Text style={styles.email}>{usuarioActual.email}</Text>
+        <Text style={styles.empresa}>{nombreTaller || "Mi taller"}</Text>
+        <Text style={styles.email}>{user?.email}</Text>
       </View>
 
       <View style={styles.separador} />
@@ -65,7 +68,7 @@ export default function DrawerContent({ navigation, state, onLogout }) {
           icono="log-out-outline"
           titulo="Cerrar sesión"
           color={colors.error}
-          onPress={onLogout}
+          onPress={signOut}
         />
       </View>
     </SafeAreaView>

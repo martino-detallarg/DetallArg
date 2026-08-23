@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -22,6 +22,7 @@ import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import VerifyEmailScreen from "./screens/VerifyEmailScreen";
 import DashboardNavigator from "./navigation/DashboardNavigator";
+import { AuthProvider, useAuth } from "./data/AuthContext";
 import { DataProvider } from "./data/DataContext";
 import { TallerProvider } from "./data/TallerContext";
 import { PedidoProvider } from "./data/PedidoContext";
@@ -45,9 +46,6 @@ export default function App() {
     JetBrainsMono_500Medium,
   });
 
-  const [pantalla, setPantalla] = useState("splash");
-  const [emailPendiente, setEmailPendiente] = useState("");
-
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
       await SplashScreenNativo.hideAsync();
@@ -62,55 +60,83 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <View style={{ flex: 1, backgroundColor: colors.bg }} onLayout={onLayoutRootView}>
-          {pantalla === "splash" && (
-            <SplashScreen onTerminar={() => setPantalla("login")} />
-          )}
-
-          {pantalla === "login" && (
-            <LoginScreen
-              onLoginExitoso={() => setPantalla("app")}
-              onIrARegistro={() => setPantalla("signup")}
-            />
-          )}
-
-          {pantalla === "signup" && (
-            <SignupScreen
-              onCuentaCreada={(email) => {
-                setEmailPendiente(email);
-                setPantalla("verify-email");
-              }}
-              onIrALogin={() => setPantalla("login")}
-            />
-          )}
-
-          {pantalla === "verify-email" && (
-            <VerifyEmailScreen
-              email={emailPendiente}
-              onIrALogin={() => setPantalla("login")}
-            />
-          )}
-
-          {pantalla === "app" && (
-            <DataProvider>
-              <ClienteProvider>
-                <ServicioProvider>
-                  <TurnoProvider>
-                    <TallerProvider>
-                      <PedidoProvider>
-                        <EquipoProvider>
-                          <NavigationContainer>
-                            <DashboardNavigator onLogout={() => setPantalla("login")} />
-                          </NavigationContainer>
-                        </EquipoProvider>
-                      </PedidoProvider>
-                    </TallerProvider>
-                  </TurnoProvider>
-                </ServicioProvider>
-              </ClienteProvider>
-            </DataProvider>
-          )}
+          <AuthProvider>
+            <FlujoApp />
+          </AuthProvider>
         </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+// Splash (con su propio timer de 1.5s, ver SplashScreen.js) -> según haya
+// o no una sesión real de Supabase (useAuth), entra directo a la app o al
+// sub-flujo de login/signup/verify-email. `pantalla` acá solo maneja ESE
+// sub-flujo: apenas `session` deja de ser null, este efecto pasa a "app"
+// sin que ninguna pantalla lo pida a mano (cubre login, y también volver a
+// la app después de confirmar el email y loguearse).
+function FlujoApp() {
+  const { session, cargando } = useAuth();
+  const [splashTerminado, setSplashTerminado] = useState(false);
+  const [pantalla, setPantalla] = useState("login");
+  const [emailPendiente, setEmailPendiente] = useState("");
+
+  const listoParaDecidir = splashTerminado && !cargando;
+
+  useEffect(() => {
+    if (!listoParaDecidir) return;
+    if (session) {
+      setPantalla("app");
+    } else {
+      // No pisa "signup"/"verify-email" si el usuario está en medio de ese
+      // sub-flujo sin sesión todavía (esperado: signUp() no da sesión hasta
+      // confirmar el email). Solo fuerza "login" si veníamos de "app" (ej.
+      // cerraste sesión o se venció el token).
+      setPantalla((actual) => (actual === "app" ? "login" : actual));
+    }
+  }, [listoParaDecidir, session]);
+
+  if (!listoParaDecidir) {
+    return <SplashScreen onTerminar={() => setSplashTerminado(true)} />;
+  }
+
+  return (
+    <>
+      {pantalla === "login" && <LoginScreen onIrARegistro={() => setPantalla("signup")} />}
+
+      {pantalla === "signup" && (
+        <SignupScreen
+          onCuentaCreada={(email) => {
+            setEmailPendiente(email);
+            setPantalla("verify-email");
+          }}
+          onIrALogin={() => setPantalla("login")}
+        />
+      )}
+
+      {pantalla === "verify-email" && (
+        <VerifyEmailScreen email={emailPendiente} onIrALogin={() => setPantalla("login")} />
+      )}
+
+      {pantalla === "app" && (
+        <DataProvider>
+          <ClienteProvider>
+            <ServicioProvider>
+              <TurnoProvider>
+                <TallerProvider>
+                  <PedidoProvider>
+                    <EquipoProvider>
+                      <NavigationContainer>
+                        <DashboardNavigator />
+                      </NavigationContainer>
+                    </EquipoProvider>
+                  </PedidoProvider>
+                </TallerProvider>
+              </TurnoProvider>
+            </ServicioProvider>
+          </ClienteProvider>
+        </DataProvider>
+      )}
+    </>
   );
 }
