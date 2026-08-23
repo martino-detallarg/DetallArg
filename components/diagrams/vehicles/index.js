@@ -7,6 +7,7 @@ import { AUTO_COUPE_VISTAS, VEHICLE_TYPE as AUTO_COUPE } from "./autoCoupe";
 import { AUTO_SEDAN_VISTAS, VEHICLE_TYPE as AUTO_SEDAN } from "./autoSedan";
 import { AUTO_DESCAPOTABLE_VISTAS, VEHICLE_TYPE as AUTO_DESCAPOTABLE } from "./autoDescapotable";
 import { AUTO_FAMILIAR_VISTAS, VEHICLE_TYPE as AUTO_FAMILIAR } from "./autoFamiliar";
+import { AUTO_HATCHBACK_VISTAS, VEHICLE_TYPE as AUTO_HATCHBACK } from "./autoHatchback";
 
 // Mapeo tipoDeVehiculo -> diagramas de paneles reales, para no tener que
 // rehacer el selector de estado de DiagramaDanios ni el carrusel de
@@ -52,6 +53,9 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [AUTO_FAMILIAR]: {
     vistas: AUTO_FAMILIAR_VISTAS,
   },
+  [AUTO_HATCHBACK]: {
+    vistas: AUTO_HATCHBACK_VISTAS,
+  },
 };
 
 // Resuelve la clave de este registro a partir de los datos de "Tipo de
@@ -74,6 +78,9 @@ export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
   }
   if (tipoVehiculo === "auto" && subdivision === "Familiar") {
     return AUTO_FAMILIAR;
+  }
+  if (tipoVehiculo === "auto" && subdivision === "Hatchback") {
+    return AUTO_HATCHBACK;
   }
   return null;
 }

@@ -112,4 +112,9 @@ Para no duplicar zonas entre vistas, cada parte real del auto se marca una sola 
 - `auto/familiar/lateral/` — listo (**5 zonas**: guardabarro, puerta_delantera, puerta_trasera, vidrio, `cola` — acá `cola` es la cola/portón trasero con el techo extendido, no el baúl corto del Sedán/Coupé). 4 puertas como el Sedán. Es un solo lado — ver nota general arriba sobre el lado espejado.
 - `auto/familiar/cenital/` — listo (3 zonas: techo/vidrios, parante izq, parante der — mismo criterio que el resto, pero la zona `techo` es más larga porque en un familiar el techo/vidrio llega casi hasta el portón trasero).
 - **`auto/familiar` completo — Frente, Atrás, Lateral y Cenital ✅ (las 4 vistas, a diferencia de Descapotable).**
-- Con esto ya son 4 de las 16 subdivisiones completas.
+- `auto/hatchback/frente/` — listo (9 zonas). ⚠️ Referencia NUEVA (un VW Golf, no el Audi que veníamos usando para Coupé/Sedán/Familiar) — zonas hechas a medida, no calcadas.
+- `auto/hatchback/atras/` — listo (5 zonas). A diferencia del Familiar, acá la referencia SÍ trae un portón trasero real de hatchback (vidrio + panel inferior en una sola pieza articulada, no el baúl de Sedán reciclado) — zona `baul` representa ese portón completo.
+- `auto/hatchback/lateral/` — listo (5 zonas: guardabarro, puerta_delantera, puerta_trasera, vidrio, cola/portón — mismo criterio que Sedán/Familiar, 4 puertas). Es un solo lado — ver nota general arriba sobre el lado espejado.
+- `auto/hatchback/cenital/` — listo (3 zonas: techo/vidrios, parante izq, parante der — techo más corto que el del Familiar, termina antes del portón, igual que Coupé/Sedán).
+- **`auto/hatchback` completo — Frente, Atrás, Lateral y Cenital ✅.**
+- Con esto se completa toda la familia **Auto** (Coupé, Sedán, Descapotable, Familiar, Hatchback) — 5 de las 16 subdivisiones. Sigue **SUV** (compacto y grande), después Camionetas y Motos.
