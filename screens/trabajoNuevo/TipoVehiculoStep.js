@@ -20,7 +20,7 @@ const TIPOS_VEHICULO = {
     icono: "car-pickup",
     grupos: [
       { grupo: "Cabina simple", opciones: ["Chico", "Mediano"] },
-      { grupo: "Doble cabina", opciones: ["Mediano", "Grande"] },
+      { grupo: "Doble cabina", opciones: ["Chico", "Mediano", "Grande"] },
       { grupo: "Utilitario acarrozado", opciones: ["Chico", "Mediano"] },
     ],
   },

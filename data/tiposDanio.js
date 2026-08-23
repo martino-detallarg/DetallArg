@@ -17,5 +17,6 @@ export const TIPOS_DANIO = {
   trizadura: { etiqueta: "Trizadura", color: "#4FB8B0" },
   excremento_ave: { etiqueta: "Excremento de ave", color: "#A8C43E" },
   laca_quemada: { etiqueta: "Laca quemada", color: "#A85040" },
+  rasgada: { etiqueta: "Rasgada", color: "#5C7CBF" },
   otro: { etiqueta: "Otro", color: "#6B7785", notaLibre: true },
 };

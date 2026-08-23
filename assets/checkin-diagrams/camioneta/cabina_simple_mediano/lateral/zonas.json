@@ -1,0 +1,125 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "cabina_simple_mediano",
+  "view": "lateral",
+  "viewBox": "0 0 1300 460",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "guardabarro_delantero",
+      "label": "Guardabarro delantero",
+      "points": [
+        [
+          15,
+          205
+        ],
+        [
+          170,
+          140
+        ],
+        [
+          300,
+          110
+        ],
+        [
+          335,
+          155
+        ],
+        [
+          335,
+          340
+        ],
+        [
+          15,
+          340
+        ]
+      ]
+    },
+    {
+      "id": "puerta",
+      "label": "Puerta",
+      "points": [
+        [
+          335,
+          155
+        ],
+        [
+          365,
+          130
+        ],
+        [
+          695,
+          120
+        ],
+        [
+          695,
+          340
+        ],
+        [
+          335,
+          340
+        ]
+      ]
+    },
+    {
+      "id": "vidrio",
+      "label": "Vidrio (ventanilla)",
+      "points": [
+        [
+          380,
+          130
+        ],
+        [
+          410,
+          45
+        ],
+        [
+          555,
+          25
+        ],
+        [
+          670,
+          30
+        ],
+        [
+          695,
+          80
+        ],
+        [
+          695,
+          120
+        ],
+        [
+          365,
+          130
+        ]
+      ]
+    },
+    {
+      "id": "caja",
+      "label": "Caja",
+      "points": [
+        [
+          695,
+          120
+        ],
+        [
+          1230,
+          110
+        ],
+        [
+          1290,
+          150
+        ],
+        [
+          1290,
+          340
+        ],
+        [
+          695,
+          340
+        ]
+      ]
+    }
+  ]
+}

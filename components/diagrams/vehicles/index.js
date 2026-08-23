@@ -8,6 +8,8 @@ import { AUTO_SEDAN_VISTAS, VEHICLE_TYPE as AUTO_SEDAN } from "./autoSedan";
 import { AUTO_DESCAPOTABLE_VISTAS, VEHICLE_TYPE as AUTO_DESCAPOTABLE } from "./autoDescapotable";
 import { AUTO_FAMILIAR_VISTAS, VEHICLE_TYPE as AUTO_FAMILIAR } from "./autoFamiliar";
 import { AUTO_HATCHBACK_VISTAS, VEHICLE_TYPE as AUTO_HATCHBACK } from "./autoHatchback";
+import { CAMIONETA_CSC_VISTAS, VEHICLE_TYPE as CAMIONETA_CSC } from "./camionetaCabinaSimpleChico";
+import { CAMIONETA_CSM_VISTAS, VEHICLE_TYPE as CAMIONETA_CSM } from "./camionetaCabinaSimpleMediano";
 
 // Mapeo tipoDeVehiculo -> diagramas de paneles reales, para no tener que
 // rehacer el selector de estado de DiagramaDanios ni el carrusel de
@@ -22,10 +24,12 @@ import { AUTO_HATCHBACK_VISTAS, VEHICLE_TYPE as AUTO_HATCHBACK } from "./autoHat
 //   panelIds: ids tocables de ESA vista, en el orden del resumen.
 //   panelLabels: id -> etiqueta legible, para el selector y el resumen.
 //
-// La Pickup Cabina Simple todavía es un solo SVG con las 5 vistas apiladas
-// (no separadas por ángulo), así que por ahora queda registrada como una
-// única "vista" — el día que se separe en ángulos reales, alcanza con
-// agregar las demás entradas acá, sin tocar DiagramaDanios ni el carrusel.
+// La Pickup Cabina Simple (el viejo SVG de un solo panel, 5 vistas
+// apiladas) ya no representa a ninguna subdivisión real por defecto —
+// Chico y Mediano tienen ambas su diagrama propio (ver más abajo). Queda
+// registrada solo como resguardo: si `grupo` ya es "Cabina simple" pero
+// todavía no se eligió Chico/Mediano, se usa como vista previa genérica
+// mientras tanto (ver `obtenerClaveDiagrama`).
 //
 // Si un tipo de vehículo no tiene entrada acá, InspeccionVisualStep usa una
 // sola vista genérica (el diagrama de Frente de
@@ -56,6 +60,12 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [AUTO_HATCHBACK]: {
     vistas: AUTO_HATCHBACK_VISTAS,
   },
+  [CAMIONETA_CSC]: {
+    vistas: CAMIONETA_CSC_VISTAS,
+  },
+  [CAMIONETA_CSM]: {
+    vistas: CAMIONETA_CSM_VISTAS,
+  },
 };
 
 // Resuelve la clave de este registro a partir de los datos de "Tipo de
@@ -64,6 +74,16 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
 // (arma la nota de qué diagrama vas a ver) como InspeccionVisualStep (arma
 // el carrusel y lo renderiza) usen siempre la misma lógica.
 export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
+  // Camioneta / Cabina simple ya tiene diagrama real propio para las dos
+  // subdivisiones — se chequean antes del catch-all genérico de más abajo,
+  // que ahora es solo resguardo por si `grupo` ya está elegido pero
+  // `subdivision` todavía no (Chico/Mediano sin definir).
+  if (tipoVehiculo === "camioneta" && grupo === "Cabina simple" && subdivision === "Chico") {
+    return CAMIONETA_CSC;
+  }
+  if (tipoVehiculo === "camioneta" && grupo === "Cabina simple" && subdivision === "Mediano") {
+    return CAMIONETA_CSM;
+  }
   if (tipoVehiculo === "camioneta" && grupo === "Cabina simple") {
     return PICKUP_CABINA_SIMPLE;
   }
