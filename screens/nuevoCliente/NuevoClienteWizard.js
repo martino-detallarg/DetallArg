@@ -22,6 +22,8 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
   const [clienteExistente, setClienteExistente] = useState(null);
   const [datosCliente, setDatosCliente] = useState(CLIENTE_VACIO);
   const [datosVehiculo, setDatosVehiculo] = useState(VEHICULO_VACIO);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (visible) {
@@ -29,6 +31,7 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
       setClienteExistente(null);
       setDatosCliente(CLIENTE_VACIO);
       setDatosVehiculo(VEHICULO_VACIO);
+      setError(null);
     }
   }, [visible, modo]);
 
@@ -41,24 +44,34 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
     setPaso("vehiculo");
   }
 
-  function handleFinalizarVehiculo() {
-    const clienteId = esVehiculoNuevo
-      ? clienteExistente.id
-      : agregarCliente({
-          nombre: datosCliente.nombre.trim(),
-          telefono: datosCliente.telefono.trim(),
-        }).id;
+  async function handleFinalizarVehiculo() {
+    setCargando(true);
+    setError(null);
+    try {
+      const clienteId = esVehiculoNuevo
+        ? clienteExistente.id
+        : (
+            await agregarCliente({
+              nombre: datosCliente.nombre.trim(),
+              telefono: datosCliente.telefono.trim(),
+            })
+          ).id;
 
-    const { marca, modelo } = separarMarcaModelo(datosVehiculo.marcaModelo);
-    const nuevoVehiculo = agregarVehiculo(clienteId, {
-      marca,
-      modelo,
-      anio: datosVehiculo.anio.trim(),
-      patente: datosVehiculo.patente.trim(),
-      color: datosVehiculo.color.trim(),
-    });
+      const { marca, modelo } = separarMarcaModelo(datosVehiculo.marcaModelo);
+      const nuevoVehiculo = await agregarVehiculo(clienteId, {
+        marca,
+        modelo,
+        anio: datosVehiculo.anio.trim(),
+        patente: datosVehiculo.patente.trim(),
+        color: datosVehiculo.color.trim(),
+      });
 
-    onListo(clienteId, nuevoVehiculo.id);
+      onListo(clienteId, nuevoVehiculo.id);
+    } catch (err) {
+      setError("No se pudo guardar. Probá de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   }
 
   const pasoNumero = paso === "vehiculo" ? 2 : 1;
@@ -94,6 +107,8 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
               onCambiar={(c) => setDatosVehiculo((d) => ({ ...d, ...c }))}
               onAtras={() => setPaso(esVehiculoNuevo ? "elegirCliente" : "cliente")}
               onContinuar={handleFinalizarVehiculo}
+              cargando={cargando}
+              error={error}
             />
           )}
         </SafeAreaView>

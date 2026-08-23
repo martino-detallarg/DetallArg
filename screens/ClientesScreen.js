@@ -108,10 +108,19 @@ export default function ClientesScreen({ navigation }) {
         visible={modalVisible}
         cliente={clienteEditando}
         onClose={() => setModalVisible(false)}
+        onEliminado={() => {
+          setClienteDetalleId(null);
+          setModalVisible(false);
+        }}
       />
 
+      {/* `!modalVisible` a propósito: React Native no re-presenta bien un
+          <Modal> nativo si se abre otro mientras el primero sigue visible
+          (dos Modal simultáneos). Al ocultar este mientras se edita, vuelve
+          a aparecer solo cuando ClienteModal se cierra — con el mismo
+          clienteDetalleId, así que "regresa" al detalle tras guardar. */}
       <VehiculosClienteModal
-        visible={clienteDetalleId !== null}
+        visible={clienteDetalleId !== null && !modalVisible}
         cliente={clienteDetalle}
         onClose={() => setClienteDetalleId(null)}
         onEditarCliente={() => {

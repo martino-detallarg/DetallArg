@@ -11,34 +11,61 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 // Formulario de alta y edición de cliente (mismo patrón que CostoFijoModal):
 // si viene `cliente`, edita ese cliente y muestra el botón de eliminar; si
 // viene null, crea uno nuevo.
-export default function ClienteModal({ visible, cliente, onClose }) {
+//
+// `onEliminado` es distinto de `onClose` a propósito: `onClose` es "solo
+// cerrar este modal" (cancelar o guardar edición, sin tocar nada más), pero
+// eliminar el cliente además tiene que avisarle a ClientesScreen que cierre
+// el detalle del cliente (VehiculosClienteModal) si estaba abierto — si no,
+// ese modal quedaría con un clienteDetalleId apuntando a un cliente que ya
+// no existe. Si no viene `onEliminado`, cae a `onClose` (mismo
+// comportamiento que antes, para no romper otro uso futuro de este modal).
+export default function ClienteModal({ visible, cliente, onClose, onEliminado }) {
   const { agregarCliente, editarCliente, eliminarCliente } = useClientes();
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
   const editando = cliente !== null;
 
   useEffect(() => {
     if (visible) {
       setNombre(cliente?.nombre ?? "");
       setTelefono(cliente?.telefono ?? "");
+      setError(null);
     }
   }, [visible, cliente]);
 
   const esValido = nombre.trim() !== "" && telefono.trim() !== "";
 
-  function handleGuardar() {
+  async function handleGuardar() {
     if (!esValido) return;
-    if (editando) {
-      editarCliente(cliente.id, { nombre: nombre.trim(), telefono: telefono.trim() });
-    } else {
-      agregarCliente({ nombre: nombre.trim(), telefono: telefono.trim() });
+    setCargando(true);
+    setError(null);
+    try {
+      if (editando) {
+        await editarCliente(cliente.id, { nombre: nombre.trim(), telefono: telefono.trim() });
+      } else {
+        await agregarCliente({ nombre: nombre.trim(), telefono: telefono.trim() });
+      }
+      onClose();
+    } catch (err) {
+      setError("No se pudo guardar el cliente. Probá de nuevo.");
+    } finally {
+      setCargando(false);
     }
-    onClose();
   }
 
-  function handleEliminar() {
-    eliminarCliente(cliente.id);
-    onClose();
+  async function handleEliminar() {
+    setCargando(true);
+    setError(null);
+    try {
+      await eliminarCliente(cliente.id);
+      (onEliminado ?? onClose)();
+    } catch (err) {
+      setError("No se pudo eliminar el cliente. Probá de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   }
 
   return (
@@ -71,12 +98,19 @@ export default function ClienteModal({ visible, cliente, onClose }) {
                 keyboardType="phone-pad"
               />
 
+              {error && <Text style={styles.error}>{error}</Text>}
+
               <View style={styles.boton}>
-                <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} />
+                <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} loading={cargando} />
               </View>
 
               {editando && (
-                <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={styles.eliminarBoton}
+                  onPress={handleEliminar}
+                  disabled={cargando}
+                  activeOpacity={0.85}
+                >
                   <Ionicons name="trash-outline" size={16} color={colors.error} />
                   <Text style={styles.eliminarBotonTexto}>Eliminar cliente</Text>
                 </TouchableOpacity>
@@ -104,6 +138,13 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 4,
   },
   boton: {
     marginTop: 12,

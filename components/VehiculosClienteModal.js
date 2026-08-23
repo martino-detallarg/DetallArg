@@ -44,12 +44,15 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
   const [formularioVisible, setFormularioVisible] = useState(false);
   const [vehiculoEditandoId, setVehiculoEditandoId] = useState(null);
   const [datosVehiculo, setDatosVehiculo] = useState(VEHICULO_VACIO);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (visible) {
       setFormularioVisible(false);
       setVehiculoEditandoId(null);
       setDatosVehiculo(VEHICULO_VACIO);
+      setError(null);
     }
   }, [visible, cliente?.id]);
 
@@ -73,7 +76,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
     setFormularioVisible(true);
   }
 
-  function handleGuardarVehiculo() {
+  async function handleGuardarVehiculo() {
     const datos = {
       marca: datosVehiculo.marca.trim(),
       modelo: datosVehiculo.modelo.trim(),
@@ -81,12 +84,29 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
       patente: datosVehiculo.patente.trim(),
       color: datosVehiculo.color.trim(),
     };
-    if (vehiculoEditandoId) {
-      editarVehiculo(cliente.id, vehiculoEditandoId, datos);
-    } else {
-      agregarVehiculo(cliente.id, datos);
+    setCargando(true);
+    setError(null);
+    try {
+      if (vehiculoEditandoId) {
+        await editarVehiculo(cliente.id, vehiculoEditandoId, datos);
+      } else {
+        await agregarVehiculo(cliente.id, datos);
+      }
+      setFormularioVisible(false);
+    } catch (err) {
+      setError("No se pudo guardar el vehículo. Probá de nuevo.");
+    } finally {
+      setCargando(false);
     }
-    setFormularioVisible(false);
+  }
+
+  async function handleEliminarVehiculo(vehiculoId) {
+    setError(null);
+    try {
+      await eliminarVehiculo(cliente.id, vehiculoId);
+    } catch (err) {
+      setError("No se pudo eliminar el vehículo. Probá de nuevo.");
+    }
   }
 
   const esValido = datosVehiculo.marca.trim() !== "" && datosVehiculo.patente.trim() !== "";
@@ -113,6 +133,8 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
               </TouchableOpacity>
             </View>
 
+            {error && <Text style={styles.error}>{error}</Text>}
+
             <View style={styles.seccionHeader}>
               <Text style={styles.seccion}>Vehículos ({cliente.vehiculos.length})</Text>
               <TouchableOpacity
@@ -132,7 +154,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                   key={vehiculo.id}
                   vehiculo={vehiculo}
                   onEditar={() => handleEditar(vehiculo)}
-                  onEliminar={() => eliminarVehiculo(cliente.id, vehiculo.id)}
+                  onEliminar={() => handleEliminarVehiculo(vehiculo.id)}
                 />
               ))
             )}
@@ -181,6 +203,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                     title={vehiculoEditandoId ? "Guardar cambios" : "Agregar vehículo"}
                     onPress={handleGuardarVehiculo}
                     disabled={!esValido}
+                    loading={cargando}
                   />
                 </View>
                 <View style={styles.botonCancelar}>
@@ -231,6 +254,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
     alignItems: "center",
     justifyContent: "center",
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 10,
   },
   seccionHeader: {
     flexDirection: "row",

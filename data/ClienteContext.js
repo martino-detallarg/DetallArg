@@ -1,62 +1,103 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "./AuthContext";
 
 const ClienteContext = createContext(null);
 
-// Clientes/vehículos de ejemplo con los mismos IDs (c1/c2, a1/a2/a3) que
-// esperan los turnos de ejemplo en mockData.js (turnosIniciales). Sin esto,
-// esos turnos no resuelven a ningún cliente/vehículo real y TurnoCard
-// muestra "Cliente sin datos" / "Auto sin datos".
-const clientesIniciales = [
-  {
-    id: "c1",
-    nombre: "Juan Pérez",
-    telefono: "11 2345-6789",
-    vehiculos: [
-      { id: "a1", marca: "Volkswagen", modelo: "Golf", anio: "2019", patente: "AB123CD", color: "Gris" },
-      { id: "a2", marca: "Toyota", modelo: "Hilux", anio: "2021", patente: "AC456EF", color: "Blanca" },
-    ],
-  },
-  {
-    id: "c2",
-    nombre: "Marina López",
-    telefono: "11 3456-7890",
-    vehiculos: [
-      { id: "a3", marca: "Fiat", modelo: "Cronos", anio: "2020", patente: "AD789GH", color: "Negro" },
-    ],
-  },
-];
-
-// Mismo patrón de Context + useState en memoria que DataContext y
-// PedidoContext (sin backend). Cada cliente guarda sus vehículos anidados
-// en `vehiculos`, así no hace falta una tabla separada tipo "autos".
+// Migrado a Supabase (tablas `clientes` y `vehiculos`, ver supabase/schema.sql).
+// Cada cliente sigue guardando sus vehículos **anidados** en `cliente.vehiculos`
+// en memoria (mismo criterio que antes de migrar: no hay una tabla `autos`
+// separada a nivel de la app, aunque en la base sí son dos tablas con FK).
+// El fetch inicial usa un embedded resource de PostgREST para traer clientes
+// + vehículos en una sola query, ya con la forma anidada que espera el resto
+// de la app — así ninguna pantalla de solo lectura (ClientesScreen,
+// SeleccionarClienteStep, HomeScreen/AgendaScreen vía getClienteById/
+// getVehiculoById, TrabajoNuevoWizard) necesitó cambios.
+//
+// Todas las mutaciones son `async` y escriben de verdad contra Supabase
+// antes de tocar el estado local (sin actualización optimista, mismo
+// criterio que TallerContext): si Supabase devuelve error, se relanza
+// (`throw`) y el estado en memoria no se toca — quien llama debe hacer
+// `await` + `try/catch`.
 export function ClienteProvider({ children }) {
-  const [clientes, setClientes] = useState(clientesIniciales);
+  const { user } = useAuth();
+  const [clientes, setClientes] = useState([]);
+  const [cargandoClientes, setCargandoClientes] = useState(true);
 
-  function agregarCliente({ nombre, telefono }) {
-    const nuevoCliente = { id: `c${Date.now()}`, nombre, telefono, vehiculos: [] };
+  useEffect(() => {
+    if (!user) return;
+    let cancelado = false;
+
+    async function cargarClientes() {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nombre, telefono, vehiculos(id, marca, modelo, anio, patente, color)")
+        .eq("taller_id", user.id)
+        .order("nombre", { ascending: true });
+
+      if (cancelado) return;
+
+      if (error) {
+        console.warn("No se pudieron cargar los clientes desde Supabase:", error.message);
+        setCargandoClientes(false);
+        return;
+      }
+
+      setClientes(data);
+      setCargandoClientes(false);
+    }
+
+    cargarClientes();
+    return () => {
+      cancelado = true;
+    };
+  }, [user]);
+
+  async function agregarCliente({ nombre, telefono }) {
+    const { data, error } = await supabase
+      .from("clientes")
+      .insert({ taller_id: user.id, nombre, telefono })
+      .select("id, nombre, telefono")
+      .single();
+    if (error) throw error;
+
+    const nuevoCliente = { ...data, vehiculos: [] };
     setClientes((actuales) => [...actuales, nuevoCliente]);
     return nuevoCliente;
   }
 
-  function editarCliente(id, cambios) {
+  async function editarCliente(id, cambios) {
+    const { error } = await supabase.from("clientes").update(cambios).eq("id", id);
+    if (error) throw error;
+
     setClientes((actuales) => actuales.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
   }
 
-  function eliminarCliente(id) {
+  async function eliminarCliente(id) {
+    const { error } = await supabase.from("clientes").delete().eq("id", id);
+    if (error) throw error;
+
     setClientes((actuales) => actuales.filter((c) => c.id !== id));
   }
 
-  function agregarVehiculo(clienteId, vehiculo) {
-    const nuevoVehiculo = { id: `v${Date.now()}`, ...vehiculo };
+  async function agregarVehiculo(clienteId, vehiculo) {
+    const { data, error } = await supabase
+      .from("vehiculos")
+      .insert({ taller_id: user.id, cliente_id: clienteId, ...vehiculo })
+      .select("id, marca, modelo, anio, patente, color")
+      .single();
+    if (error) throw error;
+
     setClientes((actuales) =>
-      actuales.map((c) =>
-        c.id === clienteId ? { ...c, vehiculos: [...c.vehiculos, nuevoVehiculo] } : c
-      )
+      actuales.map((c) => (c.id === clienteId ? { ...c, vehiculos: [...c.vehiculos, data] } : c))
     );
-    return nuevoVehiculo;
+    return data;
   }
 
-  function editarVehiculo(clienteId, vehiculoId, cambios) {
+  async function editarVehiculo(clienteId, vehiculoId, cambios) {
+    const { error } = await supabase.from("vehiculos").update(cambios).eq("id", vehiculoId);
+    if (error) throw error;
+
     setClientes((actuales) =>
       actuales.map((c) =>
         c.id === clienteId
@@ -66,7 +107,10 @@ export function ClienteProvider({ children }) {
     );
   }
 
-  function eliminarVehiculo(clienteId, vehiculoId) {
+  async function eliminarVehiculo(clienteId, vehiculoId) {
+    const { error } = await supabase.from("vehiculos").delete().eq("id", vehiculoId);
+    if (error) throw error;
+
     setClientes((actuales) =>
       actuales.map((c) =>
         c.id === clienteId ? { ...c, vehiculos: c.vehiculos.filter((v) => v.id !== vehiculoId) } : c
@@ -80,7 +124,8 @@ export function ClienteProvider({ children }) {
 
   // Busca un vehículo por id recorriendo todos los clientes, para los
   // lugares que solo tienen el id del vehículo a mano (por ejemplo un turno
-  // guardado con clienteId + autoId).
+  // guardado con clienteId + autoId). Opera sobre lo ya cargado en memoria,
+  // no dispara ningún request nuevo.
   function getVehiculoById(id) {
     for (const cliente of clientes) {
       const vehiculo = cliente.vehiculos.find((v) => v.id === id);
@@ -92,6 +137,7 @@ export function ClienteProvider({ children }) {
   const value = useMemo(
     () => ({
       clientes,
+      cargandoClientes,
       agregarCliente,
       editarCliente,
       eliminarCliente,
@@ -101,7 +147,7 @@ export function ClienteProvider({ children }) {
       getClienteById,
       getVehiculoById,
     }),
-    [clientes]
+    [clientes, cargandoClientes]
   );
 
   return <ClienteContext.Provider value={value}>{children}</ClienteContext.Provider>;

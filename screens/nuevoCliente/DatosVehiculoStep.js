@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
-import { colors } from "../../theme";
+import { colors, fonts } from "../../theme";
 
 function formatearPatente(texto) {
   const limpio = texto.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 7);
@@ -13,7 +13,16 @@ function formatearPatente(texto) {
   return [letras1, numeros, letras2].filter(Boolean).join(" ");
 }
 
-export default function DatosVehiculoStep({ datos, paso = 2, totalPasos = 2, onCambiar, onAtras, onContinuar }) {
+export default function DatosVehiculoStep({
+  datos,
+  paso = 2,
+  totalPasos = 2,
+  onCambiar,
+  onAtras,
+  onContinuar,
+  cargando = false,
+  error = null,
+}) {
   const [errores, setErrores] = useState({});
 
   function validar() {
@@ -67,8 +76,10 @@ export default function DatosVehiculoStep({ datos, paso = 2, totalPasos = 2, onC
           placeholder="Gris"
         />
 
+        {error && <Text style={styles.error}>{error}</Text>}
+
         <View style={styles.boton}>
-          <Button title="Continuar" onPress={handleContinuar} disabled={!esValido} />
+          <Button title="Continuar" onPress={handleContinuar} disabled={!esValido} loading={cargando} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -83,6 +94,13 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginTop: 8,
   },
   boton: {
     marginTop: 12,
