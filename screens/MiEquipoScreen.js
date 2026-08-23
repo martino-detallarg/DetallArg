@@ -11,10 +11,11 @@ import { PLANES } from "../data/mockTaller";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 export default function MiEquipoScreen({ navigation }) {
-  const { empleados, eliminarEmpleado } = useEquipo();
+  const { empleados, cargandoEquipo, eliminarEmpleado } = useEquipo();
   const { plan, limiteEmpleados } = useTaller();
   const [modalVisible, setModalVisible] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
+  const [error, setError] = useState(null);
 
   const alLimite = empleados.length >= limiteEmpleados;
 
@@ -26,6 +27,15 @@ export default function MiEquipoScreen({ navigation }) {
   function handleEditar(item) {
     setItemEditando(item);
     setModalVisible(true);
+  }
+
+  async function handleEliminar(id) {
+    setError(null);
+    try {
+      await eliminarEmpleado(id);
+    } catch (err) {
+      setError("No se pudo eliminar el empleado. Probá de nuevo.");
+    }
   }
 
   return (
@@ -49,6 +59,8 @@ export default function MiEquipoScreen({ navigation }) {
           </View>
         )}
 
+        {error && <Text style={styles.error}>{error}</Text>}
+
         {empleados.length === 0 ? (
           <Text style={styles.vacio}>Todavía no cargaste empleados.</Text>
         ) : (
@@ -70,7 +82,7 @@ export default function MiEquipoScreen({ navigation }) {
               </View>
               <TouchableOpacity
                 style={styles.quitarBoton}
-                onPress={() => eliminarEmpleado(item.id)}
+                onPress={() => handleEliminar(item.id)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 activeOpacity={0.8}
               >
@@ -81,7 +93,7 @@ export default function MiEquipoScreen({ navigation }) {
         )}
       </ScrollView>
 
-      {!alLimite && (
+      {!alLimite && !cargandoEquipo && (
         <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
           <Text style={styles.fabTexto}>+</Text>
         </TouchableOpacity>
@@ -125,6 +137,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 12,
   },
   vacio: {
     fontFamily: fonts.body,

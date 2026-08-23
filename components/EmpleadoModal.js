@@ -17,6 +17,8 @@ export default function EmpleadoModal({ visible, item, onClose }) {
   const [nombre, setNombre] = useState("");
   const [rol, setRol] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
   const editando = item !== null;
 
   useEffect(() => {
@@ -24,24 +26,41 @@ export default function EmpleadoModal({ visible, item, onClose }) {
       setNombre(item?.nombre ?? "");
       setRol(item?.rol ?? "");
       setTelefono(item?.telefono ?? "");
+      setError(null);
     }
   }, [visible, item]);
 
   const esValido = nombre.trim() !== "" && rol.trim() !== "";
 
-  function handleGuardar() {
+  async function handleGuardar() {
     if (!esValido) return;
-    if (editando) {
-      editarEmpleado(item.id, { nombre: nombre.trim(), rol: rol.trim(), telefono: telefono.trim() });
-    } else {
-      agregarEmpleado({ nombre: nombre.trim(), rol: rol.trim(), telefono: telefono.trim() });
+    setCargando(true);
+    setError(null);
+    try {
+      if (editando) {
+        await editarEmpleado(item.id, { nombre: nombre.trim(), rol: rol.trim(), telefono: telefono.trim() });
+      } else {
+        await agregarEmpleado({ nombre: nombre.trim(), rol: rol.trim(), telefono: telefono.trim() });
+      }
+      onClose();
+    } catch (err) {
+      setError("No se pudo guardar el empleado. Probá de nuevo.");
+    } finally {
+      setCargando(false);
     }
-    onClose();
   }
 
-  function handleEliminar() {
-    eliminarEmpleado(item.id);
-    onClose();
+  async function handleEliminar() {
+    setCargando(true);
+    setError(null);
+    try {
+      await eliminarEmpleado(item.id);
+      onClose();
+    } catch (err) {
+      setError("No se pudo eliminar el empleado. Probá de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   }
 
   return (
@@ -80,12 +99,19 @@ export default function EmpleadoModal({ visible, item, onClose }) {
                 keyboardType="phone-pad"
               />
 
+              {error && <Text style={styles.error}>{error}</Text>}
+
               <View style={styles.boton}>
-                <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} />
+                <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} loading={cargando} />
               </View>
 
               {editando && (
-                <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={styles.eliminarBoton}
+                  onPress={handleEliminar}
+                  disabled={cargando}
+                  activeOpacity={0.85}
+                >
                   <Ionicons name="trash-outline" size={16} color={colors.error} />
                   <Text style={styles.eliminarBotonTexto}>Eliminar empleado</Text>
                 </TouchableOpacity>
@@ -113,6 +139,13 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 4,
   },
   boton: {
     marginTop: 12,
