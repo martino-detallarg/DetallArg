@@ -5,6 +5,8 @@ import PickupCabinaSimpleDiagram, {
 } from "./PickupCabinaSimpleDiagram";
 import { AUTO_COUPE_VISTAS, VEHICLE_TYPE as AUTO_COUPE } from "./autoCoupe";
 import { AUTO_SEDAN_VISTAS, VEHICLE_TYPE as AUTO_SEDAN } from "./autoSedan";
+import { AUTO_DESCAPOTABLE_VISTAS, VEHICLE_TYPE as AUTO_DESCAPOTABLE } from "./autoDescapotable";
+import { AUTO_FAMILIAR_VISTAS, VEHICLE_TYPE as AUTO_FAMILIAR } from "./autoFamiliar";
 
 // Mapeo tipoDeVehiculo -> diagramas de paneles reales, para no tener que
 // rehacer el selector de estado de DiagramaDanios ni el carrusel de
@@ -44,6 +46,12 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [AUTO_SEDAN]: {
     vistas: AUTO_SEDAN_VISTAS,
   },
+  [AUTO_DESCAPOTABLE]: {
+    vistas: AUTO_DESCAPOTABLE_VISTAS,
+  },
+  [AUTO_FAMILIAR]: {
+    vistas: AUTO_FAMILIAR_VISTAS,
+  },
 };
 
 // Resuelve la clave de este registro a partir de los datos de "Tipo de
@@ -60,6 +68,12 @@ export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
   }
   if (tipoVehiculo === "auto" && subdivision === "Sedán") {
     return AUTO_SEDAN;
+  }
+  if (tipoVehiculo === "auto" && subdivision === "Descapotable") {
+    return AUTO_DESCAPOTABLE;
+  }
+  if (tipoVehiculo === "auto" && subdivision === "Familiar") {
+    return AUTO_FAMILIAR;
   }
   return null;
 }
