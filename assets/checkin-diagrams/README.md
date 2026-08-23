@@ -26,6 +26,7 @@ auto/
 camioneta/
   cabina_simple_chico/
   cabina_simple_mediano/
+  doble_cabina_chico/       ← agregado 23 agosto 2026, no existía en el árbol original
   doble_cabina_mediano/
   doble_cabina_grande/
   utilitario_acarrozado_chico/
@@ -135,5 +136,21 @@ El proceso de "quitar fondo y rellenar" (ink mask → `MORPH_CLOSE` → floodFil
 - `camioneta/cabina_simple_mediano/lateral/` — listo (4 zonas: guardabarro_delantero, puerta, vidrio, caja — mismo criterio que Chico). Es un solo lado — ver nota general arriba sobre el lado espejado. ⚠️ La imagen se reprocesó una vez ya integrada: la primera versión perdía las ruedas (ver nota de pipeline arriba) — ya corregida.
 - `camioneta/cabina_simple_mediano/cenital/` — listo (4 zonas: techo, parante izq, parante der, caja — mismo criterio que Chico).
 - `camioneta/cabina_simple_mediano/atras/` — listo (**5 zonas**, a diferencia de las 4 de Chico: vidrio, compuerta, luz_izquierda, luz_derecha, `paragolpes_trasero`). ⚠️ Acá la referencia SÍ trae un paragolpes trasero real, distinto de la compuerta (línea de partición visible en la imagen) — mismo criterio que la familia Auto (5 zonas con paragolpes separado), a diferencia de Cabina simple chico (Saveiro real, sin paragolpes separado).
-- **`camioneta/cabina_simple_mediano` completo — Frente, Atrás, Lateral y Cenital ✅.** Segunda de las 6 subdivisiones de Camioneta. En total, 7 de las 16 subdivisiones del árbol completo.
-- Sigue el resto de Camioneta (doble_cabina_mediano, doble_cabina_grande, utilitario_acarrozado_chico, utilitario_acarrozado_mediano), después SUV y Motos.
+- **`camioneta/cabina_simple_mediano` completo — Frente, Atrás, Lateral y Cenital ✅.** Segunda de las 6 subdivisiones de Camioneta.
+- ✅ **Grupo "Doble cabina" ampliado**: `TIPOS_VEHICULO` en `TipoVehiculoStep.js` solo tenía Mediano y Grande — Augusto pidió agregar **Chico** (`opciones: ["Chico", "Mediano", "Grande"]`), ahora son 3 subdivisiones en ese grupo en vez de 2. El árbol de carpetas de este README se actualizó para reflejarlo.
+- `camioneta/doble_cabina_chico/frente/` — listo (9 zonas, mismo criterio que el resto de Camioneta). Referencia: pickup chica doble cabina tipo Ford Maverick.
+- `camioneta/doble_cabina_chico/lateral/` — listo (**5 zonas**, no 4 como Cabina simple: `guardabarro_delantero`, `puerta_delantera`, `puerta_trasera`, `vidrio`, `caja`). Primera Camioneta con 2 puertas por lado — mismo patrón que Auto Sedán/Familiar/Hatchback (4 puertas), con `caja` en vez de `cola`/`baul`. Es un solo lado — ver nota general arriba sobre el lado espejado.
+- `camioneta/doble_cabina_chico/cenital/` — listo (4 zonas: techo, parante izq, parante der, caja — el techo cubre las 2 filas de vidrios como una sola zona, igual criterio que Auto Sedán/Familiar en vez de zonar el parante B).
+- `camioneta/doble_cabina_chico/atras/` — listo (5 zonas: vidrio, compuerta, luz_izquierda, luz_derecha, paragolpes_trasero — mismo criterio que Cabina simple mediano, paragolpes separado de la compuerta).
+- **`camioneta/doble_cabina_chico` completo — Frente, Atrás, Lateral y Cenital ✅.** Primera de las ahora 3 subdivisiones de Doble cabina. En total, 8 de las 17 subdivisiones del árbol completo (17, no 16, por el nuevo "Chico" de Doble cabina).
+- `camioneta/doble_cabina_mediano/frente/` — listo (9 zonas, mismo criterio que el resto de Camioneta). Referencia: pickup mediana doble cabina tipo Toyota Hilux.
+- `camioneta/doble_cabina_mediano/lateral/` — listo (**5 zonas**, mismo criterio que Doble cabina chico: `guardabarro_delantero`, `puerta_delantera`, `puerta_trasera`, `vidrio`, `caja`). ⚠️ Esta referencia dibuja las ruedas separadas del guardabarro (3 contornos externos) — con el fix de pipeline de `MIN_AREA` (ver nota arriba) quedaron conservadas automáticamente, sin necesitar corrección manual como pasó con Cabina simple mediano. Es un solo lado — ver nota general arriba sobre el lado espejado.
+- `camioneta/doble_cabina_mediano/cenital/` — listo (4 zonas: techo, parante izq, parante der, caja — mismo criterio que Doble cabina chico).
+- `camioneta/doble_cabina_mediano/atras/` — listo (5 zonas: vidrio, compuerta, luz_izquierda, luz_derecha, paragolpes_trasero — mismo criterio que Doble cabina chico, paragolpes separado de la compuerta).
+- **`camioneta/doble_cabina_mediano` completo — Frente, Atrás, Lateral y Cenital ✅.** Segunda de las 3 subdivisiones de Doble cabina. En total, 9 de las 17 subdivisiones del árbol completo.
+- `camioneta/doble_cabina_grande/frente/` — listo (9 zonas, mismo criterio que el resto de Camioneta). Referencia: pickup grande doble cabina tipo Ford F-150 Raptor.
+- `camioneta/doble_cabina_grande/lateral/` — listo (**5 zonas**, mismo criterio que Doble cabina chico y mediano: `guardabarro_delantero`, `puerta_delantera`, `puerta_trasera`, `vidrio`, `caja`). Acá las ruedas SÍ tocan la línea del guardabarro en las 4 vistas (un solo contorno externo) — a diferencia de Cabina simple mediano y Doble cabina mediano, no hizo falta que el fix de `MIN_AREA` conservara contornos separados. Es un solo lado — ver nota general arriba sobre el lado espejado.
+- `camioneta/doble_cabina_grande/cenital/` — listo (4 zonas: techo, parante izq, parante der, caja — mismo criterio que el resto de Doble cabina).
+- `camioneta/doble_cabina_grande/atras/` — listo (5 zonas: vidrio, compuerta, luz_izquierda, luz_derecha, paragolpes_trasero — mismo criterio que el resto de Doble cabina, paragolpes separado de la compuerta).
+- **`camioneta/doble_cabina_grande` completo — Frente, Atrás, Lateral y Cenital ✅.** Tercera y última de las 3 subdivisiones de Doble cabina — **familia Doble cabina completa**. En total, 10 de las 17 subdivisiones del árbol completo.
+- Sigue el resto de Camioneta (utilitario_acarrozado_chico, utilitario_acarrozado_mediano), después SUV y Motos.

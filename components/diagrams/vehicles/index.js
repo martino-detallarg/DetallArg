@@ -10,6 +10,9 @@ import { AUTO_FAMILIAR_VISTAS, VEHICLE_TYPE as AUTO_FAMILIAR } from "./autoFamil
 import { AUTO_HATCHBACK_VISTAS, VEHICLE_TYPE as AUTO_HATCHBACK } from "./autoHatchback";
 import { CAMIONETA_CSC_VISTAS, VEHICLE_TYPE as CAMIONETA_CSC } from "./camionetaCabinaSimpleChico";
 import { CAMIONETA_CSM_VISTAS, VEHICLE_TYPE as CAMIONETA_CSM } from "./camionetaCabinaSimpleMediano";
+import { CAMIONETA_DCC_VISTAS, VEHICLE_TYPE as CAMIONETA_DCC } from "./camionetaDobleCabinaChico";
+import { CAMIONETA_DCM_VISTAS, VEHICLE_TYPE as CAMIONETA_DCM } from "./camionetaDobleCabinaMediano";
+import { CAMIONETA_DCG_VISTAS, VEHICLE_TYPE as CAMIONETA_DCG } from "./camionetaDobleCabinaGrande";
 
 // Mapeo tipoDeVehiculo -> diagramas de paneles reales, para no tener que
 // rehacer el selector de estado de DiagramaDanios ni el carrusel de
@@ -66,6 +69,15 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [CAMIONETA_CSM]: {
     vistas: CAMIONETA_CSM_VISTAS,
   },
+  [CAMIONETA_DCC]: {
+    vistas: CAMIONETA_DCC_VISTAS,
+  },
+  [CAMIONETA_DCM]: {
+    vistas: CAMIONETA_DCM_VISTAS,
+  },
+  [CAMIONETA_DCG]: {
+    vistas: CAMIONETA_DCG_VISTAS,
+  },
 };
 
 // Resuelve la clave de este registro a partir de los datos de "Tipo de
@@ -86,6 +98,17 @@ export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
   }
   if (tipoVehiculo === "camioneta" && grupo === "Cabina simple") {
     return PICKUP_CABINA_SIMPLE;
+  }
+  // Camioneta / Doble cabina: las 3 subdivisiones (Chico, Mediano, Grande)
+  // ya tienen diagrama real propio — familia completa.
+  if (tipoVehiculo === "camioneta" && grupo === "Doble cabina" && subdivision === "Chico") {
+    return CAMIONETA_DCC;
+  }
+  if (tipoVehiculo === "camioneta" && grupo === "Doble cabina" && subdivision === "Mediano") {
+    return CAMIONETA_DCM;
+  }
+  if (tipoVehiculo === "camioneta" && grupo === "Doble cabina" && subdivision === "Grande") {
+    return CAMIONETA_DCG;
   }
   if (tipoVehiculo === "auto" && subdivision === "Coupé") {
     return AUTO_COUPE;
