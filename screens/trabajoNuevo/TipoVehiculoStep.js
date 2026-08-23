@@ -21,7 +21,7 @@ const TIPOS_VEHICULO = {
     grupos: [
       { grupo: "Cabina simple", opciones: ["Chico", "Mediano"] },
       { grupo: "Doble cabina", opciones: ["Chico", "Mediano", "Grande"] },
-      { grupo: "Utilitario acarrozado", opciones: ["Chico", "Mediano"] },
+      { grupo: "Utilitario acarrozado", opciones: ["Chico", "Mediano", "Grande"] },
     ],
   },
   suv: {

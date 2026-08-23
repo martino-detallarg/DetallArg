@@ -29,8 +29,9 @@ camioneta/
   doble_cabina_chico/       ← agregado 23 agosto 2026, no existía en el árbol original
   doble_cabina_mediano/
   doble_cabina_grande/
-  utilitario_acarrozado_chico/
-  utilitario_acarrozado_mediano/
+  utilitario_acarrozado_chico/     ← todavía sin diagrama propio (renombrado 23 agosto 2026, ver nota de renombre más abajo — ahora es un furgón más chico que Mediano, no la Fiorino)
+  utilitario_acarrozado_mediano/   ← contenido renombrado 23 agosto 2026 (antes era este "Chico", referencia Fiorino)
+  utilitario_acarrozado_grande/    ← agregado 23 agosto 2026, no existía en el árbol original
 suv/
   compacto/
   grande/
@@ -153,10 +154,18 @@ El proceso de "quitar fondo y rellenar" (ink mask → `MORPH_CLOSE` → floodFil
 - `camioneta/doble_cabina_grande/cenital/` — listo (4 zonas: techo, parante izq, parante der, caja — mismo criterio que el resto de Doble cabina).
 - `camioneta/doble_cabina_grande/atras/` — listo (5 zonas: vidrio, compuerta, luz_izquierda, luz_derecha, paragolpes_trasero — mismo criterio que el resto de Doble cabina, paragolpes separado de la compuerta).
 - **`camioneta/doble_cabina_grande` completo — Frente, Atrás, Lateral y Cenital ✅.** Tercera y última de las 3 subdivisiones de Doble cabina — **familia Doble cabina completa**. En total, 10 de las 17 subdivisiones del árbol completo.
-- ⚠️ **`camioneta/utilitario_acarrozado_chico` es la primera Camioneta con carrocería CERRADA** (furgón, referencia tipo Fiat Fiorino/similar) — a diferencia de Cabina simple y Doble cabina, que tienen caja de carga ABIERTA. Esto cambia el criterio de zonas en 3 de las 4 vistas:
+- ⚠️ **RENOMBRADO 23 agosto 2026**: esta subdivisión se armó primero como "Chico" (referencia Fiat Fiorino/similar), pero Augusto aclaró que en realidad corresponde a **"Mediano"** — "Chico" queda reservado para un furgón más chico todavía sin procesar, y se agregó una nueva subdivisión "Grande" (ver más abajo) con una referencia tipo furgón más grande. `TIPOS_VEHICULO` en `TipoVehiculoStep.js` pasó de `opciones: ["Chico", "Mediano"]` a `opciones: ["Chico", "Mediano", "Grande"]` en el grupo "Utilitario acarrozado". Todo el contenido de abajo (antes bajo `utilitario_acarrozado_chico/`) se movió a la carpeta `camioneta/utilitario_acarrozado_mediano/`, mismo diagrama y zonas de siempre, sin cambios de criterio — solo cambió el slug de carpeta, el `subdivision` dentro de cada `zonas.json`, y los nombres del componente/exports de imagen (`camionetaUtilitarioChico.js` → `camionetaUtilitarioMediano.js`).
+- ⚠️ **`camioneta/utilitario_acarrozado_mediano` es la primera Camioneta con carrocería CERRADA** (furgón, referencia tipo Fiat Fiorino/similar) — a diferencia de Cabina simple y Doble cabina, que tienen caja de carga ABIERTA. Esto cambia el criterio de zonas en 3 de las 4 vistas:
   - `frente/` — listo (9 zonas, mismo criterio que el resto de Camioneta — el frente no cambia con el tipo de caja).
   - `lateral/` — listo (**4 zonas**: `guardabarro_delantero`, `puerta_delantera`, `vidrio`, `panel_carga` — `panel_carga` reemplaza a `caja` porque acá el costado de carga es un panel ciego sin ventanilla ni apertura, no una caja abierta). Es un solo lado — ver nota general arriba sobre el lado espejado.
   - `cenital/` — listo (**3 zonas, no 4**: techo, parante izq, parante der — mismo criterio que la familia Auto, SIN zona de caja separada, porque el techo es una sola chapa continua desde la cabina hasta las puertas traseras, no hay caja abierta que mirar desde arriba).
   - `atras/` — listo (**4 zonas**: `vidrio_izquierdo`, `vidrio_derecho`, `puerta_izquierda`, `puerta_derecha` — PRIMERA Camioneta con puertas traseras batientes en vez de compuerta/portón único, simétricas, cada una con su propia ventanilla, abisagradas en los bordes exteriores).
-- **`camioneta/utilitario_acarrozado_chico` completo — Frente, Atrás, Lateral y Cenital ✅.** Primera de las 2 subdivisiones de Utilitario acarrozado. En total, 11 de las 17 subdivisiones del árbol completo.
-- Sigue `utilitario_acarrozado_mediano` (con el mismo criterio de carrocería cerrada), después SUV y Motos.
+- **`camioneta/utilitario_acarrozado_mediano` completo — Frente, Atrás, Lateral y Cenital ✅.**
+- `camioneta/utilitario_acarrozado_grande/` — nueva subdivisión (agregada 23 agosto 2026, referencia tipo furgón grande Mercedes Sprinter/similar). Mismo criterio de carrocería cerrada que Mediano, mismas 4 vistas:
+  - `frente/` — listo (9 zonas, mismo criterio que el resto de Camioneta).
+  - `lateral/` — listo (4 zonas: `guardabarro_delantero`, `puerta_delantera`, `vidrio`, `panel_carga` — mismo criterio que Mediano). ⚠️ Nota de proceso: el primer trazado de `guardabarro_delantero` quedó desalineado porque esta Sprinter (motor cab-over) tiene una línea de capó/parabrisas mucho más parada que la Fiorino — se corrigió con zoom en la esquina delantera y quedó bien. Es un solo lado — ver nota general arriba sobre el lado espejado.
+  - `cenital/` — listo (3 zonas: techo, parante izq, parante der — mismo criterio que Mediano).
+  - `atras/` — listo (4 zonas: `vidrio_izquierdo`, `vidrio_derecho`, `puerta_izquierda`, `puerta_derecha` — mismo criterio que Mediano).
+- **`camioneta/utilitario_acarrozado_grande` completo — Frente, Atrás, Lateral y Cenital ✅.** Con Mediano y Grande completos, quedan **2 de las 3** subdivisiones de Utilitario acarrozado (falta "Chico", que ahora es un furgón más chico todavía sin referencia). En total, 12 de las 18 subdivisiones del árbol completo (18, no 17, por el nuevo "Grande" de Utilitario acarrozado).
+- ⚠️ **Archivos huérfanos a borrar manualmente** (esta sesión no tiene herramienta para borrar archivos del repo de Augusto, así que quedan marcados acá en vez de eliminarse solos): la carpeta **`camioneta/utilitario_acarrozado_chico/`** (con el contenido viejo de la Fiorino, ya duplicado en `utilitario_acarrozado_mediano/`) y el componente **`components/diagrams/vehicles/camionetaUtilitarioChico.js`** (reemplazado por `camionetaUtilitarioMediano.js`) quedaron sin uso en el código — `index.js` ya no los importa ni los registra. Augusto los puede borrar cuando quiera desde su terminal.
+- Sigue `utilitario_acarrozado_chico` (furgón más chico, nueva referencia pendiente), después SUV y Motos.

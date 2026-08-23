@@ -1,0 +1,133 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "utilitario_acarrozado_grande",
+  "view": "lateral",
+  "viewBox": "0 0 1167 559",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "guardabarro_delantero",
+      "label": "Guardabarro delantero",
+      "points": [
+        [
+          0,
+          300
+        ],
+        [
+          60,
+          285
+        ],
+        [
+          100,
+          265
+        ],
+        [
+          200,
+          195
+        ],
+        [
+          300,
+          110
+        ],
+        [
+          340,
+          80
+        ],
+        [
+          340,
+          460
+        ],
+        [
+          0,
+          460
+        ]
+      ]
+    },
+    {
+      "id": "puerta_delantera",
+      "label": "Puerta delantera",
+      "points": [
+        [
+          340,
+          150
+        ],
+        [
+          350,
+          75
+        ],
+        [
+          430,
+          65
+        ],
+        [
+          495,
+          90
+        ],
+        [
+          500,
+          460
+        ],
+        [
+          340,
+          460
+        ]
+      ]
+    },
+    {
+      "id": "vidrio",
+      "label": "Vidrio (ventanilla)",
+      "points": [
+        [
+          350,
+          150
+        ],
+        [
+          358,
+          90
+        ],
+        [
+          430,
+          78
+        ],
+        [
+          490,
+          100
+        ],
+        [
+          495,
+          260
+        ],
+        [
+          350,
+          260
+        ]
+      ]
+    },
+    {
+      "id": "panel_carga",
+      "label": "Panel de carga",
+      "points": [
+        [
+          500,
+          90
+        ],
+        [
+          1120,
+          60
+        ],
+        [
+          1140,
+          110
+        ],
+        [
+          1140,
+          460
+        ],
+        [
+          500,
+          460
+        ]
+      ]
+    }
+  ]
+}

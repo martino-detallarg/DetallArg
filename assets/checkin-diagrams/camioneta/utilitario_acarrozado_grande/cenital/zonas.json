@@ -1,0 +1,91 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "utilitario_acarrozado_grande",
+  "view": "cenital",
+  "viewBox": "0 0 1184 534",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "techo",
+      "label": "Techo",
+      "points": [
+        [
+          220,
+          90
+        ],
+        [
+          1130,
+          60
+        ],
+        [
+          1130,
+          440
+        ],
+        [
+          220,
+          410
+        ]
+      ]
+    },
+    {
+      "id": "parante_izq",
+      "label": "Parante izquierdo",
+      "points": [
+        [
+          100,
+          60
+        ],
+        [
+          300,
+          35
+        ],
+        [
+          500,
+          45
+        ],
+        [
+          550,
+          65
+        ],
+        [
+          220,
+          90
+        ],
+        [
+          130,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "parante_der",
+      "label": "Parante derecho",
+      "points": [
+        [
+          100,
+          460
+        ],
+        [
+          300,
+          495
+        ],
+        [
+          500,
+          480
+        ],
+        [
+          550,
+          450
+        ],
+        [
+          220,
+          410
+        ],
+        [
+          130,
+          430
+        ]
+      ]
+    }
+  ]
+}
