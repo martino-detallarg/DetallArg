@@ -16,36 +16,46 @@ import { useAuth } from "../data/AuthContext";
 import { mensajeErrorAuth } from "../utils/auth";
 import { colors, fonts } from "../theme";
 
-const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export default function LoginScreen({ onIrARegistro, onIrAOlvidePassword }) {
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState("");
+export default function RestablecerPasswordScreen({ email, onIrALogin }) {
+  const { confirmarRecuperacion } = useAuth();
+  const [codigo, setCodigo] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmarPassword, setConfirmarPassword] = useState("");
   const [errores, setErrores] = useState({});
   const [cargando, setCargando] = useState(false);
 
   function validar() {
     const nuevosErrores = {};
-    if (!email.trim()) {
-      nuevosErrores.email = "Ingresá tu email";
-    } else if (!REGEX_EMAIL.test(email.trim())) {
-      nuevosErrores.email = "El email no es válido";
+    if (!codigo.trim()) {
+      nuevosErrores.codigo = "Ingresá el código que te enviamos";
+    } else if (!/^\d{6}$/.test(codigo.trim())) {
+      nuevosErrores.codigo = "El código tiene 6 dígitos";
     }
     if (!password) {
-      nuevosErrores.password = "Ingresá tu contraseña";
+      nuevosErrores.password = "Ingresá una contraseña nueva";
+    } else if (password.length < 6) {
+      nuevosErrores.password = "Mínimo 6 caracteres";
+    }
+    if (!confirmarPassword) {
+      nuevosErrores.confirmarPassword = "Confirmá tu contraseña nueva";
+    } else if (confirmarPassword !== password) {
+      nuevosErrores.confirmarPassword = "Las contraseñas no coinciden";
     }
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   }
 
-  async function handleIniciarSesion() {
+  async function handleRestablecer() {
     if (!validar()) return;
     setCargando(true);
     try {
-      await signIn(email.trim(), password);
-      // No hace falta navegar acá: FlujoApp (App.js) escucha la sesión y
-      // pasa solo a "app" apenas signIn() la deja establecida.
+      await confirmarRecuperacion({
+        email,
+        codigo: codigo.trim(),
+        nuevaPassword: password,
+      });
+      // No hace falta navegar: al verificar el código queda una sesión
+      // activa y FlujoApp (App.js) pasa solo a "app" apenas la detecta.
     } catch (error) {
       setErrores({ general: mensajeErrorAuth(error) });
     } finally {
@@ -64,22 +74,24 @@ export default function LoginScreen({ onIrARegistro, onIrAOlvidePassword }) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Logo size={56} />
-          <Text style={styles.titulo}>Bienvenido DetallArg</Text>
-          <Text style={styles.subtitulo}>Iniciá sesión en tu cuenta</Text>
+          <Logo size={48} />
+          <Text style={styles.titulo}>Ingresá el código</Text>
+          <Text style={styles.subtitulo}>
+            Te enviamos un código de 6 dígitos a{" "}
+            <Text style={styles.textoDestacado}>{email || "tu email"}</Text>
+          </Text>
         </View>
 
         <Input
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="tu@email.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          error={errores.email}
+          label="Código"
+          value={codigo}
+          onChangeText={setCodigo}
+          placeholder="123456"
+          keyboardType="number-pad"
+          error={errores.codigo}
         />
         <Input
-          label="Contraseña"
+          label="Contraseña nueva"
           value={password}
           onChangeText={setPassword}
           placeholder="••••••••"
@@ -87,21 +99,23 @@ export default function LoginScreen({ onIrARegistro, onIrAOlvidePassword }) {
           autoCapitalize="none"
           error={errores.password}
         />
+        <Input
+          label="Confirmar contraseña nueva"
+          value={confirmarPassword}
+          onChangeText={setConfirmarPassword}
+          placeholder="••••••••"
+          secureTextEntry
+          autoCapitalize="none"
+          error={errores.confirmarPassword}
+        />
 
         {errores.general && <Text style={styles.errorGeneral}>{errores.general}</Text>}
 
-        <Button title="Iniciar sesión" onPress={handleIniciarSesion} loading={cargando} />
+        <Button title="Restablecer contraseña" onPress={handleRestablecer} loading={cargando} />
 
-        <TouchableOpacity style={styles.linkOlvido} onPress={onIrAOlvidePassword}>
-          <Text style={styles.textoLinkChico}>¿Olvidaste tu contraseña?</Text>
+        <TouchableOpacity style={styles.linkLogin} onPress={onIrALogin}>
+          <Text style={styles.textoLinkAccento}>Volver a iniciar sesión</Text>
         </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.textoMuted}>¿No tenés cuenta? </Text>
-          <TouchableOpacity onPress={onIrARegistro}>
-            <Text style={styles.textoLinkAccento}>Registrate</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -120,13 +134,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 28,
   },
   titulo: {
     fontFamily: fonts.heading,
-    fontSize: 26,
+    fontSize: 24,
     color: colors.textPrimary,
-    marginTop: 16,
+    marginTop: 14,
     textAlign: "center",
   },
   subtitulo: {
@@ -135,6 +149,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 6,
     textAlign: "center",
+    lineHeight: 20,
+  },
+  textoDestacado: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.textPrimary,
   },
   errorGeneral: {
     fontFamily: fonts.body,
@@ -143,24 +162,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 12,
   },
-  linkOlvido: {
+  linkLogin: {
     alignSelf: "center",
-    marginTop: 18,
-  },
-  textoLinkChico: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 28,
-  },
-  textoMuted: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.textSecondary,
+    marginTop: 20,
   },
   textoLinkAccento: {
     fontFamily: fonts.bodySemiBold,

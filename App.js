@@ -21,6 +21,8 @@ import SplashScreen from "./screens/SplashScreen";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import VerifyEmailScreen from "./screens/VerifyEmailScreen";
+import OlvidePasswordScreen from "./screens/OlvidePasswordScreen";
+import RestablecerPasswordScreen from "./screens/RestablecerPasswordScreen";
 import DashboardNavigator from "./navigation/DashboardNavigator";
 import { AuthProvider, useAuth } from "./data/AuthContext";
 import { DataProvider } from "./data/DataContext";
@@ -80,6 +82,7 @@ function FlujoApp() {
   const [splashTerminado, setSplashTerminado] = useState(false);
   const [pantalla, setPantalla] = useState("login");
   const [emailPendiente, setEmailPendiente] = useState("");
+  const [emailRecuperacion, setEmailRecuperacion] = useState("");
 
   const listoParaDecidir = splashTerminado && !cargando;
 
@@ -102,7 +105,12 @@ function FlujoApp() {
 
   return (
     <>
-      {pantalla === "login" && <LoginScreen onIrARegistro={() => setPantalla("signup")} />}
+      {pantalla === "login" && (
+        <LoginScreen
+          onIrARegistro={() => setPantalla("signup")}
+          onIrAOlvidePassword={() => setPantalla("forgot-password")}
+        />
+      )}
 
       {pantalla === "signup" && (
         <SignupScreen
@@ -116,6 +124,23 @@ function FlujoApp() {
 
       {pantalla === "verify-email" && (
         <VerifyEmailScreen email={emailPendiente} onIrALogin={() => setPantalla("login")} />
+      )}
+
+      {pantalla === "forgot-password" && (
+        <OlvidePasswordScreen
+          onCodigoEnviado={(email) => {
+            setEmailRecuperacion(email);
+            setPantalla("reset-password");
+          }}
+          onIrALogin={() => setPantalla("login")}
+        />
+      )}
+
+      {pantalla === "reset-password" && (
+        <RestablecerPasswordScreen
+          email={emailRecuperacion}
+          onIrALogin={() => setPantalla("login")}
+        />
       )}
 
       {pantalla === "app" && (

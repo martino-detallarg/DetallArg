@@ -21,6 +21,12 @@ export function mensajeErrorAuth(error) {
   if (mensaje.includes("Network request failed") || mensaje.includes("fetch")) {
     return "No hay conexión. Revisá tu internet e intentá de nuevo.";
   }
+  if (mensaje.includes("Token has expired or is invalid")) {
+    return "El código venció o es incorrecto. Pedí uno nuevo.";
+  }
+  if (mensaje.includes("For security purposes") || mensaje.includes("rate limit")) {
+    return "Esperá un minuto antes de volver a intentarlo.";
+  }
 
   return mensaje || "Ocurrió un error inesperado. Probá de nuevo.";
 }

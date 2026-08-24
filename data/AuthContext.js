@@ -59,6 +59,29 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   }
 
+  async function solicitarRecuperacion(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw error;
+  }
+
+  // El código de 6 dígitos que llega por mail ES el token de recovery: al
+  // verificarlo ya queda una sesión activa (por eso updateUser funciona acá
+  // sin pedir la contraseña vieja), y esa sesión es la que hace que FlujoApp
+  // (App.js) pase solo a "app" apenas termina este flujo.
+  async function confirmarRecuperacion({ email, codigo, nuevaPassword }) {
+    const { error: errorVerify } = await supabase.auth.verifyOtp({
+      email,
+      token: codigo,
+      type: "recovery",
+    });
+    if (errorVerify) throw errorVerify;
+
+    const { error: errorUpdate } = await supabase.auth.updateUser({
+      password: nuevaPassword,
+    });
+    if (errorUpdate) throw errorUpdate;
+  }
+
   const value = useMemo(
     () => ({
       session,
@@ -68,6 +91,8 @@ export function AuthProvider({ children }) {
       signUp,
       signOut,
       resendConfirmation,
+      solicitarRecuperacion,
+      confirmarRecuperacion,
     }),
     [session, cargando]
   );
