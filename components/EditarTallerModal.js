@@ -15,6 +15,10 @@ export default function EditarTallerModal({ visible, onClose }) {
   const { nombreTaller, logoTaller, actualizarTaller } = useTaller();
   const [nombre, setNombre] = useState("");
   const [logo, setLogo] = useState(null);
+  // Foto recién elegida en este modal (uri local + mimeType real, necesario
+  // para decidir la extensión/contentType al subir) — null si no se tocó el
+  // logo, para no volver a subir nada si el usuario solo edita el nombre.
+  const [logoNuevo, setLogoNuevo] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -22,6 +26,7 @@ export default function EditarTallerModal({ visible, onClose }) {
     if (visible) {
       setNombre(nombreTaller);
       setLogo(logoTaller);
+      setLogoNuevo(null);
       setError(null);
     }
   }, [visible, nombreTaller, logoTaller]);
@@ -31,14 +36,16 @@ export default function EditarTallerModal({ visible, onClose }) {
     if (!permiso.granted) return;
 
     const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
     });
 
     if (!resultado.canceled) {
-      setLogo(resultado.assets[0].uri);
+      const asset = resultado.assets[0];
+      setLogo(asset.uri);
+      setLogoNuevo({ uri: asset.uri, mimeType: asset.mimeType });
     }
   }
 
@@ -46,7 +53,9 @@ export default function EditarTallerModal({ visible, onClose }) {
     setCargando(true);
     setError(null);
     try {
-      await actualizarTaller({ nombre: nombre.trim(), logo });
+      const cambios = { nombre: nombre.trim() };
+      if (logoNuevo) cambios.logo = logoNuevo;
+      await actualizarTaller(cambios);
       onClose();
     } catch (err) {
       setError("No se pudieron guardar los cambios. Probá de nuevo.");

@@ -53,11 +53,12 @@ function filasDbAHorarios(filas) {
 // `horariosIniciales`, con `ignoreDuplicates` por si dos dispositivos entran
 // a la vez) y recién después vuelve a leer para quedarse con el estado real.
 //
-// Mutaciones: `actualizarMisDatos`, la parte de `nombre` de
-// `actualizarTaller` y `actualizarHorario` escriben de verdad en Supabase
-// (async, tiran si hay error — quien las llama debe hacer await +
-// try/catch). `logo` (sin Storage todavía) y `cambiarPlan` (solo lo usa el
-// panel de pruebas de desarrollo) siguen siendo solo en memoria a propósito.
+// Mutaciones: `actualizarMisDatos`, `actualizarHorario` y `actualizarTaller`
+// completo (nombre y logo, este último subiendo primero a Supabase Storage
+// — ver supabase/storage_logos.sql) escriben de verdad en Supabase (async,
+// tiran si hay error — quien las llama debe hacer await + try/catch).
+// `cambiarPlan` (solo lo usa el panel de pruebas de desarrollo) sigue
+// siendo solo en memoria a propósito.
 export function TallerProvider({ children }) {
   const { user } = useAuth();
   const [nombreTaller, setNombreTaller] = useState("");
@@ -173,17 +174,49 @@ export function TallerProvider({ children }) {
     };
   }, [user]);
 
-  // `nombre` se escribe de verdad en Supabase. `logo` sigue solo en
-  // memoria: todavía no hay Supabase Storage para subir la imagen (hoy es
-  // una URI local del dispositivo — guardarla en `logo_url` no serviría de
-  // nada entre sesiones/dispositivos, ver ESTADO_PROYECTO.md).
+  // Sube el logo elegido (URI local del picker + su mimeType real) al
+  // bucket público `logos` con nombre fijo `{taller_id}.{ext}` y
+  // `upsert: true` (siempre un único archivo por taller, ver
+  // supabase/storage_logos.sql). El `?t=timestamp` al final es necesario
+  // porque con upsert la URL pública NO cambia al reemplazar el archivo —
+  // sin cache-busting, la app seguiría mostrando la imagen vieja cacheada.
+  async function subirLogo({ uri, mimeType }) {
+    const extension = mimeType === "image/png" ? "png" : "jpg";
+    const rutaArchivo = `${user.id}.${extension}`;
+
+    const respuesta = await fetch(uri);
+    const arrayBuffer = await respuesta.arrayBuffer();
+
+    const { error: errorSubida } = await supabase.storage
+      .from("logos")
+      .upload(rutaArchivo, arrayBuffer, {
+        contentType: mimeType || "image/jpeg",
+        upsert: true,
+      });
+    if (errorSubida) throw errorSubida;
+
+    const { data } = supabase.storage.from("logos").getPublicUrl(rutaArchivo);
+    return `${data.publicUrl}?t=${Date.now()}`;
+  }
+
+  // `nombre` se escribe directo. `logo` (cuando viene, ver EditarTallerModal.js)
+  // es `{ uri, mimeType }` de una foto recién elegida: primero se sube a
+  // Storage y recién si eso funciona se persiste `logo_url` — sin
+  // actualización optimista, si cualquiera de los dos pasos tira error no
+  // se toca el estado local (mismo criterio que el resto de las
+  // mutaciones de este archivo).
   async function actualizarTaller({ nombre, logo }) {
     if (nombre !== undefined) {
       const { error } = await supabase.from("talleres").update({ nombre }).eq("id", user.id);
       if (error) throw error;
       setNombreTaller(nombre);
     }
-    if (logo !== undefined) setLogoTaller(logo);
+    if (logo !== undefined) {
+      const urlPublica = await subirLogo(logo);
+      const { error } = await supabase.from("talleres").update({ logo_url: urlPublica }).eq("id", user.id);
+      if (error) throw error;
+      setLogoTaller(urlPublica);
+    }
   }
 
   async function actualizarMisDatos(cambios) {
