@@ -6,6 +6,7 @@ import ScreenHeader from "../components/ScreenHeader";
 import Input from "../components/Input";
 import ClienteModal from "../components/ClienteModal";
 import VehiculosClienteModal from "../components/VehiculosClienteModal";
+import EstadoCarga from "../components/EstadoCarga";
 import { useClientes } from "../data/ClienteContext";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
@@ -14,7 +15,7 @@ function coincide(campo, termino) {
 }
 
 export default function ClientesScreen({ navigation }) {
-  const { clientes } = useClientes();
+  const { clientes, cargandoClientes, errorCargaClientes, recargarClientes } = useClientes();
   const [modalVisible, setModalVisible] = useState(false);
   const [clienteEditandoId, setClienteEditandoId] = useState(null);
   const [clienteDetalleId, setClienteDetalleId] = useState(null);
@@ -68,41 +69,45 @@ export default function ClientesScreen({ navigation }) {
         />
       </View>
 
-      <ScrollView contentContainerStyle={styles.lista} showsVerticalScrollIndicator={false}>
-        {clientes.length === 0 ? (
-          <Text style={styles.vacio}>Todavía no cargaste clientes.</Text>
-        ) : clientesFiltrados.length === 0 ? (
-          <Text style={styles.vacio}>No encontramos clientes ni vehículos con esos datos.</Text>
-        ) : (
-          clientesFiltrados.map((cliente) => {
-            const cantidad = cliente.vehiculos.length;
-            return (
-              <TouchableOpacity
-                key={cliente.id}
-                style={styles.fila}
-                onPress={() => setClienteDetalleId(cliente.id)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.filaIcono}>
-                  <Ionicons name="person-outline" size={20} color={colors.accentLight} />
-                </View>
-                <View style={styles.filaTexto}>
-                  <Text style={styles.filaNombre}>{cliente.nombre}</Text>
-                  <Text style={styles.filaSub}>{cliente.telefono}</Text>
-                  <Text style={styles.filaVehiculos}>
-                    {cantidad === 0 ? "Sin vehículos" : `${cantidad} vehículo${cantidad === 1 ? "" : "s"}`}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </ScrollView>
+      <EstadoCarga cargando={cargandoClientes} error={errorCargaClientes} onReintentar={recargarClientes}>
+        <ScrollView contentContainerStyle={styles.lista} showsVerticalScrollIndicator={false}>
+          {clientes.length === 0 ? (
+            <Text style={styles.vacio}>Todavía no cargaste clientes.</Text>
+          ) : clientesFiltrados.length === 0 ? (
+            <Text style={styles.vacio}>No encontramos clientes ni vehículos con esos datos.</Text>
+          ) : (
+            clientesFiltrados.map((cliente) => {
+              const cantidad = cliente.vehiculos.length;
+              return (
+                <TouchableOpacity
+                  key={cliente.id}
+                  style={styles.fila}
+                  onPress={() => setClienteDetalleId(cliente.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.filaIcono}>
+                    <Ionicons name="person-outline" size={20} color={colors.accentLight} />
+                  </View>
+                  <View style={styles.filaTexto}>
+                    <Text style={styles.filaNombre}>{cliente.nombre}</Text>
+                    <Text style={styles.filaSub}>{cliente.telefono}</Text>
+                    <Text style={styles.filaVehiculos}>
+                      {cantidad === 0 ? "Sin vehículos" : `${cantidad} vehículo${cantidad === 1 ? "" : "s"}`}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </ScrollView>
+      </EstadoCarga>
 
-      <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
-        <Text style={styles.fabTexto}>+</Text>
-      </TouchableOpacity>
+      {!cargandoClientes && !errorCargaClientes && (
+        <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
+          <Text style={styles.fabTexto}>+</Text>
+        </TouchableOpacity>
+      )}
 
       <ClienteModal
         visible={modalVisible}

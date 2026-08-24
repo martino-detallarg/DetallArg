@@ -4,6 +4,7 @@ import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, Vi
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import EditarTallerModal from "../components/EditarTallerModal";
+import EstadoCarga from "../components/EstadoCarga";
 import { useTaller } from "../data/TallerContext";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -18,7 +19,7 @@ const ITEMS_MENU = [
 ];
 
 export default function MiTallerScreen({ navigation }) {
-  const { nombreTaller, logoTaller } = useTaller();
+  const { nombreTaller, logoTaller, cargandoTaller, errorCargaTaller, recargarTaller } = useTaller();
   const [modalVisible, setModalVisible] = useState(false);
 
   return (
@@ -26,47 +27,49 @@ export default function MiTallerScreen({ navigation }) {
       <StatusBar style="light" />
       <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
 
-      <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
-        <View style={styles.encabezado}>
-          <View style={styles.logoBox}>
-            {logoTaller ? (
-              <Image source={{ uri: logoTaller }} style={styles.logoImagen} resizeMode="cover" />
-            ) : (
-              <Ionicons name="storefront-outline" size={34} color={colors.accentLight} />
-            )}
+      <EstadoCarga cargando={cargandoTaller} error={errorCargaTaller} onReintentar={recargarTaller}>
+        <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+          <View style={styles.encabezado}>
+            <View style={styles.logoBox}>
+              {logoTaller ? (
+                <Image source={{ uri: logoTaller }} style={styles.logoImagen} resizeMode="cover" />
+              ) : (
+                <Ionicons name="storefront-outline" size={34} color={colors.accentLight} />
+              )}
+            </View>
+
+            <View style={styles.nombreFila}>
+              <Text style={styles.nombreTaller} numberOfLines={1}>
+                {nombreTaller}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setModalVisible(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.lapizBoton}
+              >
+                <Ionicons name="pencil-outline" size={16} color={colors.accentLight} />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <View style={styles.nombreFila}>
-            <Text style={styles.nombreTaller} numberOfLines={1}>
-              {nombreTaller}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setModalVisible(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={styles.lapizBoton}
-            >
-              <Ionicons name="pencil-outline" size={16} color={colors.accentLight} />
-            </TouchableOpacity>
+          <View style={styles.lista}>
+            {ITEMS_MENU.map((item) => (
+              <TouchableOpacity
+                key={item.ruta}
+                style={styles.fila}
+                onPress={() => navigation.navigate(item.ruta)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.filaIcono}>
+                  <Ionicons name={item.icono} size={20} color={colors.accentLight} />
+                </View>
+                <Text style={styles.filaTexto}>{item.titulo}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))}
           </View>
-        </View>
-
-        <View style={styles.lista}>
-          {ITEMS_MENU.map((item) => (
-            <TouchableOpacity
-              key={item.ruta}
-              style={styles.fila}
-              onPress={() => navigation.navigate(item.ruta)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.filaIcono}>
-                <Ionicons name={item.icono} size={20} color={colors.accentLight} />
-              </View>
-              <Text style={styles.filaTexto}>{item.titulo}</Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </EstadoCarga>
 
       <EditarTallerModal visible={modalVisible} onClose={() => setModalVisible(false)} />
     </SafeAreaView>

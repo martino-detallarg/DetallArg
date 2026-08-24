@@ -5,13 +5,14 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import EmpleadoModal from "../components/EmpleadoModal";
 import PanelPruebasPlan from "../components/PanelPruebasPlan";
+import EstadoCarga from "../components/EstadoCarga";
 import { useEquipo } from "../data/EquipoContext";
 import { useTaller } from "../data/TallerContext";
 import { PLANES } from "../data/mockTaller";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 export default function MiEquipoScreen({ navigation }) {
-  const { empleados, cargandoEquipo, eliminarEmpleado } = useEquipo();
+  const { empleados, cargandoEquipo, errorCargaEquipo, recargarEquipo, eliminarEmpleado } = useEquipo();
   const { plan, limiteEmpleados } = useTaller();
   const [modalVisible, setModalVisible] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
@@ -43,7 +44,7 @@ export default function MiEquipoScreen({ navigation }) {
       <StatusBar style="light" />
       <ScreenHeader onVolver={() => navigation.navigate("MiTaller")} />
 
-      <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+      <View style={styles.encabezadoFijo}>
         <Text style={styles.titulo}>Mi Equipo</Text>
 
         <PanelPruebasPlan />
@@ -60,40 +61,44 @@ export default function MiEquipoScreen({ navigation }) {
         )}
 
         {error && <Text style={styles.error}>{error}</Text>}
+      </View>
 
-        {empleados.length === 0 ? (
-          <Text style={styles.vacio}>Todavía no cargaste empleados.</Text>
-        ) : (
-          empleados.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.fila}
-              onPress={() => handleEditar(item)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.filaIcono}>
-                <Ionicons name="person-outline" size={20} color={colors.accentLight} />
-              </View>
-              <View style={styles.filaTexto}>
-                <Text style={styles.filaNombre} numberOfLines={1}>
-                  {item.nombre}
-                </Text>
-                <Text style={styles.filaRol}>{item.rol}</Text>
-              </View>
+      <EstadoCarga cargando={cargandoEquipo} error={errorCargaEquipo} onReintentar={recargarEquipo}>
+        <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+          {empleados.length === 0 ? (
+            <Text style={styles.vacio}>Todavía no cargaste empleados.</Text>
+          ) : (
+            empleados.map((item) => (
               <TouchableOpacity
-                style={styles.quitarBoton}
-                onPress={() => handleEliminar(item.id)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                key={item.id}
+                style={styles.fila}
+                onPress={() => handleEditar(item)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="trash-outline" size={16} color={colors.error} />
+                <View style={styles.filaIcono}>
+                  <Ionicons name="person-outline" size={20} color={colors.accentLight} />
+                </View>
+                <View style={styles.filaTexto}>
+                  <Text style={styles.filaNombre} numberOfLines={1}>
+                    {item.nombre}
+                  </Text>
+                  <Text style={styles.filaRol}>{item.rol}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.quitarBoton}
+                  onPress={() => handleEliminar(item.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="trash-outline" size={16} color={colors.error} />
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+            ))
+          )}
+        </ScrollView>
+      </EstadoCarga>
 
-      {!alLimite && !cargandoEquipo && (
+      {!alLimite && !cargandoEquipo && !errorCargaEquipo && (
         <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
           <Text style={styles.fabTexto}>+</Text>
         </TouchableOpacity>
@@ -112,6 +117,9 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 100,
+  },
+  encabezadoFijo: {
+    paddingHorizontal: 20,
   },
   titulo: {
     fontFamily: fonts.heading,

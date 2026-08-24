@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "./AuthContext";
+import { mensajeErrorCarga } from "../utils/errores";
 
 const ClienteContext = createContext(null);
 
@@ -23,12 +24,20 @@ export function ClienteProvider({ children }) {
   const { user } = useAuth();
   const [clientes, setClientes] = useState([]);
   const [cargandoClientes, setCargandoClientes] = useState(true);
+  const [errorCargaClientes, setErrorCargaClientes] = useState(null);
+  const [intentoCargaClientes, setIntentoCargaClientes] = useState(0);
 
+  // Dependencia `user?.id`, no `user` completo — ver el comentario del
+  // mismo detalle en TallerContext.js (evita recargar en cada refresh
+  // automático de token).
   useEffect(() => {
     if (!user) return;
     let cancelado = false;
 
     async function cargarClientes() {
+      setCargandoClientes(true);
+      setErrorCargaClientes(null);
+
       const { data, error } = await supabase
         .from("clientes")
         .select("id, nombre, telefono, vehiculos(id, marca, modelo, anio, patente, color)")
@@ -38,7 +47,7 @@ export function ClienteProvider({ children }) {
       if (cancelado) return;
 
       if (error) {
-        console.warn("No se pudieron cargar los clientes desde Supabase:", error.message);
+        setErrorCargaClientes(mensajeErrorCarga(error, "los clientes"));
         setCargandoClientes(false);
         return;
       }
@@ -51,7 +60,11 @@ export function ClienteProvider({ children }) {
     return () => {
       cancelado = true;
     };
-  }, [user]);
+  }, [user?.id, intentoCargaClientes]);
+
+  function recargarClientes() {
+    setIntentoCargaClientes((n) => n + 1);
+  }
 
   async function agregarCliente({ nombre, telefono }) {
     const { data, error } = await supabase
@@ -138,6 +151,8 @@ export function ClienteProvider({ children }) {
     () => ({
       clientes,
       cargandoClientes,
+      errorCargaClientes,
+      recargarClientes,
       agregarCliente,
       editarCliente,
       eliminarCliente,
@@ -147,7 +162,7 @@ export function ClienteProvider({ children }) {
       getClienteById,
       getVehiculoById,
     }),
-    [clientes, cargandoClientes]
+    [clientes, cargandoClientes, errorCargaClientes]
   );
 
   return <ClienteContext.Provider value={value}>{children}</ClienteContext.Provider>;

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { horariosIniciales, PLANES } from "./mockTaller";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "./AuthContext";
+import { mensajeErrorCarga } from "../utils/errores";
 
 const TallerContext = createContext(null);
 
@@ -67,13 +68,26 @@ export function TallerProvider({ children }) {
   const [plan, setPlan] = useState("basico");
   const [horarios, setHorarios] = useState(horariosIniciales);
   const [cargandoTaller, setCargandoTaller] = useState(true);
+  const [errorCargaTaller, setErrorCargaTaller] = useState(null);
+  const [intentoCargaTaller, setIntentoCargaTaller] = useState(0);
   const [cargandoHorarios, setCargandoHorarios] = useState(true);
+  const [errorCargaHorarios, setErrorCargaHorarios] = useState(null);
+  const [intentoCargaHorarios, setIntentoCargaHorarios] = useState(0);
 
+  // Dependencia `user?.id` (no `user` completo) a propósito: `AuthContext`
+  // arma un objeto `session`/`user` NUEVO en cada refresh automático de
+  // token (~cada 1h, autoRefreshToken), y sin este detalle este efecto
+  // recargaría todo en segundo plano cada vez — con spinner visible ahora
+  // que hay uno, se notaría como un parpadeo. `user.id` no cambia mientras
+  // sea la misma cuenta, así que solo dispara de nuevo ante un login real.
   useEffect(() => {
     if (!user) return;
     let cancelado = false;
 
     async function cargarTaller() {
+      setCargandoTaller(true);
+      setErrorCargaTaller(null);
+
       const { data, error } = await supabase
         .from("talleres")
         .select("*")
@@ -83,7 +97,7 @@ export function TallerProvider({ children }) {
       if (cancelado) return;
 
       if (error) {
-        console.warn("No se pudo cargar el taller desde Supabase:", error.message);
+        setErrorCargaTaller(mensajeErrorCarga(error, "los datos del taller"));
         setCargandoTaller(false);
         return;
       }
@@ -106,13 +120,16 @@ export function TallerProvider({ children }) {
     return () => {
       cancelado = true;
     };
-  }, [user]);
+  }, [user?.id, intentoCargaTaller]);
 
   useEffect(() => {
     if (!user) return;
     let cancelado = false;
 
     async function cargarHorarios() {
+      setCargandoHorarios(true);
+      setErrorCargaHorarios(null);
+
       const columnas = "dia_semana, abierto, hora_apertura, hora_cierre";
       let { data, error } = await supabase
         .from("horarios_atencion")
@@ -122,7 +139,7 @@ export function TallerProvider({ children }) {
       if (cancelado) return;
 
       if (error) {
-        console.warn("No se pudieron cargar los horarios desde Supabase:", error.message);
+        setErrorCargaHorarios(mensajeErrorCarga(error, "los horarios"));
         setCargandoHorarios(false);
         return;
       }
@@ -148,7 +165,7 @@ export function TallerProvider({ children }) {
         if (cancelado) return;
 
         if (errorSiembra) {
-          console.warn("No se pudieron crear los horarios iniciales en Supabase:", errorSiembra.message);
+          setErrorCargaHorarios(mensajeErrorCarga(errorSiembra, "los horarios"));
           setCargandoHorarios(false);
           return;
         }
@@ -158,7 +175,7 @@ export function TallerProvider({ children }) {
         if (cancelado) return;
 
         if (error) {
-          console.warn("No se pudieron releer los horarios desde Supabase:", error.message);
+          setErrorCargaHorarios(mensajeErrorCarga(error, "los horarios"));
           setCargandoHorarios(false);
           return;
         }
@@ -172,7 +189,15 @@ export function TallerProvider({ children }) {
     return () => {
       cancelado = true;
     };
-  }, [user]);
+  }, [user?.id, intentoCargaHorarios]);
+
+  function recargarTaller() {
+    setIntentoCargaTaller((n) => n + 1);
+  }
+
+  function recargarHorarios() {
+    setIntentoCargaHorarios((n) => n + 1);
+  }
 
   // Sube el logo elegido (URI local del picker + su mimeType real) al
   // bucket público `logos` con nombre fijo `{taller_id}.{ext}` y
@@ -275,9 +300,24 @@ export function TallerProvider({ children }) {
       horarios,
       actualizarHorario,
       cargandoTaller,
+      errorCargaTaller,
+      recargarTaller,
       cargandoHorarios,
+      errorCargaHorarios,
+      recargarHorarios,
     }),
-    [nombreTaller, logoTaller, misDatos, plan, limiteEmpleados, horarios, cargandoTaller, cargandoHorarios]
+    [
+      nombreTaller,
+      logoTaller,
+      misDatos,
+      plan,
+      limiteEmpleados,
+      horarios,
+      cargandoTaller,
+      errorCargaTaller,
+      cargandoHorarios,
+      errorCargaHorarios,
+    ]
   );
 
   return <TallerContext.Provider value={value}>{children}</TallerContext.Provider>;

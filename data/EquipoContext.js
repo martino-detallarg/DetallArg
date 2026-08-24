@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "./AuthContext";
+import { mensajeErrorCarga } from "../utils/errores";
 
 const EquipoContext = createContext(null);
 
@@ -17,12 +18,20 @@ export function EquipoProvider({ children }) {
   const { user } = useAuth();
   const [empleados, setEmpleados] = useState([]);
   const [cargandoEquipo, setCargandoEquipo] = useState(true);
+  const [errorCargaEquipo, setErrorCargaEquipo] = useState(null);
+  const [intentoCargaEquipo, setIntentoCargaEquipo] = useState(0);
 
+  // Dependencia `user?.id`, no `user` completo — ver el comentario del
+  // mismo detalle en TallerContext.js (evita recargar en cada refresh
+  // automático de token).
   useEffect(() => {
     if (!user) return;
     let cancelado = false;
 
     async function cargarEmpleados() {
+      setCargandoEquipo(true);
+      setErrorCargaEquipo(null);
+
       const { data, error } = await supabase
         .from("empleados")
         .select("id, nombre, rol, telefono")
@@ -32,7 +41,7 @@ export function EquipoProvider({ children }) {
       if (cancelado) return;
 
       if (error) {
-        console.warn("No se pudieron cargar los empleados desde Supabase:", error.message);
+        setErrorCargaEquipo(mensajeErrorCarga(error, "los empleados"));
         setCargandoEquipo(false);
         return;
       }
@@ -45,7 +54,11 @@ export function EquipoProvider({ children }) {
     return () => {
       cancelado = true;
     };
-  }, [user]);
+  }, [user?.id, intentoCargaEquipo]);
+
+  function recargarEquipo() {
+    setIntentoCargaEquipo((n) => n + 1);
+  }
 
   async function agregarEmpleado({ nombre, rol, telefono }) {
     const { data, error } = await supabase
@@ -74,8 +87,16 @@ export function EquipoProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ empleados, cargandoEquipo, agregarEmpleado, editarEmpleado, eliminarEmpleado }),
-    [empleados, cargandoEquipo]
+    () => ({
+      empleados,
+      cargandoEquipo,
+      errorCargaEquipo,
+      recargarEquipo,
+      agregarEmpleado,
+      editarEmpleado,
+      eliminarEmpleado,
+    }),
+    [empleados, cargandoEquipo, errorCargaEquipo]
   );
 
   return <EquipoContext.Provider value={value}>{children}</EquipoContext.Provider>;

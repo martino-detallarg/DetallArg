@@ -4,12 +4,13 @@ import { Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, Touchable
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ScreenHeader from "../components/ScreenHeader";
 import SelectorHoraModal from "../components/SelectorHoraModal";
+import EstadoCarga from "../components/EstadoCarga";
 import { useTaller } from "../data/TallerContext";
 import { formatearHoraHHMM, parsearHoraHHMM } from "../utils/fecha";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 export default function MisHorariosScreen({ navigation }) {
-  const { horarios, actualizarHorario } = useTaller();
+  const { horarios, actualizarHorario, cargandoHorarios, errorCargaHorarios, recargarHorarios } = useTaller();
   const [editando, setEditando] = useState(null); // { dia, campo: "horaApertura" | "horaCierre" }
   const [error, setError] = useState(null);
 
@@ -42,7 +43,7 @@ export default function MisHorariosScreen({ navigation }) {
       <StatusBar style="light" />
       <ScreenHeader onVolver={() => navigation.navigate("MiTaller")} />
 
-      <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+      <View style={styles.encabezadoFijo}>
         <Text style={styles.titulo}>Mis Horarios</Text>
         <Text style={styles.subtitulo}>
           Horario de atención de referencia. Todavía no restringe qué horas se pueden elegir al
@@ -50,44 +51,48 @@ export default function MisHorariosScreen({ navigation }) {
         </Text>
 
         {error && <Text style={styles.error}>{error}</Text>}
+      </View>
 
-        {horarios.map((item) => (
-          <View key={item.dia} style={styles.tarjeta}>
-            <View style={styles.filaSuperior}>
-              <Text style={styles.dia}>{item.dia}</Text>
-              <Switch
-                value={item.abierto}
-                onValueChange={(valor) => guardarCambio(item.dia, { abierto: valor })}
-                trackColor={{ false: colors.surface2, true: colors.accentDark }}
-                thumbColor={item.abierto ? colors.accent : colors.textMuted}
-              />
-            </View>
-
-            {item.abierto ? (
-              <View style={styles.horas}>
-                <TouchableOpacity
-                  style={styles.horaBoton}
-                  onPress={() => abrirPicker(item.dia, "horaApertura")}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.horaLabel}>Desde</Text>
-                  <Text style={styles.horaValor}>{item.horaApertura}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.horaBoton}
-                  onPress={() => abrirPicker(item.dia, "horaCierre")}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.horaLabel}>Hasta</Text>
-                  <Text style={styles.horaValor}>{item.horaCierre}</Text>
-                </TouchableOpacity>
+      <EstadoCarga cargando={cargandoHorarios} error={errorCargaHorarios} onReintentar={recargarHorarios}>
+        <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+          {horarios.map((item) => (
+            <View key={item.dia} style={styles.tarjeta}>
+              <View style={styles.filaSuperior}>
+                <Text style={styles.dia}>{item.dia}</Text>
+                <Switch
+                  value={item.abierto}
+                  onValueChange={(valor) => guardarCambio(item.dia, { abierto: valor })}
+                  trackColor={{ false: colors.surface2, true: colors.accentDark }}
+                  thumbColor={item.abierto ? colors.accent : colors.textMuted}
+                />
               </View>
-            ) : (
-              <Text style={styles.cerrado}>Cerrado</Text>
-            )}
-          </View>
-        ))}
-      </ScrollView>
+
+              {item.abierto ? (
+                <View style={styles.horas}>
+                  <TouchableOpacity
+                    style={styles.horaBoton}
+                    onPress={() => abrirPicker(item.dia, "horaApertura")}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.horaLabel}>Desde</Text>
+                    <Text style={styles.horaValor}>{item.horaApertura}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.horaBoton}
+                    onPress={() => abrirPicker(item.dia, "horaCierre")}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.horaLabel}>Hasta</Text>
+                    <Text style={styles.horaValor}>{item.horaCierre}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={styles.cerrado}>Cerrado</Text>
+              )}
+            </View>
+          ))}
+        </ScrollView>
+      </EstadoCarga>
 
       {Platform.OS === "android" && editando && (
         <DateTimePicker
@@ -125,6 +130,9 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  encabezadoFijo: {
+    paddingHorizontal: 20,
   },
   titulo: {
     fontFamily: fonts.heading,
