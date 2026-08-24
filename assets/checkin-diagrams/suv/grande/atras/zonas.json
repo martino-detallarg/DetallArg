@@ -1,0 +1,14 @@
+{
+  "vehicleType": "suv",
+  "subdivision": "grande",
+  "view": "atras",
+  "viewBox": "0 0 694 594",
+  "imageFile": "diagrama.png",
+  "zones": [
+    { "id": "vidrio", "label": "Vidrio trasero", "points": [[150,50],[545,50],[565,145],[130,145]] },
+    { "id": "baul", "label": "Baúl / portón trasero", "points": [[215,145],[480,145],[480,400],[215,400]] },
+    { "id": "luz_izquierda", "label": "Luz izquierda", "points": [[60,145],[215,145],[215,260],[145,270],[75,255],[55,195]] },
+    { "id": "luz_derecha", "label": "Luz derecha", "points": [[635,145],[480,145],[480,260],[550,270],[620,255],[640,195]] },
+    { "id": "paragolpes_trasero", "label": "Paragolpes trasero", "points": [[55,400],[640,400],[625,500],[70,500]] }
+  ]
+}

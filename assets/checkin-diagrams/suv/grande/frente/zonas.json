@@ -1,0 +1,18 @@
+{
+  "vehicleType": "suv",
+  "subdivision": "grande",
+  "view": "frente",
+  "viewBox": "0 0 695 584",
+  "imageFile": "diagrama.png",
+  "zones": [
+    { "id": "vidrio", "label": "Parabrisas", "points": [[155,25],[535,25],[595,145],[580,180],[110,180],[95,145]] },
+    { "id": "capot", "label": "Capó", "points": [[95,180],[595,180],[615,290],[520,310],[350,300],[175,310],[80,290]] },
+    { "id": "optica_izq", "label": "Óptica izquierda", "points": [[70,225],[215,220],[215,300],[150,310],[85,300],[65,260]] },
+    { "id": "optica_der", "label": "Óptica derecha", "points": [[625,225],[480,220],[480,300],[545,310],[610,300],[630,260]] },
+    { "id": "parante_izq", "label": "Parante izquierdo", "points": [[65,20],[155,25],[110,180],[75,175],[40,110]] },
+    { "id": "parante_der", "label": "Parante derecho", "points": [[630,20],[540,25],[585,180],[620,175],[655,110]] },
+    { "id": "espejo_izq", "label": "Espejo izquierdo", "points": [[0,155],[65,155],[70,200],[35,215],[0,205]] },
+    { "id": "espejo_der", "label": "Espejo derecho", "points": [[695,155],[630,155],[625,200],[660,215],[695,205]] },
+    { "id": "frente_completo", "label": "Frente / paragolpes", "points": [[200,290],[500,290],[615,400],[600,500],[95,500],[80,400]] }
+  ]
+}

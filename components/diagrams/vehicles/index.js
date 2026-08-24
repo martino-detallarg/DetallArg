@@ -15,6 +15,8 @@ import { CAMIONETA_DCM_VISTAS, VEHICLE_TYPE as CAMIONETA_DCM } from "./camioneta
 import { CAMIONETA_DCG_VISTAS, VEHICLE_TYPE as CAMIONETA_DCG } from "./camionetaDobleCabinaGrande";
 import { UTILITARIO_MEDIANO_VISTAS, VEHICLE_TYPE as UTILITARIO_MEDIANO } from "./camionetaUtilitarioMediano";
 import { UTILITARIO_GRANDE_VISTAS, VEHICLE_TYPE as UTILITARIO_GRANDE } from "./camionetaUtilitarioGrande";
+import { SUV_COMPACTO_VISTAS, VEHICLE_TYPE as SUV_COMPACTO } from "./suvCompacto";
+import { SUV_GRANDE_VISTAS, VEHICLE_TYPE as SUV_GRANDE } from "./suvGrande";
 
 // Mapeo tipoDeVehiculo -> diagramas de paneles reales, para no tener que
 // rehacer el selector de estado de DiagramaDanios ni el carrusel de
@@ -86,6 +88,12 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [UTILITARIO_GRANDE]: {
     vistas: UTILITARIO_GRANDE_VISTAS,
   },
+  [SUV_COMPACTO]: {
+    vistas: SUV_COMPACTO_VISTAS,
+  },
+  [SUV_GRANDE]: {
+    vistas: SUV_GRANDE_VISTAS,
+  },
 };
 
 // Resuelve la clave de este registro a partir de los datos de "Tipo de
@@ -145,6 +153,15 @@ export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
   }
   if (tipoVehiculo === "auto" && subdivision === "Hatchback") {
     return AUTO_HATCHBACK;
+  }
+  // SUV / Compacto y Grande ya tienen diagrama real propio — familia SUV
+  // completa. Mismo criterio de zonas calcado de Auto Sedán/Familiar/
+  // Hatchback (4 puertas, sin caja de carga) para las dos subdivisiones.
+  if (tipoVehiculo === "suv" && subdivision === "Compacto") {
+    return SUV_COMPACTO;
+  }
+  if (tipoVehiculo === "suv" && subdivision === "Grande") {
+    return SUV_GRANDE;
   }
   return null;
 }

@@ -33,8 +33,8 @@ camioneta/
   utilitario_acarrozado_mediano/   ← contenido renombrado 23 agosto 2026 (antes era este "Chico", referencia Fiorino)
   utilitario_acarrozado_grande/    ← agregado 23 agosto 2026, no existía en el árbol original
 suv/
-  compacto/
-  grande/
+  compacto/         ← completo 24 agosto 2026
+  grande/           ← completo 24 agosto 2026
 moto/
   naked/
   sport/
@@ -168,4 +168,15 @@ El proceso de "quitar fondo y rellenar" (ink mask → `MORPH_CLOSE` → floodFil
   - `atras/` — listo (4 zonas: `vidrio_izquierdo`, `vidrio_derecho`, `puerta_izquierda`, `puerta_derecha` — mismo criterio que Mediano).
 - **`camioneta/utilitario_acarrozado_grande` completo — Frente, Atrás, Lateral y Cenital ✅.** Con Mediano y Grande completos, quedan **2 de las 3** subdivisiones de Utilitario acarrozado (falta "Chico", que ahora es un furgón más chico todavía sin referencia). En total, 12 de las 18 subdivisiones del árbol completo (18, no 17, por el nuevo "Grande" de Utilitario acarrozado).
 - ⚠️ **Archivos huérfanos a borrar manualmente** (esta sesión no tiene herramienta para borrar archivos del repo de Augusto, así que quedan marcados acá en vez de eliminarse solos): la carpeta **`camioneta/utilitario_acarrozado_chico/`** (con el contenido viejo de la Fiorino, ya duplicado en `utilitario_acarrozado_mediano/`) y el componente **`components/diagrams/vehicles/camionetaUtilitarioChico.js`** (reemplazado por `camionetaUtilitarioMediano.js`) quedaron sin uso en el código — `index.js` ya no los importa ni los registra. Augusto los puede borrar cuando quiera desde su terminal.
-- Sigue `utilitario_acarrozado_chico` (furgón más chico, nueva referencia pendiente), después SUV y Motos.
+- **Con Mediano y Grande, la familia Camioneta queda terminada por completo** (Cabina simple, Doble cabina y Utilitario acarrozado, salvo el "Chico" de Utilitario que es un slot nuevo sin referencia todavía — ver nota de renombre arriba). Sigue SUV, después Motos.
+- `suv/compacto/frente/` — listo (9 zonas, mismo criterio que el resto de la app). Referencia: SUV coupé compacto (techo con caída trasera, 4 puertas).
+- `suv/compacto/lateral/` — listo (**5 zonas**: `guardabarro_delantero`, `puerta_delantera`, `puerta_trasera`, `vidrio`, `cola` — mismo criterio que Auto Sedán/Familiar/Hatchback, NO el de Camioneta: acá no hay `caja` ni `panel_carga`, es carrocería cerrada de 4 puertas). Es un solo lado — ver nota general arriba sobre el lado espejado.
+- `suv/compacto/cenital/` — listo (3 zonas: techo, parante izq, parante der — mismo criterio que la familia Auto, sin caja separada).
+- `suv/compacto/atras/` — listo (**5 zonas**: vidrio trasero, `baul` (portón trasero), luz_izquierda, luz_derecha, paragolpes_trasero — mismo criterio que Auto Hatchback: portón con vidrio y panel inferior como zonas separadas, no una sola pieza).
+- **`suv/compacto` completo — Frente, Atrás, Lateral y Cenital ✅.** Primera subdivisión de SUV. No hizo falta tocar `TIPOS_VEHICULO` — el grupo ya tenía `"Compacto"` entre las opciones.
+- `suv/grande/frente/` — listo (9 zonas, mismo criterio que el resto de la app). Referencia: SUV grande 3 filas tipo Toyota Fortuner/similar.
+- `suv/grande/lateral/` — listo (5 zonas: `guardabarro_delantero`, `puerta_delantera`, `puerta_trasera`, `vidrio`, `cola` — mismo criterio que `suv/compacto`). Acá las ruedas SÍ tocan la línea del guardabarro (un solo contorno), a diferencia de Compacto que las separó. Es un solo lado — ver nota general arriba sobre el lado espejado.
+- `suv/grande/cenital/` — listo (3 zonas: techo, parante izq, parante der — mismo criterio que `suv/compacto`).
+- `suv/grande/atras/` — listo (5 zonas: vidrio trasero, `baul`, luz_izquierda, luz_derecha, paragolpes_trasero — mismo criterio que `suv/compacto`).
+- **`suv/grande` completo — Frente, Atrás, Lateral y Cenital ✅.** Con esto, **la familia SUV queda completa** (Compacto + Grande). No hizo falta tocar `TIPOS_VEHICULO` — el grupo ya tenía `"Grande"` entre las opciones.
+- Sigue `utilitario_acarrozado_chico` (furgón más chico, nueva referencia pendiente), después Motos.
