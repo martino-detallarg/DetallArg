@@ -55,6 +55,10 @@ export function TurnoProvider({ children }) {
     actualizarTurno(id, { estado: nuevoEstado });
   }
 
+  function eliminarTurno(id) {
+    setTurnos((actuales) => actuales.filter((t) => t.id !== id));
+  }
+
   function getTurnoById(id) {
     return turnos.find((t) => t.id === id);
   }
@@ -65,6 +69,7 @@ export function TurnoProvider({ children }) {
       agregarTurno,
       actualizarTurno,
       actualizarEstadoTrabajo,
+      eliminarTurno,
       getTurnoById,
     }),
     [turnos]

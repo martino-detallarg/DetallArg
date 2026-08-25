@@ -18,7 +18,7 @@ import {
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 export default function AgendaScreen({ navigation }) {
-  const { turnos, actualizarEstadoTrabajo } = useTurnos();
+  const { turnos, actualizarEstadoTrabajo, eliminarTurno } = useTurnos();
   const { getClienteById, getVehiculoById } = useClientes();
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState(() => new Date());
@@ -138,6 +138,10 @@ export default function AgendaScreen({ navigation }) {
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
         auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
         onCambiarEstado={(nuevoEstado) => actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado)}
+        onEliminar={() => {
+          eliminarTurno(turnoSeleccionado.id);
+          setTurnoSeleccionadoId(null);
+        }}
         onClose={() => setTurnoSeleccionadoId(null)}
       />
     </SafeAreaView>

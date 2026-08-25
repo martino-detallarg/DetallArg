@@ -1,4 +1,5 @@
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
 import { ESTADOS_TRABAJO } from "../data/mockData";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
@@ -6,10 +7,21 @@ import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 // Detalle de solo lectura de un trabajo ya cargado (cliente, vehículo y
 // datos del servicio), con un selector de estado debajo para ir avanzando
 // (o volviendo) por las etapas del trabajo.
-export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onCambiarEstado, onClose }) {
+export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onCambiarEstado, onEliminar, onClose }) {
   if (!turno || !cliente) return null;
 
   const vehiculosDelCliente = cliente.vehiculos;
+
+  function handleEliminar() {
+    Alert.alert(
+      "Eliminar turno",
+      "Esta acción no se puede deshacer. ¿Eliminar este turno?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Eliminar", style: "destructive", onPress: onEliminar },
+      ]
+    );
+  }
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -91,6 +103,11 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                 );
               })}
             </View>
+
+            <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
+              <Ionicons name="trash-outline" size={16} color={colors.error} />
+              <Text style={styles.eliminarBotonTexto}>Eliminar turno</Text>
+            </TouchableOpacity>
           </ScrollView>
 
           <View style={styles.botonCerrar}>
@@ -187,6 +204,23 @@ const styles = StyleSheet.create({
   chipTextoSeleccionado: {
     fontFamily: fonts.bodySemiBold,
     color: colors.bg,
+  },
+  eliminarBoton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 50,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.error,
+    marginTop: 16,
+  },
+  eliminarBotonTexto: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.error,
   },
   botonCerrar: {
     marginTop: 16,

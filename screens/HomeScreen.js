@@ -27,7 +27,7 @@ function formatearMonto(valor) {
 
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
-  const { turnos, agregarTurno, actualizarEstadoTrabajo } = useTurnos();
+  const { turnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } = useTurnos();
   const { misDatos } = useTaller();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
 
@@ -150,6 +150,10 @@ export default function HomeScreen({ navigation }) {
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
         auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
         onCambiarEstado={(nuevoEstado) => actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado)}
+        onEliminar={() => {
+          eliminarTurno(turnoSeleccionado.id);
+          setTurnoSeleccionadoId(null);
+        }}
         onClose={() => setTurnoSeleccionadoId(null)}
       />
 
