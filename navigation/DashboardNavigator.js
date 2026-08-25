@@ -19,11 +19,12 @@ import { colors } from "../theme";
 
 const Drawer = createDrawerNavigator();
 
-// Documentos legales sin contenido real todavía: ambos reusan la misma
-// pantalla genérica (ver DocumentoLegalScreen.js), solo cambia el título.
+// Términos y Privacidad reusan la misma pantalla genérica (ver
+// DocumentoLegalScreen.js): "tipo" es la clave que usa esa pantalla para
+// elegir título + texto desde data/textosLegales.js.
 const PANTALLAS_LEGAL = [
-  { ruta: "Terminos", titulo: "Términos y condiciones" },
-  { ruta: "Privacidad", titulo: "Política de privacidad" },
+  { ruta: "Terminos", tipo: "terminos" },
+  { ruta: "Privacidad", tipo: "privacidad" },
 ];
 
 export default function DashboardNavigator({ onLogout }) {
@@ -52,12 +53,12 @@ export default function DashboardNavigator({ onLogout }) {
       <Drawer.Screen name="Configuracion">
         {(props) => <ConfiguracionScreen {...props} onLogout={onLogout} />}
       </Drawer.Screen>
-      {PANTALLAS_LEGAL.map(({ ruta, titulo }) => (
+      {PANTALLAS_LEGAL.map(({ ruta, tipo }) => (
         <Drawer.Screen
           key={ruta}
           name={ruta}
           component={DocumentoLegalScreen}
-          initialParams={{ titulo }}
+          initialParams={{ tipo }}
         />
       ))}
     </Drawer.Navigator>
