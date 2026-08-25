@@ -34,7 +34,7 @@ export function EquipoProvider({ children }) {
 
       const { data, error } = await supabase
         .from("empleados")
-        .select("id, nombre, rol, telefono")
+        .select("id, nombre, rol, telefono, activo")
         .eq("taller_id", user.id)
         .order("nombre", { ascending: true });
 
@@ -64,7 +64,7 @@ export function EquipoProvider({ children }) {
     const { data, error } = await supabase
       .from("empleados")
       .insert({ taller_id: user.id, nombre, rol, telefono })
-      .select("id, nombre, rol, telefono")
+      .select("id, nombre, rol, telefono, activo")
       .single();
     if (error) throw error;
 
@@ -77,6 +77,13 @@ export function EquipoProvider({ children }) {
     if (error) throw error;
 
     setEmpleados((actuales) => actuales.map((e) => (e.id === id ? { ...e, ...cambios } : e)));
+  }
+
+  // Desactivar en vez de eliminar: mismo patrón que editarEmpleado, para
+  // liberar el cupo del límite de empleados del plan sin perder el
+  // historial de turnos ya asignados a ese empleado (ver MiEquipoScreen.js).
+  async function cambiarEstadoEmpleado(id, activo) {
+    await editarEmpleado(id, { activo });
   }
 
   async function eliminarEmpleado(id) {
@@ -94,6 +101,7 @@ export function EquipoProvider({ children }) {
       recargarEquipo,
       agregarEmpleado,
       editarEmpleado,
+      cambiarEstadoEmpleado,
       eliminarEmpleado,
     }),
     [empleados, cargandoEquipo, errorCargaEquipo]

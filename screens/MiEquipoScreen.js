@@ -18,7 +18,10 @@ export default function MiEquipoScreen({ navigation }) {
   const [itemEditando, setItemEditando] = useState(null);
   const [error, setError] = useState(null);
 
-  const alLimite = empleados.length >= limiteEmpleados;
+  // El límite del plan aplica solo a los empleados activos: desactivar a
+  // uno libera su cupo sin necesidad de borrarlo (mantiene el historial).
+  const empleadosActivos = empleados.filter((e) => e.activo);
+  const alLimite = empleadosActivos.length >= limiteEmpleados;
 
   function handleAgregar() {
     setItemEditando(null);
@@ -71,17 +74,28 @@ export default function MiEquipoScreen({ navigation }) {
             empleados.map((item) => (
               <TouchableOpacity
                 key={item.id}
-                style={styles.fila}
+                style={[styles.fila, !item.activo && styles.filaInactiva]}
                 onPress={() => handleEditar(item)}
                 activeOpacity={0.8}
               >
                 <View style={styles.filaIcono}>
-                  <Ionicons name="person-outline" size={20} color={colors.accentLight} />
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={item.activo ? colors.accentLight : colors.textMuted}
+                  />
                 </View>
                 <View style={styles.filaTexto}>
-                  <Text style={styles.filaNombre} numberOfLines={1}>
-                    {item.nombre}
-                  </Text>
+                  <View style={styles.filaNombreFila}>
+                    <Text style={styles.filaNombre} numberOfLines={1}>
+                      {item.nombre}
+                    </Text>
+                    {!item.activo && (
+                      <View style={styles.etiquetaInactivo}>
+                        <Text style={styles.etiquetaInactivoTexto}>Inactivo</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.filaRol}>{item.rol}</Text>
                 </View>
                 <TouchableOpacity
@@ -171,6 +185,9 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
+  filaInactiva: {
+    opacity: 0.55,
+  },
   filaIcono: {
     width: 40,
     height: 40,
@@ -183,10 +200,31 @@ const styles = StyleSheet.create({
   filaTexto: {
     flex: 1,
   },
+  filaNombreFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   filaNombre: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
     color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  etiquetaInactivo: {
+    backgroundColor: colors.surface2,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  etiquetaInactivoTexto: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   filaRol: {
     fontFamily: fonts.mono,

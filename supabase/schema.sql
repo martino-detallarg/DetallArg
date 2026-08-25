@@ -105,8 +105,11 @@ create table empleados (
   taller_id   uuid not null references talleres (id) on delete cascade,
   nombre      text not null,
   rol         text,
-  telefono    text
+  telefono    text,
+  activo      boolean not null default true
 );
+
+comment on column empleados.activo is 'Desactivar en vez de borrar: libera el cupo del límite de empleados del plan sin perder el historial de turnos ya asignados a ese empleado.';
 
 -- ----------------------------------------------------------------------------
 -- 4. INSUMOS Y COSTOS FIJOS (DataContext)

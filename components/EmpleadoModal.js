@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
@@ -13,13 +13,20 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 // viene null, crea uno nuevo. La validación del límite del plan la hace
 // MiEquipoScreen.js antes de abrir este modal en modo alta.
 export default function EmpleadoModal({ visible, item, onClose }) {
-  const { agregarEmpleado, editarEmpleado, eliminarEmpleado } = useEquipo();
+  const { empleados, agregarEmpleado, editarEmpleado, cambiarEstadoEmpleado, eliminarEmpleado } = useEquipo();
   const [nombre, setNombre] = useState("");
   const [rol, setRol] = useState("");
   const [telefono, setTelefono] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [cargandoEstado, setCargandoEstado] = useState(false);
   const [error, setError] = useState(null);
   const editando = item !== null;
+  // El `item` que llega por prop es la foto del empleado al momento de
+  // abrir el modal — no se actualiza solo. Para que el switch refleje el
+  // estado real después de tocarlo (sin actualización optimista, mismo
+  // criterio que el resto de la app), se busca la versión más nueva en
+  // el propio EquipoContext.
+  const empleadoActual = editando ? empleados.find((e) => e.id === item.id) ?? item : null;
 
   useEffect(() => {
     if (visible) {
@@ -47,6 +54,18 @@ export default function EmpleadoModal({ visible, item, onClose }) {
       setError("No se pudo guardar el empleado. Probá de nuevo.");
     } finally {
       setCargando(false);
+    }
+  }
+
+  async function handleCambiarEstado(valor) {
+    setCargandoEstado(true);
+    setError(null);
+    try {
+      await cambiarEstadoEmpleado(item.id, valor);
+    } catch (err) {
+      setError("No se pudo actualizar el estado. Probá de nuevo.");
+    } finally {
+      setCargandoEstado(false);
     }
   }
 
@@ -106,15 +125,38 @@ export default function EmpleadoModal({ visible, item, onClose }) {
               </View>
 
               {editando && (
-                <TouchableOpacity
-                  style={styles.eliminarBoton}
-                  onPress={handleEliminar}
-                  disabled={cargando}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="trash-outline" size={16} color={colors.error} />
-                  <Text style={styles.eliminarBotonTexto}>Eliminar empleado</Text>
-                </TouchableOpacity>
+                <>
+                  <View style={styles.estadoTarjeta}>
+                    <View style={styles.estadoFila}>
+                      <View style={styles.estadoTextos}>
+                        <Text style={styles.estadoTitulo}>Empleado activo</Text>
+                        <Text style={styles.estadoAyuda}>
+                          Desactivalo para dejar de asignarle turnos nuevos, sin perder su historial.
+                        </Text>
+                      </View>
+                      <Switch
+                        value={empleadoActual?.activo ?? true}
+                        onValueChange={handleCambiarEstado}
+                        disabled={cargandoEstado || cargando}
+                        trackColor={{ false: colors.surface2, true: colors.accentDark }}
+                        thumbColor={empleadoActual?.activo ? colors.accent : colors.textMuted}
+                      />
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.eliminarBoton}
+                    onPress={handleEliminar}
+                    disabled={cargando}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.error} />
+                    <Text style={styles.eliminarBotonTexto}>Eliminar empleado</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.eliminarAyuda}>
+                    Eliminar borra el registro por completo, incluido su historial.
+                  </Text>
+                </>
               )}
 
               <View style={styles.botonCancelar}>
@@ -150,6 +192,35 @@ const styles = StyleSheet.create({
   boton: {
     marginTop: 12,
   },
+  estadoTarjeta: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 14,
+    marginTop: 18,
+  },
+  estadoFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  estadoTextos: {
+    flex: 1,
+  },
+  estadoTitulo: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  estadoAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+    lineHeight: 16,
+  },
   eliminarBoton: {
     flexDirection: "row",
     alignItems: "center",
@@ -166,6 +237,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.error,
+  },
+  eliminarAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: 6,
   },
   botonCancelar: {
     marginTop: 10,
