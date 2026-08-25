@@ -61,7 +61,7 @@ export default function MiTallerScreen({ navigation }) {
                 activeOpacity={0.8}
               >
                 <View style={styles.filaIcono}>
-                  <Ionicons name={item.icono} size={20} color={colors.accentLight} />
+                  <Ionicons name={item.icono} size={20} color={colors.textPrimary} />
                 </View>
                 <Text style={styles.filaTexto}>{item.titulo}</Text>
                 <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

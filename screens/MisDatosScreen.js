@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import WizardHeader from "../components/wizard/WizardHeader";
 import Input from "../components/Input";
 import Button from "../components/Button";
@@ -55,74 +55,76 @@ export default function MisDatosScreen({ navigation }) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.pantalla}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <WizardHeader titulo="Mis Datos" paso={1} totalPasos={1} onAtras={() => navigation.navigate("MiTaller")} />
+    <SafeAreaView style={styles.pantalla}>
+      <KeyboardAvoidingView
+        style={styles.flexContainer}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <WizardHeader titulo="Mis Datos" paso={1} totalPasos={1} onAtras={() => navigation.navigate("MiTaller")} />
 
-      <EstadoCarga cargando={cargandoTaller} error={errorCargaTaller} onReintentar={recargarTaller}>
-        <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
-          <Input
-            label="Nombre personal"
-            value={datos.nombrePersonal}
-            onChangeText={(v) => cambiar("nombrePersonal", v)}
-            placeholder="Ej: Martino Fernández"
-          />
-          <Input
-            label="Link de página web"
-            value={datos.web}
-            onChangeText={(v) => cambiar("web", v)}
-            placeholder="Ej: www.mitaller.com"
-            autoCapitalize="none"
-            keyboardType="url"
-          />
-          <Input
-            label="Correo"
-            value={datos.correo}
-            onChangeText={(v) => cambiar("correo", v)}
-            placeholder="Ej: contacto@mitaller.com"
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <Input
-            label="Teléfono"
-            value={datos.telefono}
-            onChangeText={(v) => cambiar("telefono", v)}
-            placeholder="Ej: 11 5555-5555"
-            keyboardType="phone-pad"
-          />
-          <Input
-            label="Ubicación"
-            value={datos.ubicacion}
-            onChangeText={(v) => cambiar("ubicacion", v)}
-            placeholder="Ej: Palermo, CABA"
-          />
+        <EstadoCarga cargando={cargandoTaller} error={errorCargaTaller} onReintentar={recargarTaller}>
+          <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+            <Input
+              label="Nombre personal"
+              value={datos.nombrePersonal}
+              onChangeText={(v) => cambiar("nombrePersonal", v)}
+              placeholder="Ej: Martino Fernández"
+            />
+            <Input
+              label="Link de página web"
+              value={datos.web}
+              onChangeText={(v) => cambiar("web", v)}
+              placeholder="Ej: www.mitaller.com"
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+            <Input
+              label="Correo"
+              value={datos.correo}
+              onChangeText={(v) => cambiar("correo", v)}
+              placeholder="Ej: contacto@mitaller.com"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <Input
+              label="Teléfono"
+              value={datos.telefono}
+              onChangeText={(v) => cambiar("telefono", v)}
+              placeholder="Ej: 11 5555-5555"
+              keyboardType="phone-pad"
+            />
+            <Input
+              label="Ubicación"
+              value={datos.ubicacion}
+              onChangeText={(v) => cambiar("ubicacion", v)}
+              placeholder="Ej: Palermo, CABA"
+            />
 
-          <Text style={styles.label}>Situación fiscal (opcional)</Text>
-          <View style={styles.chips}>
-            {SITUACIONES_FISCALES.map((opcion) => {
-              const activo = datos.situacionFiscal === opcion;
-              return (
-                <TouchableOpacity
-                  key={opcion}
-                  style={[styles.chip, activo && styles.chipSeleccionado]}
-                  onPress={() => elegirSituacionFiscal(opcion)}
-                >
-                  <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>{opcion}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+            <Text style={styles.label}>Situación fiscal (opcional)</Text>
+            <View style={styles.chips}>
+              {SITUACIONES_FISCALES.map((opcion) => {
+                const activo = datos.situacionFiscal === opcion;
+                return (
+                  <TouchableOpacity
+                    key={opcion}
+                    style={[styles.chip, activo && styles.chipSeleccionado]}
+                    onPress={() => elegirSituacionFiscal(opcion)}
+                  >
+                    <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>{opcion}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-          {error && <Text style={styles.error}>{error}</Text>}
+            {error && <Text style={styles.error}>{error}</Text>}
 
-          <View style={styles.boton}>
-            <Button title="Guardar cambios" onPress={handleGuardar} loading={cargando} />
-          </View>
-        </ScrollView>
-      </EstadoCarga>
-    </KeyboardAvoidingView>
+            <View style={styles.boton}>
+              <Button title="Guardar cambios" onPress={handleGuardar} loading={cargando} />
+            </View>
+          </ScrollView>
+        </EstadoCarga>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -130,6 +132,9 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  flexContainer: {
+    flex: 1,
   },
   contenido: {
     paddingHorizontal: 20,
