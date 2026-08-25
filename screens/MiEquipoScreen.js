@@ -113,8 +113,8 @@ export default function MiEquipoScreen({ navigation }) {
       </EstadoCarga>
 
       {!alLimite && !cargandoEquipo && !errorCargaEquipo && (
-        <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
-          <Text style={styles.fabTexto}>+</Text>
+        <TouchableOpacity style={styles.fab} onPress={handleAgregar} activeOpacity={0.85}>
+          <Ionicons name="person-add-outline" size={26} color={colors.bg} />
         </TouchableOpacity>
       )}
 
@@ -242,20 +242,14 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: "absolute",
-    right: 20,
-    bottom: 30,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent,
+    right: 28,
+    bottom: 40,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.textPrimary,
     alignItems: "center",
     justifyContent: "center",
     ...shadow,
-  },
-  fabTexto: {
-    color: colors.bg,
-    fontSize: 30,
-    fontWeight: "400",
-    marginTop: -2,
   },
 });

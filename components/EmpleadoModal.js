@@ -5,8 +5,15 @@ import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
+import SelectorSiluetaModal from "./SelectorSiluetaModal";
 import { useEquipo } from "../data/EquipoContext";
 import { colors, continuousCorner, fonts, radii } from "../theme";
+
+// { hombre: "man-outline", mujer: "woman-outline" } — sin elegir, "person-outline".
+const ICONOS_SILUETA = {
+  hombre: "man-outline",
+  mujer: "woman-outline",
+};
 
 // Formulario de alta y edición de empleado (mismo patrón que ClienteModal):
 // si viene `item`, edita ese empleado y muestra el botón de eliminar; si
@@ -20,6 +27,11 @@ export default function EmpleadoModal({ visible, item, onClose }) {
   const [cargando, setCargando] = useState(false);
   const [cargandoEstado, setCargandoEstado] = useState(false);
   const [error, setError] = useState(null);
+  // Puramente visual, solo dentro de esta sesión del modal — no se guarda
+  // en EquipoContext ni en Supabase, así que siempre arranca en null
+  // (avatar neutro) al abrir, sin importar si el empleado ya existía.
+  const [silueta, setSilueta] = useState(null);
+  const [selectorVisible, setSelectorVisible] = useState(false);
   const editando = item !== null;
   // El `item` que llega por prop es la foto del empleado al momento de
   // abrir el modal — no se actualiza solo. Para que el switch refleje el
@@ -34,8 +46,14 @@ export default function EmpleadoModal({ visible, item, onClose }) {
       setRol(item?.rol ?? "");
       setTelefono(item?.telefono ?? "");
       setError(null);
+      setSilueta(null);
     }
   }, [visible, item]);
+
+  function handleElegirSilueta(id) {
+    setSilueta(id);
+    setSelectorVisible(false);
+  }
 
   const esValido = nombre.trim() !== "" && rol.trim() !== "";
 
@@ -98,6 +116,25 @@ export default function EmpleadoModal({ visible, item, onClose }) {
             />
 
             <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+              <View style={styles.avatarContenedor}>
+                <TouchableOpacity
+                  onPress={() => setSelectorVisible(true)}
+                  activeOpacity={0.85}
+                  style={styles.avatarToque}
+                >
+                  <View style={styles.avatarCirculo}>
+                    <Ionicons
+                      name={ICONOS_SILUETA[silueta] ?? "person-outline"}
+                      size={44}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                  <View style={styles.avatarEditarBoton}>
+                    <Ionicons name="pencil" size={14} color={colors.bg} />
+                  </View>
+                </TouchableOpacity>
+              </View>
+
               <Input
                 label="Nombre y apellido"
                 value={nombre}
@@ -166,6 +203,12 @@ export default function EmpleadoModal({ visible, item, onClose }) {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>
+
+      <SelectorSiluetaModal
+        visible={selectorVisible}
+        onElegir={handleElegirSilueta}
+        onCerrar={() => setSelectorVisible(false)}
+      />
     </Modal>
   );
 }
@@ -181,6 +224,37 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  avatarContenedor: {
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  avatarToque: {
+    position: "relative",
+  },
+  avatarCirculo: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.borderAccent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarEditarBoton: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.accent,
+    borderWidth: 3,
+    borderColor: colors.bg,
+    alignItems: "center",
+    justifyContent: "center",
   },
   error: {
     fontFamily: fonts.body,
