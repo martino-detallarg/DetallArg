@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import WizardHeader from "../../components/wizard/WizardHeader";
+import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import { colors, fonts } from "../../theme";
@@ -46,42 +47,44 @@ export default function DatosVehiculoStep({
     >
       <WizardHeader titulo="Datos del Vehículo" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
-      <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
-        <Input
-          label="Patente"
-          value={datos.patente}
-          onChangeText={(v) => onCambiar({ patente: formatearPatente(v) })}
-          placeholder="AB 123 CD"
-          autoCapitalize="characters"
-          error={errores.patente}
-        />
-        <Input
-          label="Marca y modelo"
-          value={datos.marcaModelo}
-          onChangeText={(v) => onCambiar({ marcaModelo: v })}
-          placeholder="Volkswagen Golf"
-          error={errores.marcaModelo}
-        />
-        <Input
-          label="Año (opcional)"
-          value={datos.anio}
-          onChangeText={(v) => onCambiar({ anio: v })}
-          placeholder="2020"
-          keyboardType="numeric"
-        />
-        <Input
-          label="Color"
-          value={datos.color}
-          onChangeText={(v) => onCambiar({ color: v })}
-          placeholder="Gris"
-        />
+      <SwipeVolver onAtras={onAtras}>
+        <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+          <Input
+            label="Patente"
+            value={datos.patente}
+            onChangeText={(v) => onCambiar({ patente: formatearPatente(v) })}
+            placeholder="AB 123 CD"
+            autoCapitalize="characters"
+            error={errores.patente}
+          />
+          <Input
+            label="Marca y modelo"
+            value={datos.marcaModelo}
+            onChangeText={(v) => onCambiar({ marcaModelo: v })}
+            placeholder="Volkswagen Golf"
+            error={errores.marcaModelo}
+          />
+          <Input
+            label="Año (opcional)"
+            value={datos.anio}
+            onChangeText={(v) => onCambiar({ anio: v })}
+            placeholder="2020"
+            keyboardType="numeric"
+          />
+          <Input
+            label="Color"
+            value={datos.color}
+            onChangeText={(v) => onCambiar({ color: v })}
+            placeholder="Gris"
+          />
 
-        {error && <Text style={styles.error}>{error}</Text>}
+          {error && <Text style={styles.error}>{error}</Text>}
 
-        <View style={styles.boton}>
-          <Button title="Continuar" onPress={handleContinuar} disabled={!esValido} loading={cargando} />
-        </View>
-      </ScrollView>
+          <View style={styles.boton}>
+            <Button title="Continuar" onPress={handleContinuar} disabled={!esValido} loading={cargando} />
+          </View>
+        </ScrollView>
+      </SwipeVolver>
     </KeyboardAvoidingView>
   );
 }

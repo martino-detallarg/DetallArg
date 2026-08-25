@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, Touchable
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import WizardHeader from "../../components/wizard/WizardHeader";
+import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import SelectorFechaModal from "../../components/wizard/SelectorFechaModal";
@@ -92,6 +93,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     >
       <WizardHeader titulo="Datos del Servicio" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
+      <SwipeVolver onAtras={onAtras}>
       <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Servicio</Text>
         {servicios.length === 0 ? (
@@ -223,6 +225,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
           <Button title="Continuar a Inspección" onPress={handleContinuar} disabled={!esValido} />
         </View>
       </ScrollView>
+      </SwipeVolver>
     </KeyboardAvoidingView>
   );
 }

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import WizardHeader from "../../components/wizard/WizardHeader";
+import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Button from "../../components/Button";
 import DiagramaDanios from "../../components/wizard/DiagramaDanios";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
@@ -76,6 +77,13 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
     >
       <WizardHeader titulo="Inspección Visual" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
+      {/* El carrusel de vistas de abajo ya usa swipe horizontal para navegar
+      entre Frente/Atrás/Lateral/etc — SwipeVolver comparte esa misma franja
+      de gestos. En la práctica no debería notarse (el usuario arrastra desde
+      el centro para pasar de vista, no desde el borde), pero si algún día se
+      siente en conflicto en el borde izquierdo, achicar ANCHO_BORDE en
+      SwipeVolver.js o sacarlo de este paso puntual. */}
+      <SwipeVolver onAtras={onAtras}>
       <ScrollView
         horizontal
         pagingEnabled
@@ -131,6 +139,7 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
           <Button title="Finalizar y Guardar Trabajo" onPress={onFinalizar} />
         </View>
       </View>
+      </SwipeVolver>
     </KeyboardAvoidingView>
   );
 }

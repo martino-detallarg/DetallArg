@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import WizardHeader from "../../components/wizard/WizardHeader";
+import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import { colors } from "../../theme";
@@ -29,27 +30,29 @@ export default function DatosClienteStep({ datos, paso = 1, totalPasos = 2, onCa
     >
       <WizardHeader titulo="Datos del Cliente" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
-      <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
-        <Input
-          label="Nombre y apellido"
-          value={datos.nombre}
-          onChangeText={(v) => onCambiar({ nombre: v })}
-          placeholder="Juan Pérez"
-          error={errores.nombre}
-        />
-        <Input
-          label="Teléfono / Celular"
-          value={datos.telefono}
-          onChangeText={(v) => onCambiar({ telefono: v })}
-          placeholder="11 2345-6789"
-          keyboardType="phone-pad"
-          error={errores.telefono}
-        />
+      <SwipeVolver onAtras={onAtras}>
+        <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+          <Input
+            label="Nombre y apellido"
+            value={datos.nombre}
+            onChangeText={(v) => onCambiar({ nombre: v })}
+            placeholder="Juan Pérez"
+            error={errores.nombre}
+          />
+          <Input
+            label="Teléfono / Celular"
+            value={datos.telefono}
+            onChangeText={(v) => onCambiar({ telefono: v })}
+            placeholder="11 2345-6789"
+            keyboardType="phone-pad"
+            error={errores.telefono}
+          />
 
-        <View style={styles.boton}>
-          <Button title="Continuar a Vehículo" onPress={handleContinuar} disabled={!esValido} />
-        </View>
-      </ScrollView>
+          <View style={styles.boton}>
+            <Button title="Continuar a Vehículo" onPress={handleContinuar} disabled={!esValido} />
+          </View>
+        </ScrollView>
+      </SwipeVolver>
     </KeyboardAvoidingView>
   );
 }

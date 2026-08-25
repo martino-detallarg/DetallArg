@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
+import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Button from "../../components/Button";
 import FuelGauge from "../../components/wizard/FuelGauge";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
@@ -59,76 +60,78 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
     <View style={styles.pantalla}>
       <WizardHeader titulo="Tipo de Vehículo" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
-      <ScrollView contentContainerStyle={styles.contenido}>
-        <Text style={styles.texto}>Seleccioná el tipo de vehículo</Text>
+      <SwipeVolver onAtras={onAtras}>
+        <ScrollView contentContainerStyle={styles.contenido}>
+          <Text style={styles.texto}>Seleccioná el tipo de vehículo</Text>
 
-        <View style={styles.grid}>
-          {TIPOS.map((t) => {
-            const seleccionado = datos.tipoVehiculo === t.id;
-            return (
-              <TouchableOpacity
-                key={t.id}
-                style={[styles.tarjetaTipo, seleccionado && styles.tarjetaTipoSeleccionada]}
-                onPress={() => elegirTipo(t.id)}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name={t.icono}
-                  size={28}
-                  color={seleccionado ? colors.accentLight : colors.textSecondary}
-                />
-                <Text style={[styles.tarjetaTexto, seleccionado && styles.tarjetaTextoSeleccionado]}>
-                  {t.etiqueta}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {tipoInfo && (
-          <View style={styles.subdivisiones}>
-            <Text style={styles.texto}>Elegí la subdivisión</Text>
-            {tipoInfo.grupos.map((g) => (
-              <View key={g.grupo ?? "unico"} style={styles.grupo}>
-                {g.grupo && <Text style={styles.grupoTitulo}>{g.grupo}</Text>}
-                <View style={styles.chips}>
-                  {g.opciones.map((opcion) => {
-                    const activo = datos.grupo === g.grupo && datos.subdivision === opcion;
-                    return (
-                      <TouchableOpacity
-                        key={opcion}
-                        style={[styles.chip, activo && styles.chipSeleccionado]}
-                        onPress={() => elegirSubdivision(g.grupo, opcion)}
-                      >
-                        <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                          {opcion}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
-
-            <Text style={styles.notaPlaceholder}>
-              {tieneDiagramaEspecifico
-                ? "Esta carrocería ya tiene su propio diagrama de paneles reales."
-                : "Por ahora esta carrocería usa el diagrama genérico, con solo la vista de Frente disponible — más adelante se suman las otras vistas y su modelo real."}
-            </Text>
+          <View style={styles.grid}>
+            {TIPOS.map((t) => {
+              const seleccionado = datos.tipoVehiculo === t.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[styles.tarjetaTipo, seleccionado && styles.tarjetaTipoSeleccionada]}
+                  onPress={() => elegirTipo(t.id)}
+                  activeOpacity={0.8}
+                >
+                  <MaterialCommunityIcons
+                    name={t.icono}
+                    size={28}
+                    color={seleccionado ? colors.accentLight : colors.textSecondary}
+                  />
+                  <Text style={[styles.tarjetaTexto, seleccionado && styles.tarjetaTextoSeleccionado]}>
+                    {t.etiqueta}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        )}
 
-        {datos.subdivision && (
-          <>
-            <Text style={styles.texto}>Nivel de nafta</Text>
-            <FuelGauge nivel={datos.nivelNafta} onCambiar={(n) => onCambiar({ nivelNafta: n })} />
-          </>
-        )}
+          {tipoInfo && (
+            <View style={styles.subdivisiones}>
+              <Text style={styles.texto}>Elegí la subdivisión</Text>
+              {tipoInfo.grupos.map((g) => (
+                <View key={g.grupo ?? "unico"} style={styles.grupo}>
+                  {g.grupo && <Text style={styles.grupoTitulo}>{g.grupo}</Text>}
+                  <View style={styles.chips}>
+                    {g.opciones.map((opcion) => {
+                      const activo = datos.grupo === g.grupo && datos.subdivision === opcion;
+                      return (
+                        <TouchableOpacity
+                          key={opcion}
+                          style={[styles.chip, activo && styles.chipSeleccionado]}
+                          onPress={() => elegirSubdivision(g.grupo, opcion)}
+                        >
+                          <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
+                            {opcion}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
 
-        <View style={styles.boton}>
-          <Button title="Siguiente" onPress={onContinuar} disabled={!puedeContinuar} />
-        </View>
-      </ScrollView>
+              <Text style={styles.notaPlaceholder}>
+                {tieneDiagramaEspecifico
+                  ? "Esta carrocería ya tiene su propio diagrama de paneles reales."
+                  : "Por ahora esta carrocería usa el diagrama genérico, con solo la vista de Frente disponible — más adelante se suman las otras vistas y su modelo real."}
+              </Text>
+            </View>
+          )}
+
+          {datos.subdivision && (
+            <>
+              <Text style={styles.texto}>Nivel de nafta</Text>
+              <FuelGauge nivel={datos.nivelNafta} onCambiar={(n) => onCambiar({ nivelNafta: n })} />
+            </>
+          )}
+
+          <View style={styles.boton}>
+            <Button title="Siguiente" onPress={onContinuar} disabled={!puedeContinuar} />
+          </View>
+        </ScrollView>
+      </SwipeVolver>
     </View>
   );
 }

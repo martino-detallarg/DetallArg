@@ -1,6 +1,7 @@
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
+import SwipeVolver from "../../components/wizard/SwipeVolver";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 export default function SeleccionarVehiculoStep({ cliente, paso, totalPasos, onAtras, onSeleccionar }) {
@@ -15,34 +16,36 @@ export default function SeleccionarVehiculoStep({ cliente, paso, totalPasos, onA
         onAtras={onAtras}
       />
 
-      <FlatList
-        data={vehiculos}
-        keyExtractor={(a) => a.id}
-        contentContainerStyle={styles.lista}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.fila}
-            onPress={() => onSeleccionar(item)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.filaIcono}>
-              <Ionicons name="car-outline" size={20} color={colors.accentLight} />
-            </View>
-            <View style={styles.filaTexto}>
-              <Text style={styles.filaNombre}>
-                {item.marca} {item.modelo}
-              </Text>
-              <Text style={styles.filaSub}>
-                {item.patente} · {item.color || "sin color"}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <Text style={styles.vacio}>Este cliente todavía no tiene vehículos cargados.</Text>
-        }
-      />
+      <SwipeVolver onAtras={onAtras}>
+        <FlatList
+          data={vehiculos}
+          keyExtractor={(a) => a.id}
+          contentContainerStyle={styles.lista}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.fila}
+              onPress={() => onSeleccionar(item)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.filaIcono}>
+                <Ionicons name="car-outline" size={20} color={colors.accentLight} />
+              </View>
+              <View style={styles.filaTexto}>
+                <Text style={styles.filaNombre}>
+                  {item.marca} {item.modelo}
+                </Text>
+                <Text style={styles.filaSub}>
+                  {item.patente} · {item.color || "sin color"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={
+            <Text style={styles.vacio}>Este cliente todavía no tiene vehículos cargados.</Text>
+          }
+        />
+      </SwipeVolver>
     </View>
   );
 }

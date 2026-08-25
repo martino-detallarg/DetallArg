@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import SeleccionarClienteStep from "../nuevoCliente/SeleccionarClienteStep";
 import SeleccionarVehiculoStep from "../nuevoCliente/SeleccionarVehiculoStep";
@@ -110,6 +111,11 @@ export default function TrabajoNuevoWizard({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={cerrar}>
+      {/* react-native-gesture-handler no llega adentro de un <Modal> nativo a
+      través del GestureHandlerRootView de App.js (el modal abre su propia
+      jerarquía nativa) — hace falta este wrapper propio para que el swipe
+      de "volver" de los pasos funcione. */}
+      <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
           {fase === "elegirCliente" && (
@@ -169,11 +175,15 @@ export default function TrabajoNuevoWizard({
           )}
         </SafeAreaView>
       </SafeAreaProvider>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+  },
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
