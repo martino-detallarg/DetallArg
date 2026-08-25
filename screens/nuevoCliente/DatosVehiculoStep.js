@@ -47,14 +47,19 @@ export default function DatosVehiculoStep({
       <SwipeVolver onAtras={onAtras}>
         <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
           {!sinPatente && (
-            <Input
-              label="Patente"
-              value={datos.patente}
-              onChangeText={(v) => onCambiar({ patente: normalizarPatente(v) })}
-              placeholder="ABC123 o AB123CD"
-              autoCapitalize="characters"
-              error={errores.patente}
-            />
+            <>
+              <Input
+                label="Patente"
+                value={datos.patente}
+                onChangeText={(v) => onCambiar({ patente: normalizarPatente(v) })}
+                placeholder="ABC123 o AB123CD"
+                autoCapitalize="characters"
+                error={errores.patente}
+              />
+              {!errores.patente && (
+                <Text style={styles.ayudaPatente}>Formato: ABC123 (viejo) o AB123CD (Mercosur)</Text>
+              )}
+            </>
           )}
           <View style={styles.switchFila}>
             <Text style={styles.switchTexto}>Todavía no tiene patente</Text>
@@ -113,6 +118,13 @@ const styles = StyleSheet.create({
     color: colors.error,
     textAlign: "center",
     marginTop: 8,
+  },
+  ayudaPatente: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: -10,
+    marginBottom: 16,
   },
   switchFila: {
     flexDirection: "row",

@@ -189,13 +189,16 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                   keyboardType="numeric"
                 />
                 {!datosVehiculo.sinPatente && (
-                  <Input
-                    label="Patente"
-                    value={datosVehiculo.patente}
-                    onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, patente: normalizarPatente(v) }))}
-                    placeholder="ABC123 o AB123CD"
-                    autoCapitalize="characters"
-                  />
+                  <>
+                    <Input
+                      label="Patente"
+                      value={datosVehiculo.patente}
+                      onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, patente: normalizarPatente(v) }))}
+                      placeholder="ABC123 o AB123CD"
+                      autoCapitalize="characters"
+                    />
+                    <Text style={styles.ayudaPatente}>Formato: ABC123 (viejo) o AB123CD (Mercosur)</Text>
+                  </>
                 )}
                 <View style={styles.switchFila}>
                   <Text style={styles.switchTexto}>Todavía no tiene patente</Text>
@@ -361,6 +364,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textPrimary,
     marginBottom: 12,
+  },
+  ayudaPatente: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: -10,
+    marginBottom: 16,
   },
   switchFila: {
     flexDirection: "row",
