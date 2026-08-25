@@ -16,7 +16,7 @@ import { colors, fonts } from "../theme";
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function LoginScreen({ onLoginExitoso, onIrARegistro }) {
+export default function LoginScreen({ onLoginExitoso, onIrARegistro, onOlvideContrasena }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errores, setErrores] = useState({});
@@ -78,7 +78,7 @@ export default function LoginScreen({ onLoginExitoso, onIrARegistro }) {
 
         <Button title="Iniciar sesión" onPress={handleIniciarSesion} />
 
-        <TouchableOpacity style={styles.linkOlvido}>
+        <TouchableOpacity style={styles.linkOlvido} onPress={onOlvideContrasena}>
           <Text style={styles.textoLinkChico}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
 

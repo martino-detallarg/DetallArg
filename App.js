@@ -21,6 +21,7 @@ import SplashScreen from "./screens/SplashScreen";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import VerifyEmailScreen from "./screens/VerifyEmailScreen";
+import OlvidePasswordScreen from "./screens/OlvidePasswordScreen";
 import DashboardNavigator from "./navigation/DashboardNavigator";
 import { DataProvider } from "./data/DataContext";
 import { TallerProvider } from "./data/TallerContext";
@@ -70,7 +71,12 @@ export default function App() {
             <LoginScreen
               onLoginExitoso={() => setPantalla("app")}
               onIrARegistro={() => setPantalla("signup")}
+              onOlvideContrasena={() => setPantalla("olvide-password")}
             />
+          )}
+
+          {pantalla === "olvide-password" && (
+            <OlvidePasswordScreen onIrALogin={() => setPantalla("login")} />
           )}
 
           {pantalla === "signup" && (
