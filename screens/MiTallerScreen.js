@@ -25,7 +25,7 @@ export default function MiTallerScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
+      <ScreenHeader onAbrirMenu={() => navigation.getParent()?.openDrawer()} />
 
       <EstadoCarga cargando={cargandoTaller} error={errorCargaTaller} onReintentar={recargarTaller}>
         <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>

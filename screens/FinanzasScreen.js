@@ -70,7 +70,7 @@ export default function FinanzasScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
+      <ScreenHeader onAbrirMenu={() => navigation.getParent()?.openDrawer()} />
 
       <Text style={styles.titulo}>Finanzas</Text>
 
