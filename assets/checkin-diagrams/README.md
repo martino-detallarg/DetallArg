@@ -36,9 +36,11 @@ suv/
   compacto/         ← completo 24 agosto 2026
   grande/           ← completo 24 agosto 2026
 moto/
-  naked/
-  sport/
-  motocross/
+  enduro_calle/    ← agregado 24 agosto 2026, arquitectura distinta — ver nota más abajo
+  scooter/         ← agregado 24 agosto 2026, referencia pendiente de Augusto (Honda Wave 110)
+  naked/           ← deferido a otra etapa, sin referencia todavía
+  sport/           ← deferido a otra etapa, sin referencia todavía
+  motocross/       ← deferido a otra etapa, sin referencia todavía
 ```
 
 ⚠️ Los nombres de subdivisión de acá (`coupe`, `cabina_simple_chico`, etc.) son slugs armados a partir de las etiquetas en español que se ven en pantalla — todavía no están confirmados contra los ids/strings reales que usa el código de la app. Antes de integrar, comparar contra cómo está tipado `vehicleType`/`subdivision` en el proyecto (o preguntarle a Augusto) y renombrar carpetas si hace falta.
@@ -91,6 +93,15 @@ Para no duplicar zonas entre vistas, cada parte real del auto se marca una sola 
 El proceso de "quitar fondo y rellenar" (ink mask → `MORPH_CLOSE` → floodFill → `findContours(RETR_EXTERNAL)` → rellenar) originalmente solo rellenaba el contorno MÁS GRANDE encontrado. En `camioneta/cabina_simple_mediano/lateral/` (referencia Toyota Hilux) esto borró las ruedas por completo: en ese estilo de dibujo el óvalo de la rueda no toca la línea del guardabarro (queda un hueco entre ambos), así que la rueda queda como un contorno separado y más chico — al quedarse solo con "el contorno más grande", las ruedas (dos contornos aparte, bien más chicos que la carrocería) se descartaban enteras, quedando transparentes.
 
 **Fix**: rellenar TODOS los contornos externos por encima de un área mínima de ruido (ej. `MIN_AREA = 200`), no solo el más grande. Ya aplicado retroactivamente a `camioneta/cabina_simple_mediano/lateral/`. Vale la pena chequear visualmente (con fondo blanco de referencia) que las ruedas/otros elementos separados del contorno principal no hayan desaparecido en cualquier vista nueva antes de darla por lista — este bug es más probable en vistas Lateral, donde las ruedas suelen dibujarse con ese hueco respecto al guardabarro.
+
+## ⚠️ Importante — Moto usa una arquitectura completamente distinta (agregado 24 agosto 2026)
+
+A pedido de Augusto, la familia **Moto** NO sigue el patrón de 4 vistas (Frente/Atrás/Lateral/Cenital) del resto de la app. Diferencias, todas intencionales:
+
+- **Una sola vista por subdivisión** (Lateral) — no hay Frente/Atrás/Cenital para Moto. `zonas.json` de Moto tiene `"view": "lateral"` y esa es la única vista que se integra.
+- **Solo 4 zonas**, mucho más simples que cualquier otra familia: `tanque`, `plasticos`, `motor`, `foco_delantero` (el foco delantero completo, sin separar en varias piezas como las ópticas de Auto/SUV).
+- **Tipos de daño propios**, más chicos y específicos que el resto de la app: Rayón, Óxido, Grasa, Quemado, Trizado — sin Abolladura, Repintado, Excremento de ave, etc. Viven en `data/tiposDanio.js` como `TIPOS_DANIO_MOTO` (export separado de `TIPOS_DANIO`), y `DiagramaDanios.js` elige cuál lista usar según un nuevo prop `tipoVehiculo` (`tipoVehiculo === "moto" ? TIPOS_DANIO_MOTO : TIPOS_DANIO`).
+- **UI "Próximamente" para las subdivisiones sin diagrama todavía** (Naked, Sport, Motocross): a diferencia del resto de la app, que cae al diagrama genérico de auto (`DamageDiagram.js`) cuando no hay diagrama propio, Moto muestra una nota/tarjeta "Próximamente" en su lugar — el fallback genérico tiene forma de auto y quedaría roto para una moto. Implementado en `TipoVehiculoStep.js` (nota debajo de los chips de subdivisión) e `InspeccionVisualStep.js` (tarjeta en vez del carrusel, variable `esMotoSinDiagrama`). Las 5 categorías de Moto (Naked, Sport, Motocross, Enduro/Calle, Scooter) están todas seleccionables desde ya — Augusto pidió específicamente no ocultar las que faltan, solo marcarlas como "Próximamente".
 
 ## Nota — vista Lateral es de un solo lado
 
@@ -179,4 +190,10 @@ El proceso de "quitar fondo y rellenar" (ink mask → `MORPH_CLOSE` → floodFil
 - `suv/grande/cenital/` — listo (3 zonas: techo, parante izq, parante der — mismo criterio que `suv/compacto`).
 - `suv/grande/atras/` — listo (5 zonas: vidrio trasero, `baul`, luz_izquierda, luz_derecha, paragolpes_trasero — mismo criterio que `suv/compacto`).
 - **`suv/grande` completo — Frente, Atrás, Lateral y Cenital ✅.** Con esto, **la familia SUV queda completa** (Compacto + Grande). No hizo falta tocar `TIPOS_VEHICULO` — el grupo ya tenía `"Grande"` entre las opciones.
-- Sigue `utilitario_acarrozado_chico` (furgón más chico, nueva referencia pendiente), después Motos.
+- `moto/enduro_calle/lateral/` — listo (**4 zonas**: `tanque`, `plasticos`, `motor`, `foco_delantero` — ver nota de arquitectura de Moto más arriba, es la única vista de esta subdivisión). Referencia: Honda Tornado (enduro/calle). `TIPOS_VEHICULO.moto` se amplió de `["Naked", "Sport", "Motocross"]` a `["Naked", "Sport", "Motocross", "Enduro/Calle", "Scooter"]` — a pedido de Augusto, quedan las 5 categorías visibles ya, con las 3 sin diagrama mostrando "Próximamente" en vez de esconderse.
+- **`moto/enduro_calle` completo — Lateral ✅ (única vista de esta familia).** Primera subdivisión de Moto.
+- ⚠️ Nota pendiente de estética (25 agosto 2026, no bloqueante): Augusto notó al ver la referencia Honda Tornado en contexto que las llantas del dibujo no coinciden con las de una Tornado real — la referencia original tenía ese detalle mal. No es un error del tratamiento/zonas (que están bien), es la imagen fuente. Augusto va a generar una referencia corregida más adelante; en ese momento se reemplazan las llantas (cuestión netamente estética) y de paso se suma una zona `asiento` a esta subdivisión también (ver nota de Scooter justo abajo — quedó pendiente para Enduro/Calle, todavía sin agregar acá).
+- `moto/scooter/lateral/` — listo (**4 zonas**: `asiento`, `plasticos`, `motor`, `foco_delantero` — NO `tanque`, ver nota de criterio abajo). Referencia: Honda Wave 110 (scooter/cub semiautomática). ⚠️ Nota de criterio (corregida 25 agosto 2026, a pedido de Augusto): la Wave es carrocería "cub" (tanque escondido bajo el piso/asiento, sin tanque expuesto) — la primera versión había marcado `tanque` sobre el panel frontal con el logo HONDA, pero Augusto pidió sacar esa zona y agregar en su lugar `asiento` (sobre la butaca) — cita: *"en este caso de la 110 no pongas el tanque y pone plastico y asiento"*. `plasticos` sigue sobre el cubre-cola trasero, sin cambios. Zonas coarse igual que el resto de la app, no una disección anatómica exacta.
+- **`moto/scooter` completo — Lateral ✅ (única vista de esta familia).** Segunda subdivisión de Moto.
+- ✅ **Con Enduro/Calle y Scooter, esta etapa de Moto queda "finalizada" según lo pedido por Augusto** — cita textual: *"vamos a meter estas dos por el momento para dejar 'finalizado' en esta etapa"*. Motocross, Naked y Sport quedan explícitamente deferidos a otra etapa (pedido explícito, no es que falten sin más) — cita: *"despues vamos a agregar motocros, naked, deportiva y clasica si (en otra etapa asi no pierdo mas tiempo con esto por el momento que ahora esta mas que bien)"*.
+- Sigue `utilitario_acarrozado_chico` (furgón más chico, nueva referencia pendiente) — es lo único que queda abierto del árbol completo por ahora.

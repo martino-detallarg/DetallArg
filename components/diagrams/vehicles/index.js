@@ -17,6 +17,8 @@ import { UTILITARIO_MEDIANO_VISTAS, VEHICLE_TYPE as UTILITARIO_MEDIANO } from ".
 import { UTILITARIO_GRANDE_VISTAS, VEHICLE_TYPE as UTILITARIO_GRANDE } from "./camionetaUtilitarioGrande";
 import { SUV_COMPACTO_VISTAS, VEHICLE_TYPE as SUV_COMPACTO } from "./suvCompacto";
 import { SUV_GRANDE_VISTAS, VEHICLE_TYPE as SUV_GRANDE } from "./suvGrande";
+import { MOTO_ENDURO_CALLE_VISTAS, VEHICLE_TYPE as MOTO_ENDURO_CALLE } from "./motoEnduroCalle";
+import { MOTO_SCOOTER_VISTAS, VEHICLE_TYPE as MOTO_SCOOTER } from "./motoScooter";
 
 // Mapeo tipoDeVehiculo -> diagramas de paneles reales, para no tener que
 // rehacer el selector de estado de DiagramaDanios ni el carrusel de
@@ -94,6 +96,17 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [SUV_GRANDE]: {
     vistas: SUV_GRANDE_VISTAS,
   },
+  // Moto / Enduro-Calle: primera subdivisión de Moto con diagrama propio
+  // (ver motoEnduroCalle.js) — una sola vista Lateral con 4 zonas, en vez
+  // de las 4 vistas del resto de las familias.
+  [MOTO_ENDURO_CALLE]: {
+    vistas: MOTO_ENDURO_CALLE_VISTAS,
+  },
+  // Moto / Scooter: segunda subdivisión de Moto con diagrama propio (ver
+  // motoScooter.js) — mismo criterio de una sola vista Lateral, 4 zonas.
+  [MOTO_SCOOTER]: {
+    vistas: MOTO_SCOOTER_VISTAS,
+  },
 };
 
 // Resuelve la clave de este registro a partir de los datos de "Tipo de
@@ -162,6 +175,19 @@ export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
   }
   if (tipoVehiculo === "suv" && subdivision === "Grande") {
     return SUV_GRANDE;
+  }
+  // Moto / Enduro-Calle y Scooter ya tienen diagrama propio (ver
+  // motoEnduroCalle.js / motoScooter.js — una sola vista Lateral, 4
+  // zonas cada una). Naked, Sport y Motocross quedan deferidos a otra
+  // etapa (pedido explícito de Augusto) y caen en el `return null` de más
+  // abajo — TipoVehiculoStep/InspeccionVisualStep ya muestran una
+  // nota/tarjeta "Próximamente" específica para Moto en ese caso, en vez
+  // del diagrama genérico de auto.
+  if (tipoVehiculo === "moto" && subdivision === "Enduro/Calle") {
+    return MOTO_ENDURO_CALLE;
+  }
+  if (tipoVehiculo === "moto" && subdivision === "Scooter") {
+    return MOTO_SCOOTER;
   }
   return null;
 }

@@ -20,3 +20,18 @@ export const TIPOS_DANIO = {
   rasgada: { etiqueta: "Rasgada", color: "#5C7CBF" },
   otro: { etiqueta: "Otro", color: "#6B7785", notaLibre: true },
 };
+
+// Set de tipos de daño propio de Moto (agregado 24 agosto 2026, a pedido
+// de Augusto): más chico y específico que el de Auto/Camioneta/SUV — no
+// tiene sentido "Abolladura" o "Excremento de ave" en una moto, y sí hace
+// falta "Grasa" (motor/cadena). Elegido por DiagramaDanios según
+// `tipoVehiculo === "moto"` (ver ese componente) — no confundir con
+// TIPOS_DANIO de arriba, que sigue siendo el de siempre para el resto de
+// las familias.
+export const TIPOS_DANIO_MOTO = {
+  rayon: { etiqueta: "Rayón", color: "#D9C441" },
+  oxido: { etiqueta: "Óxido", color: "#8A5A34" },
+  grasa: { etiqueta: "Grasa", color: "#4A3B2A" },
+  quemado: { etiqueta: "Quemado", color: "#A85040" },
+  trizado: { etiqueta: "Trizado", color: "#4FB8B0" },
+};
