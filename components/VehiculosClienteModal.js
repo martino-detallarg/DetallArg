@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
 import { useClientes } from "../data/ClienteContext";
+import { esPatenteValida, formatearPatente, normalizarPatente } from "../utils/patente";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
-const VEHICULO_VACIO = { marca: "", modelo: "", anio: "", patente: "", color: "" };
+const VEHICULO_VACIO = { marca: "", modelo: "", anio: "", patente: "", color: "", sinPatente: false };
 
 function FilaVehiculo({ vehiculo, onEditar, onEliminar }) {
   return (
@@ -72,6 +73,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
       anio: vehiculo.anio ?? "",
       patente: vehiculo.patente ?? "",
       color: vehiculo.color ?? "",
+      sinPatente: !vehiculo.patente,
     });
     setFormularioVisible(true);
   }
@@ -81,7 +83,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
       marca: datosVehiculo.marca.trim(),
       modelo: datosVehiculo.modelo.trim(),
       anio: datosVehiculo.anio.trim(),
-      patente: datosVehiculo.patente.trim(),
+      patente: datosVehiculo.sinPatente ? "" : formatearPatente(datosVehiculo.patente),
       color: datosVehiculo.color.trim(),
     };
     setCargando(true);
@@ -109,7 +111,9 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
     }
   }
 
-  const esValido = datosVehiculo.marca.trim() !== "" && datosVehiculo.patente.trim() !== "";
+  const esValido =
+    datosVehiculo.marca.trim() !== "" &&
+    (datosVehiculo.sinPatente || esPatenteValida(datosVehiculo.patente));
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
@@ -184,13 +188,25 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                   placeholder="2020"
                   keyboardType="numeric"
                 />
-                <Input
-                  label="Patente"
-                  value={datosVehiculo.patente}
-                  onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, patente: v }))}
-                  placeholder="AB 123 CD"
-                  autoCapitalize="characters"
-                />
+                {!datosVehiculo.sinPatente && (
+                  <Input
+                    label="Patente"
+                    value={datosVehiculo.patente}
+                    onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, patente: normalizarPatente(v) }))}
+                    placeholder="ABC123 o AB123CD"
+                    autoCapitalize="characters"
+                  />
+                )}
+                <View style={styles.switchFila}>
+                  <Text style={styles.switchTexto}>Todavía no tiene patente</Text>
+                  <Switch
+                    value={datosVehiculo.sinPatente}
+                    onValueChange={(valor) =>
+                      setDatosVehiculo((d) => ({ ...d, sinPatente: valor, patente: valor ? "" : d.patente }))
+                    }
+                    trackColor={{ false: colors.surface2, true: colors.accentDark }}
+                  />
+                </View>
                 <Input
                   label="Color"
                   value={datosVehiculo.color}
@@ -345,6 +361,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textPrimary,
     marginBottom: 12,
+  },
+  switchFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  switchTexto: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   boton: {
     marginTop: 4,

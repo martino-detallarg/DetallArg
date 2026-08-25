@@ -7,10 +7,11 @@ import DatosVehiculoStep from "./DatosVehiculoStep";
 import SeleccionarClienteStep from "./SeleccionarClienteStep";
 import { separarMarcaModelo } from "../../data/mockData";
 import { useClientes } from "../../data/ClienteContext";
+import { formatearPatente } from "../../utils/patente";
 import { colors } from "../../theme";
 
 const CLIENTE_VACIO = { nombre: "", telefono: "" };
-const VEHICULO_VACIO = { patente: "", marcaModelo: "", anio: "", color: "" };
+const VEHICULO_VACIO = { patente: "", marcaModelo: "", anio: "", color: "", sinPatente: false };
 const TOTAL_PASOS = 2;
 
 // modo "cliente": Datos del Cliente -> Datos del Vehículo (crea cliente + vehículo nuevos)
@@ -63,7 +64,7 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
         marca,
         modelo,
         anio: datosVehiculo.anio.trim(),
-        patente: datosVehiculo.patente.trim(),
+        patente: datosVehiculo.sinPatente ? "" : formatearPatente(datosVehiculo.patente),
         color: datosVehiculo.color.trim(),
       });
 

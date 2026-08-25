@@ -1,18 +1,11 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
+import { esPatenteValida, normalizarPatente } from "../../utils/patente";
 import { colors, fonts } from "../../theme";
-
-function formatearPatente(texto) {
-  const limpio = texto.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 7);
-  const letras1 = limpio.slice(0, 2);
-  const numeros = limpio.slice(2, 5);
-  const letras2 = limpio.slice(5, 7);
-  return [letras1, numeros, letras2].filter(Boolean).join(" ");
-}
 
 export default function DatosVehiculoStep({
   datos,
@@ -25,10 +18,13 @@ export default function DatosVehiculoStep({
   error = null,
 }) {
   const [errores, setErrores] = useState({});
+  const sinPatente = !!datos.sinPatente;
 
   function validar() {
     const nuevosErrores = {};
-    if (!datos.patente.trim()) nuevosErrores.patente = "Ingresá la patente";
+    if (!sinPatente && !esPatenteValida(datos.patente)) {
+      nuevosErrores.patente = "Patente inválida. Usá el formato viejo (ABC123) o Mercosur (AB123CD)";
+    }
     if (!datos.marcaModelo.trim()) nuevosErrores.marcaModelo = "Ingresá marca y modelo";
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -38,7 +34,8 @@ export default function DatosVehiculoStep({
     if (validar()) onContinuar();
   }
 
-  const esValido = datos.patente.trim() !== "" && datos.marcaModelo.trim() !== "";
+  const esValido =
+    (sinPatente || esPatenteValida(datos.patente)) && datos.marcaModelo.trim() !== "";
 
   return (
     <KeyboardAvoidingView
@@ -49,14 +46,26 @@ export default function DatosVehiculoStep({
 
       <SwipeVolver onAtras={onAtras}>
         <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
-          <Input
-            label="Patente"
-            value={datos.patente}
-            onChangeText={(v) => onCambiar({ patente: formatearPatente(v) })}
-            placeholder="AB 123 CD"
-            autoCapitalize="characters"
-            error={errores.patente}
-          />
+          {!sinPatente && (
+            <Input
+              label="Patente"
+              value={datos.patente}
+              onChangeText={(v) => onCambiar({ patente: normalizarPatente(v) })}
+              placeholder="ABC123 o AB123CD"
+              autoCapitalize="characters"
+              error={errores.patente}
+            />
+          )}
+          <View style={styles.switchFila}>
+            <Text style={styles.switchTexto}>Todavía no tiene patente</Text>
+            <Switch
+              value={sinPatente}
+              onValueChange={(valor) =>
+                onCambiar({ sinPatente: valor, patente: valor ? "" : datos.patente })
+              }
+              trackColor={{ false: colors.surface2, true: colors.accentDark }}
+            />
+          </View>
           <Input
             label="Marca y modelo"
             value={datos.marcaModelo}
@@ -104,6 +113,17 @@ const styles = StyleSheet.create({
     color: colors.error,
     textAlign: "center",
     marginTop: 8,
+  },
+  switchFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  switchTexto: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   boton: {
     marginTop: 12,
