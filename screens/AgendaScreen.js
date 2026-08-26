@@ -1,13 +1,15 @@
 import { useMemo, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { ScrollView, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import TurnoCard from "../components/TurnoCard";
 import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
 import AlmanaqueModal from "../components/AlmanaqueModal";
+import FiltroEmpleadoModal from "../components/FiltroEmpleadoModal";
 import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
+import { useEquipo } from "../data/EquipoContext";
 import {
   esMismoDia,
   formatearDiaSemanaCorto,
@@ -22,10 +24,15 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 export default function AgendaScreen({ navigation }) {
   const { turnos, actualizarEstadoTrabajo, eliminarTurno } = useTurnos();
   const { getClienteById, getVehiculoById } = useClientes();
+  const { empleados } = useEquipo();
+  const empleadosActivos = empleados.filter((e) => e.activo);
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState(() => new Date());
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
   const [almanaqueVisible, setAlmanaqueVisible] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const [empleadoFiltroId, setEmpleadoFiltroId] = useState(null);
+  const [filtroEmpleadoVisible, setFiltroEmpleadoVisible] = useState(false);
   // Ancho medido de la tira de días (entre las dos flechas), para armar el
   // carrusel de 3 páginas (semana anterior/actual/siguiente) que permite
   // deslizar con el dedo — ver handleScrollEndTira.
@@ -57,6 +64,26 @@ export default function AgendaScreen({ navigation }) {
     return { turnosDelDia: conFecha.sort(porHora), turnosSinFecha: sinFecha.sort(porHora) };
   }, [turnos, fechaSeleccionada]);
 
+  // Buscador (por nombre de cliente) y filtro por empleado se combinan por
+  // intersección — no pisan la tira de días ni el almanaque, que siguen
+  // calculándose sobre TODOS los turnos (turnosDelDia/turnosSinFecha de
+  // arriba), esto solo recorta qué se lista debajo.
+  const terminoBusqueda = busqueda.trim().toLowerCase();
+  function coincideConFiltros(turno) {
+    if (terminoBusqueda) {
+      const nombreCliente = getClienteById(turno.clienteId)?.nombre ?? "";
+      if (!nombreCliente.toLowerCase().includes(terminoBusqueda)) return false;
+    }
+    if (empleadoFiltroId) {
+      const asignado = turno.empleadosAsignados?.some((e) => e.empleadoId === empleadoFiltroId);
+      if (!asignado) return false;
+    }
+    return true;
+  }
+  const turnosDelDiaFiltrados = turnosDelDia.filter(coincideConFiltros);
+  const turnosSinFechaFiltrados = turnosSinFecha.filter(coincideConFiltros);
+
+  const empleadoFiltro = empleadosActivos.find((e) => e.id === empleadoFiltroId) ?? null;
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
   const esHoy = esMismoDia(fechaSeleccionada, new Date());
 
@@ -183,22 +210,59 @@ export default function AgendaScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.filtrosFila}>
+        <View style={styles.buscadorWrap}>
+          <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+          <TextInput
+            style={styles.buscadorInput}
+            placeholder="Buscar por cliente..."
+            placeholderTextColor={colors.textMuted}
+            value={busqueda}
+            onChangeText={setBusqueda}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
+        {empleadosActivos.length > 0 && (
+          <TouchableOpacity
+            style={[styles.filtroEmpleadoChip, empleadoFiltroId && styles.filtroEmpleadoChipActivo]}
+            onPress={() => setFiltroEmpleadoVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[styles.filtroEmpleadoTexto, empleadoFiltroId && styles.filtroEmpleadoTextoActivo]}
+              numberOfLines={1}
+            >
+              {empleadoFiltro ? empleadoFiltro.nombre : "Todos los empleados"}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={empleadoFiltroId ? colors.bg : colors.textMuted}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
         <Text style={styles.tituloDia}>
           {esHoy ? "Hoy, " : ""}
           {formatearFechaLarga(fechaSeleccionada)}
         </Text>
 
-        {turnosDelDia.length > 0 ? (
-          turnosDelDia.map(renderTurno)
-        ) : (
+        {turnosDelDia.length === 0 ? (
           <Text style={styles.vacio}>No hay turnos para este día.</Text>
+        ) : turnosDelDiaFiltrados.length === 0 ? (
+          <Text style={styles.vacio}>No se encontraron turnos.</Text>
+        ) : (
+          turnosDelDiaFiltrados.map(renderTurno)
         )}
 
-        {turnosSinFecha.length > 0 && (
+        {turnosSinFechaFiltrados.length > 0 && (
           <>
             <Text style={styles.seccionTitulo}>Sin fecha asignada</Text>
-            {turnosSinFecha.map(renderTurno)}
+            {turnosSinFechaFiltrados.map(renderTurno)}
           </>
         )}
       </ScrollView>
@@ -224,6 +288,17 @@ export default function AgendaScreen({ navigation }) {
           setAlmanaqueVisible(false);
         }}
         onClose={() => setAlmanaqueVisible(false)}
+      />
+
+      <FiltroEmpleadoModal
+        visible={filtroEmpleadoVisible}
+        empleados={empleadosActivos}
+        empleadoSeleccionadoId={empleadoFiltroId}
+        onElegir={(id) => {
+          setEmpleadoFiltroId(id);
+          setFiltroEmpleadoVisible(false);
+        }}
+        onCerrar={() => setFiltroEmpleadoVisible(false)}
       />
     </SafeAreaView>
   );
@@ -277,6 +352,54 @@ const styles = StyleSheet.create({
   },
   botonAlmanaque: {
     marginLeft: 10,
+  },
+  filtrosFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 20,
+    marginTop: 14,
+  },
+  buscadorWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    paddingHorizontal: 14,
+    height: 44,
+  },
+  buscadorInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textPrimary,
+    height: "100%",
+  },
+  filtroEmpleadoChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: 130,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  filtroEmpleadoChipActivo: {
+    backgroundColor: colors.accent,
+  },
+  filtroEmpleadoTexto: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  filtroEmpleadoTextoActivo: {
+    color: colors.bg,
   },
   diasFila: {
     flexDirection: "row",
