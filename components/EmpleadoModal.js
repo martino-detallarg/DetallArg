@@ -5,15 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
-import SelectorSiluetaModal from "./SelectorSiluetaModal";
+import SelectorSiluetaModal, { ICONOS_SILUETA } from "./SelectorSiluetaModal";
 import { useEquipo } from "../data/EquipoContext";
 import { colors, continuousCorner, fonts, radii } from "../theme";
-
-// { hombre: "man-outline", mujer: "woman-outline" } — sin elegir, "person-outline".
-const ICONOS_SILUETA = {
-  hombre: "man-outline",
-  mujer: "woman-outline",
-};
 
 // Formulario de alta y edición de empleado (mismo patrón que ClienteModal):
 // si viene `item`, edita ese empleado y muestra el botón de eliminar; si
@@ -27,9 +21,8 @@ export default function EmpleadoModal({ visible, item, onClose }) {
   const [cargando, setCargando] = useState(false);
   const [cargandoEstado, setCargandoEstado] = useState(false);
   const [error, setError] = useState(null);
-  // Puramente visual, solo dentro de esta sesión del modal — no se guarda
-  // en EquipoContext ni en Supabase, así que siempre arranca en null
-  // (avatar neutro) al abrir, sin importar si el empleado ya existía.
+  // Arranca en el avatar ya guardado del empleado (o null/neutro si nunca
+  // eligió uno, ej. empleados creados antes de este campo existir).
   const [silueta, setSilueta] = useState(null);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const editando = item !== null;
@@ -46,7 +39,7 @@ export default function EmpleadoModal({ visible, item, onClose }) {
       setRol(item?.rol ?? "");
       setTelefono(item?.telefono ?? "");
       setError(null);
-      setSilueta(null);
+      setSilueta(item?.avatar ?? null);
     }
   }, [visible, item]);
 
@@ -63,9 +56,14 @@ export default function EmpleadoModal({ visible, item, onClose }) {
     setError(null);
     try {
       if (editando) {
-        await editarEmpleado(item.id, { nombre: nombre.trim(), rol: rol.trim(), telefono: telefono.trim() });
+        await editarEmpleado(item.id, {
+          nombre: nombre.trim(),
+          rol: rol.trim(),
+          telefono: telefono.trim(),
+          avatar: silueta,
+        });
       } else {
-        await agregarEmpleado({ nombre: nombre.trim(), rol: rol.trim(), telefono: telefono.trim() });
+        await agregarEmpleado({ nombre: nombre.trim(), rol: rol.trim(), telefono: telefono.trim(), avatar: silueta });
       }
       onClose();
     } catch (err) {

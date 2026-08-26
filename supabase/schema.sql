@@ -106,10 +106,12 @@ create table empleados (
   nombre      text not null,
   rol         text,
   telefono    text,
-  activo      boolean not null default true
+  activo      boolean not null default true,
+  avatar      text check (avatar is null or avatar in ('hombre', 'mujer'))
 );
 
 comment on column empleados.activo is 'Desactivar en vez de borrar: libera el cupo del límite de empleados del plan sin perder el historial de turnos ya asignados a ese empleado.';
+comment on column empleados.avatar is 'Silueta elegida para el avatar (EmpleadoModal.js) — puramente visual, sin relación con ningún dato personal real del empleado.';
 
 -- ----------------------------------------------------------------------------
 -- 4. INSUMOS Y COSTOS FIJOS (DataContext)

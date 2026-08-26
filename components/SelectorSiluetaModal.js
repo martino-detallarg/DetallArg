@@ -7,6 +7,11 @@ const OPCIONES = [
   { id: "mujer", etiqueta: "Mujer", icono: "woman-outline" },
 ];
 
+// Mapeo { hombre: "man-outline", mujer: "woman-outline" } — reusado por
+// EmpleadoModal.js y MiEquipoScreen.js para pintar el avatar guardado. Sin
+// avatar elegido (null), ambos usan "person-outline" como default neutro.
+export const ICONOS_SILUETA = Object.fromEntries(OPCIONES.map((o) => [o.id, o.icono]));
+
 // Selector puramente visual del avatar de EmpleadoModal — no representa un
 // dato guardado (ver el comentario en EquipoContext.js sobre por qué no hay
 // campo de género). Mismo patrón de bottom-sheet que SelectorHoraModal.js.

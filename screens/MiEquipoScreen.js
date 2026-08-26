@@ -4,6 +4,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import EmpleadoModal from "../components/EmpleadoModal";
+import { ICONOS_SILUETA } from "../components/SelectorSiluetaModal";
 import PanelPruebasPlan from "../components/PanelPruebasPlan";
 import EstadoCarga from "../components/EstadoCarga";
 import { useEquipo } from "../data/EquipoContext";
@@ -80,7 +81,7 @@ export default function MiEquipoScreen({ navigation }) {
               >
                 <View style={styles.filaIcono}>
                   <Ionicons
-                    name="person-outline"
+                    name={ICONOS_SILUETA[item.avatar] ?? "person-outline"}
                     size={20}
                     color={item.activo ? colors.accentLight : colors.textMuted}
                   />

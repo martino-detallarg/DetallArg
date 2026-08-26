@@ -34,7 +34,7 @@ export function EquipoProvider({ children }) {
 
       const { data, error } = await supabase
         .from("empleados")
-        .select("id, nombre, rol, telefono, activo")
+        .select("id, nombre, rol, telefono, activo, avatar")
         .eq("taller_id", user.id)
         .order("nombre", { ascending: true });
 
@@ -60,11 +60,11 @@ export function EquipoProvider({ children }) {
     setIntentoCargaEquipo((n) => n + 1);
   }
 
-  async function agregarEmpleado({ nombre, rol, telefono }) {
+  async function agregarEmpleado({ nombre, rol, telefono, avatar }) {
     const { data, error } = await supabase
       .from("empleados")
-      .insert({ taller_id: user.id, nombre, rol, telefono })
-      .select("id, nombre, rol, telefono, activo")
+      .insert({ taller_id: user.id, nombre, rol, telefono, avatar })
+      .select("id, nombre, rol, telefono, activo, avatar")
       .single();
     if (error) throw error;
 
