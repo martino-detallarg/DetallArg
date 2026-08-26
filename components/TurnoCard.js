@@ -2,11 +2,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
+// Finalizado/Entregado comparten color (textMuted): visualmente "se apaga"
+// el turno una vez cerrado, sin distinguir cuál de los dos estados de
+// cierre es.
 const COLORES_ESTADO = {
-  Pendiente: "#D9A441",
+  Pendiente: colors.error,
   "En proceso": colors.accent,
-  Finalizado: "#4C9A6A",
-  Entregado: colors.accentLight,
+  Finalizado: colors.textMuted,
+  Entregado: colors.textMuted,
 };
 
 // Máximo de nombres que se muestran antes de truncar con "+N" (ej. "Juan,
@@ -45,8 +48,9 @@ export default function TurnoCard({ turno, cliente, auto, onPress }) {
         )}
       </View>
 
-      <View style={[styles.badge, { borderColor: colorEstado }]}>
-        <Text style={[styles.badgeTexto, { color: colorEstado }]}>{turno.estado}</Text>
+      <View style={styles.estadoIndicador}>
+        <View style={[styles.punto, { backgroundColor: colorEstado }]} />
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </View>
     </TouchableOpacity>
   );
@@ -107,14 +111,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     flexShrink: 1,
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
+  estadoIndicador: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  badgeTexto: {
-    fontFamily: fonts.monoMedium,
-    fontSize: 11,
+  punto: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });

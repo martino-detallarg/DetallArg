@@ -15,6 +15,8 @@ import { useTurnos } from "../data/TurnoContext";
 import { useTaller } from "../data/TallerContext";
 import { colors, fonts, shadow } from "../theme";
 
+const ESTADOS_TERMINADOS = new Set(["Finalizado", "Entregado"]);
+
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
   const { turnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } = useTurnos();
@@ -30,16 +32,22 @@ export default function HomeScreen({ navigation }) {
   const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
   const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
 
-  const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
+  // Los no terminados (Pendiente/En proceso) van primero, ordenados por
+  // hora — así lo urgente queda arriba. Los terminados (Finalizado/
+  // Entregado) se "hunden" al final, también por hora dentro de ese grupo.
+  const turnosOrdenados = [...turnos].sort((a, b) => {
+    const terminadoA = ESTADOS_TERMINADOS.has(a.estado);
+    const terminadoB = ESTADOS_TERMINADOS.has(b.estado);
+    if (terminadoA !== terminadoB) return terminadoA ? 1 : -1;
+    return a.hora.localeCompare(b.hora);
+  });
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
 
   // Solo para el anillo de progreso de la card "Turnos de hoy": cuántos de
   // los turnos de hoy ya están en un estado de cierre (Finalizado o
   // Entregado) sobre el total. Es un cálculo derivado nada más para mostrar
   // en el anillo, no cambia el dato ni el flujo de estados del turno.
-  const turnosCompletados = turnosOrdenados.filter(
-    (t) => t.estado === "Finalizado" || t.estado === "Entregado"
-  ).length;
+  const turnosCompletados = turnosOrdenados.filter((t) => ESTADOS_TERMINADOS.has(t.estado)).length;
   const progresoTurnosHoy = turnosOrdenados.length > 0 ? turnosCompletados / turnosOrdenados.length : 0;
 
   function handleAbrirClienteNuevo() {
@@ -101,9 +109,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.saludo}>Hola{misDatos.nombrePersonal ? `, ${misDatos.nombrePersonal}` : ""} 👋</Text>
 
             <View style={styles.stats}>
-              <View style={styles.statUnico}>
-                <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
-              </View>
+              <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
             </View>
 
             <Text style={styles.seccionTitulo}>Turnos de hoy</Text>
@@ -195,12 +201,8 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: "row",
-    justifyContent: "center",
     paddingHorizontal: 20,
     marginTop: 18,
-  },
-  statUnico: {
-    width: "55%",
   },
   seccionTitulo: {
     fontFamily: fonts.bodySemiBold,
@@ -220,17 +222,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 20,
     bottom: 30,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.textPrimary,
     alignItems: "center",
     justifyContent: "center",
     ...shadow,
   },
   fabTexto: {
     color: colors.bg,
-    fontSize: 30,
+    fontSize: 36,
     fontWeight: "400",
     marginTop: -2,
   },
