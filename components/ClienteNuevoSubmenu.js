@@ -1,7 +1,10 @@
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
+
+const { width: ANCHO_PANTALLA } = Dimensions.get("window");
 
 function Opcion({ icono, titulo, descripcion, onPress }) {
   return (
@@ -18,17 +21,41 @@ function Opcion({ icono, titulo, descripcion, onPress }) {
   );
 }
 
-export default function ClienteNuevoSubmenu({ visible, onClose, onClienteNuevo, onVehiculoNuevo }) {
+export default function ClienteNuevoSubmenu({ visible, onClose, onVolver, onClienteNuevo, onVehiculoNuevo }) {
+  const desplazamiento = useRef(new Animated.Value(ANCHO_PANTALLA)).current;
+
+  // A diferencia de OpcionesNuevoModal (slide clásico desde abajo), este
+  // paso entra deslizándose desde la derecha — para que se lea como "avancé
+  // un paso" dentro del flujo "Cliente nuevo" y no como una pantalla nueva
+  // sin relación con la anterior (bug del "combo de transición").
+  useEffect(() => {
+    if (visible) {
+      desplazamiento.setValue(ANCHO_PANTALLA);
+      Animated.timing(desplazamiento, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.fondo}>
-        <View style={styles.contenedor}>
+        <Animated.View style={[styles.contenedor, { transform: [{ translateX: desplazamiento }] }]}>
+          <View style={styles.migas}>
+            <TouchableOpacity onPress={onVolver} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <Text style={styles.migasTexto}>Nuevo › Cliente nuevo</Text>
+          </View>
+
           <Text style={styles.titulo}>Cliente nuevo</Text>
           <Text style={styles.subtitulo}>¿Es un cliente nuevo o le sumás un vehículo a uno existente?</Text>
 
           <Opcion
-            icono="person-add-outline"
-            titulo="Cliente nuevo"
+            icono="person-circle-outline"
+            titulo="Todavía no lo tengo cargado"
             descripcion="Cargar sus datos y los de su primer vehículo"
             onPress={onClienteNuevo}
           />
@@ -40,7 +67,7 @@ export default function ClienteNuevoSubmenu({ visible, onClose, onClienteNuevo, 
           />
 
           <Button title="Cancelar" variant="secondary" onPress={onClose} />
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -63,6 +90,18 @@ const styles = StyleSheet.create({
     gap: 12,
     ...shadow,
     shadowOffset: { width: 0, height: -4 },
+  },
+  migas: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  migasTexto: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   titulo: {
     fontFamily: fonts.heading,

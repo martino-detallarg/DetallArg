@@ -53,6 +53,11 @@ export default function HomeScreen({ navigation }) {
     setWizardTrabajoVisible(true);
   }
 
+  function handleVolverAOpciones() {
+    setSubmenuClienteVisible(false);
+    setOpcionesVisibles(true);
+  }
+
   function handleElegirModoCliente(modo) {
     setSubmenuClienteVisible(false);
     setModoClienteWizard(modo);
@@ -131,6 +136,7 @@ export default function HomeScreen({ navigation }) {
       <ClienteNuevoSubmenu
         visible={submenuClienteVisible}
         onClose={() => setSubmenuClienteVisible(false)}
+        onVolver={handleVolverAOpciones}
         onClienteNuevo={() => handleElegirModoCliente("cliente")}
         onVehiculoNuevo={() => handleElegirModoCliente("vehiculo")}
       />
