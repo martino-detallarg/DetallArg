@@ -21,13 +21,23 @@ import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../theme";
 
 function FilaProducto({ producto, agregado, onAgregar }) {
   const categoria = CATEGORIAS[producto.categoria];
-  const [dilucion, setDilucion] = useState(producto.dilucion);
-  const [rendimiento, setRendimiento] = useState(producto.rendimiento);
+  const tieneMultiplesDiluciones = producto.diluciones.length > 1;
+  const [dilucion, setDilucion] = useState(() => {
+    if (!tieneMultiplesDiluciones) return producto.diluciones[0];
+    return producto.diluciones.includes(producto.dilucionRecomendada) ? producto.dilucionRecomendada : null;
+  });
   const [capacidadTotal, setCapacidadTotal] = useState("");
   const [capacidadUnidad, setCapacidadUnidad] = useState(UNIDADES_CAPACIDAD[0]);
+  const [precioCompra, setPrecioCompra] = useState("");
 
   const capacidadNumerica = Number(capacidadTotal.replace(",", "."));
   const capacidadValida = capacidadTotal.trim() !== "" && !Number.isNaN(capacidadNumerica) && capacidadNumerica > 0;
+
+  const precioNumerico = Number(precioCompra.trim().replace(/\./g, "").replace(",", "."));
+  const precioValido = precioCompra.trim() !== "" && !Number.isNaN(precioNumerico) && precioNumerico > 0;
+
+  const dilucionValida = !tieneMultiplesDiluciones || dilucion !== null;
+  const puedeAgregar = capacidadValida && precioValido && dilucionValida;
 
   return (
     <View style={styles.fila}>
@@ -46,28 +56,37 @@ function FilaProducto({ producto, agregado, onAgregar }) {
         <Text style={styles.filaMarca}>
           {producto.marca} · {categoria?.etiqueta ?? "Sin categoría"}
         </Text>
-        <Text style={styles.filaPh}>pH: {producto.ph}</Text>
+        <Text style={styles.filaEnvases}>
+          Envases disponibles: {producto.tamanosEnvase.join(" · ")}
+        </Text>
 
         <View style={styles.camposEditables}>
           <View style={styles.campo}>
             <Text style={styles.campoLabel}>Dilución</Text>
-            <TextInput
-              style={styles.campoInput}
-              value={dilucion}
-              onChangeText={setDilucion}
-              placeholder="Ej. 1:200"
-              placeholderTextColor={colors.textMuted}
-            />
+            {tieneMultiplesDiluciones ? (
+              <View style={styles.dilucionChips}>
+                {producto.diluciones.map((opcion) => {
+                  const activa = dilucion === opcion;
+                  return (
+                    <TouchableOpacity
+                      key={opcion}
+                      style={[styles.unidadChip, activa && styles.unidadChipActivo]}
+                      onPress={() => setDilucion(opcion)}
+                    >
+                      <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}>
+                        {opcion}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : (
+              <Text style={styles.campoInput}>{producto.diluciones[0]}</Text>
+            )}
           </View>
           <View style={styles.campo}>
             <Text style={styles.campoLabel}>Rendimiento</Text>
-            <TextInput
-              style={styles.campoInput}
-              value={rendimiento}
-              onChangeText={setRendimiento}
-              placeholder="Ej. 200 lavados/L"
-              placeholderTextColor={colors.textMuted}
-            />
+            <Text style={styles.campoInput}>{producto.rendimientoEstimado ?? "No publicado"}</Text>
           </View>
         </View>
 
@@ -83,6 +102,20 @@ function FilaProducto({ producto, agregado, onAgregar }) {
               keyboardType="numeric"
             />
           </View>
+          <View style={styles.campo}>
+            <Text style={styles.campoLabel}>Precio de compra ($)</Text>
+            <TextInput
+              style={styles.campoInput}
+              value={precioCompra}
+              onChangeText={setPrecioCompra}
+              placeholder="Ej. 4500"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        <View style={styles.camposEditables}>
           <View style={styles.campo}>
             <Text style={styles.campoLabel}>Unidad</Text>
             <View style={styles.unidadChips}>
@@ -106,9 +139,17 @@ function FilaProducto({ producto, agregado, onAgregar }) {
       </View>
 
       <TouchableOpacity
-        style={[styles.botonAgregar, (agregado || !capacidadValida) && styles.botonAgregarHecho]}
-        onPress={() => onAgregar({ dilucion, rendimiento, capacidadTotal: capacidadNumerica, capacidadUnidad })}
-        disabled={agregado || !capacidadValida}
+        style={[styles.botonAgregar, (agregado || !puedeAgregar) && styles.botonAgregarHecho]}
+        onPress={() =>
+          onAgregar({
+            dilucion,
+            rendimiento: producto.rendimientoEstimado,
+            capacidadTotal: capacidadNumerica,
+            capacidadUnidad,
+            precioCompra: precioNumerico,
+          })
+        }
+        disabled={agregado || !puedeAgregar}
         activeOpacity={0.85}
       >
         <Ionicons name={agregado ? "checkmark" : "add"} size={20} color={colors.bg} />
@@ -141,17 +182,16 @@ export default function AgregarInsumoModal({ visible, onClose }) {
     onClose();
   }
 
-  function handleAgregar(producto, { dilucion, rendimiento, capacidadTotal, capacidadUnidad }) {
+  function handleAgregar(producto, { dilucion, rendimiento, capacidadTotal, capacidadUnidad, precioCompra }) {
     agregarInsumo({
       productoId: producto.id,
       marca: producto.marca,
       nombre: producto.nombre,
       categoria: producto.categoria,
-      ph: producto.ph,
       dilucion,
       rendimiento,
       imagen: producto.imagen ?? null,
-      precioCompra: producto.precioCompra,
+      precioCompra,
       capacidadTotal,
       capacidadUnidad,
     });
@@ -253,8 +293,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  filaPh: {
-    fontFamily: fonts.mono,
+  filaEnvases: {
+    fontFamily: fonts.body,
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 4,
@@ -290,6 +330,11 @@ const styles = StyleSheet.create({
   },
   unidadChips: {
     flexDirection: "row",
+    gap: 6,
+  },
+  dilucionChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 6,
   },
   unidadChip: {
