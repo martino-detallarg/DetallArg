@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import CircularProgress from "./CircularProgress";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
@@ -6,14 +6,15 @@ import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 // un anillo de progreso (CircularProgress) en vez de como texto suelto —
 // para stats donde tiene sentido mostrar "cuánto se completó" (ej. turnos
 // de hoy ya finalizados sobre el total). Si no viene, se mantiene el
-// número simple de siempre.
-export default function StatCard({ label, valor, progreso }) {
+// número simple de siempre. `onPress` es opcional y solo se usa en el modo
+// con anillo (ej. Home lo usa para navegar a Agenda al tocar el anillo).
+export default function StatCard({ label, valor, progreso, onPress }) {
   const tieneProgreso = typeof progreso === "number";
 
   if (tieneProgreso) {
     return (
-      <View style={styles.contenedorAnillo}>
-        <CircularProgress progreso={progreso} tamano={130} grosor={10}>
+      <TouchableOpacity style={styles.contenedorAnillo} onPress={onPress} activeOpacity={0.7}>
+        <CircularProgress progreso={progreso} tamano={130} grosor={6}>
           <Text
             style={styles.valorAnillo}
             numberOfLines={1}
@@ -24,7 +25,7 @@ export default function StatCard({ label, valor, progreso }) {
           </Text>
           <Text style={styles.labelAnillo} numberOfLines={1}>{label}</Text>
         </CircularProgress>
-      </View>
+      </TouchableOpacity>
     );
   }
 
@@ -73,7 +74,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   valorAnillo: {
-    fontFamily: fonts.heading,
+    fontFamily: fonts.bodyBold,
     fontSize: 32,
     color: colors.textPrimary,
   },

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import ScreenHeader from "../components/ScreenHeader";
 import StatCard from "../components/StatCard";
 import TurnoCard from "../components/TurnoCard";
@@ -20,6 +21,10 @@ export default function HomeScreen({ navigation }) {
   const { turnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } = useTurnos();
   const { misDatos } = useTaller();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
+  // Cambia cada vez que Home gana/pierde foco: se usa como `key` del anillo
+  // de progreso para forzar su remount (y que la animación de llenado se
+  // repita) cada vez que se vuelve a esta pantalla, no solo al abrir la app.
+  const estaEnfocada = useIsFocused();
 
   const [opcionesVisibles, setOpcionesVisibles] = useState(false);
   const [submenuClienteVisible, setSubmenuClienteVisible] = useState(false);
@@ -109,7 +114,13 @@ export default function HomeScreen({ navigation }) {
 
             <View style={styles.stats}>
               <View style={styles.statUnico}>
-                <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
+                <StatCard
+                  key={estaEnfocada}
+                  label="Turnos de hoy"
+                  valor={turnosOrdenados.length}
+                  progreso={progresoTurnosHoy}
+                  onPress={() => navigation.navigate("Agenda")}
+                />
               </View>
             </View>
 
