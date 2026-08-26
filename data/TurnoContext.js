@@ -42,13 +42,13 @@ function turnoACamposDb(datos) {
 const COLUMNAS_TURNO =
   "id, cliente_id, vehiculo_id, servicio_id, servicio_nombre, precio, fecha, hora, " +
   "tiempo_estimado, observaciones, estado, tipo_vehiculo, grupo_vehiculo, " +
-  "subdivision_vehiculo, nivel_nafta, turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad)";
+  "subdivision_vehiculo, nivel_nafta, turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad), " +
+  "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado)";
 
-// Traduce una fila de `turnos` + su embed de `turno_receta_aplicada` a la
-// forma que espera el resto de la app. `danios`/`fotosDano`/
-// `empleadosAsignados` quedan en su valor vacío por defecto: las tablas
-// (turno_danios/turno_fotos_danio/turno_empleados) todavía no se escriben
-// ni se leen desde acá — Etapas C/D de la migración.
+// Traduce una fila de `turnos` + sus embeds (turno_receta_aplicada,
+// turno_danios, turno_empleados) a la forma que espera el resto de la app.
+// `fotosDano` queda en su valor vacío por defecto: turno_fotos_danio todavía
+// no se escribe ni se lee desde acá (Etapa D de la migración).
 function filaATurno(fila) {
   return {
     id: fila.id,
@@ -66,8 +66,13 @@ function filaATurno(fila) {
     grupoVehiculo: fila.grupo_vehiculo,
     subdivisionVehiculo: fila.subdivision_vehiculo,
     nivelNafta: fila.nivel_nafta,
-    empleadosAsignados: [],
-    danios: {},
+    empleadosAsignados: fila.turno_empleados.map((e) => ({
+      empleadoId: e.empleado_id,
+      nombreEmpleado: e.nombre_empleado,
+    })),
+    danios: Object.fromEntries(
+      fila.turno_danios.map((d) => [d.zona_id, { tipos: d.tipos, nota: d.nota ?? "" }])
+    ),
     fotosDano: [],
     // null (no []) cuando todavía no hay snapshot: el guard de
     // actualizarEstadoTrabajo es `!turno.recetaAplicada`, y un array vacío
@@ -91,9 +96,8 @@ function filaATurno(fila) {
 // Supabase devuelve error, se relanza (`throw`) y el estado en memoria no se
 // toca — quien llama debe hacer `await` + `try/catch`.
 //
-// Fuera de alcance de esta etapa (Etapas C/D): turno_danios,
-// turno_fotos_danio y turno_empleados. Si un turno nuevo trae daños/fotos/
-// empleados asignados, esos datos quedan solo en memoria de esta sesión —
+// Fuera de alcance todavía (Etapa D): turno_fotos_danio. Si un turno nuevo
+// trae fotos de daños, esos datos quedan solo en memoria de esta sesión —
 // se pierden al recargar, igual que pasaba con todo TurnoContext antes de
 // migrar.
 export function TurnoProvider({ children }) {
@@ -142,6 +146,16 @@ export function TurnoProvider({ children }) {
     setIntentoCargaTurnos((n) => n + 1);
   }
 
+  // Daños y empleados asignados se escriben UNA SOLA VEZ, acá: no existe
+  // ninguna pantalla que edite un turno ya guardado, así que a diferencia de
+  // servicio_receta_items no hace falta reconciliar (upsert+delete) — es un
+  // insert puro.
+  //
+  // Si el insert de turnos confirma pero el de daños/empleados falla
+  // después, se borra el turno recién creado antes de relanzar el error —
+  // sin este `DELETE` de compensación, un reintento del usuario (que ve el
+  // error y vuelve a guardar) crearía un turno duplicado además del
+  // huérfano sin daños/empleados que hubiera quedado en Supabase.
   async function agregarTurno(datosTurno) {
     const camposDb = turnoACamposDb(datosTurno);
     const { data, error } = await supabase
@@ -151,10 +165,35 @@ export function TurnoProvider({ children }) {
       .single();
     if (error) throw error;
 
-    // empleadosAsignados/danios/fotosDano no tienen dónde persistir todavía
-    // (Etapas C/D) — se guardan igual en el objeto local para que la sesión
-    // actual los siga mostrando, mismo criterio que cualquier Context que
-    // todavía no migró del todo.
+    const filasDanios = Object.entries(datosTurno.danios ?? {}).map(([zonaId, { tipos, nota }]) => ({
+      turno_id: data.id,
+      zona_id: zonaId,
+      tipos,
+      nota: nota || null,
+    }));
+    const filasEmpleados = (datosTurno.empleadosAsignados ?? []).map((e) => ({
+      turno_id: data.id,
+      empleado_id: e.empleadoId,
+      nombre_empleado: e.nombreEmpleado,
+    }));
+
+    const [resultadoDanios, resultadoEmpleados] = await Promise.all([
+      filasDanios.length > 0
+        ? supabase.from("turno_danios").insert(filasDanios)
+        : Promise.resolve({ error: null }),
+      filasEmpleados.length > 0
+        ? supabase.from("turno_empleados").insert(filasEmpleados)
+        : Promise.resolve({ error: null }),
+    ]);
+    const errorHijos = resultadoDanios.error ?? resultadoEmpleados.error;
+    if (errorHijos) {
+      await supabase.from("turnos").delete().eq("id", data.id);
+      throw errorHijos;
+    }
+
+    // fotosDano no tiene dónde persistir todavía (Etapa D) — se guarda igual
+    // en el objeto local para que la sesión actual lo siga mostrando, mismo
+    // criterio que cualquier Context que todavía no migró del todo.
     const nuevoTurno = {
       ...filaATurno(data),
       empleadosAsignados: datosTurno.empleadosAsignados ?? [],
