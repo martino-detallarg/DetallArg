@@ -66,8 +66,12 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
               <Text style={styles.filaValor}>{turno.fecha || "-"}</Text>
               <Text style={styles.filaLabel}>Hora</Text>
               <Text style={styles.filaValor}>{turno.hora || "-"}</Text>
-              <Text style={styles.filaLabel}>Tiempo estimado</Text>
-              <Text style={styles.filaValor}>{turno.tiempoEstimado || "-"}</Text>
+              {turno.tiempoEstimado && (
+                <>
+                  <Text style={styles.filaLabel}>Tiempo estimado</Text>
+                  <Text style={styles.filaValor}>{turno.tiempoEstimado}</Text>
+                </>
+              )}
               <Text style={styles.filaLabel}>Observaciones</Text>
               <Text style={styles.filaValor}>{turno.observaciones || "Sin observaciones"}</Text>
             </View>
