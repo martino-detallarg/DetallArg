@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { ScrollView, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +11,7 @@ import {
   esMismoDia,
   formatearDiaSemanaCorto,
   formatearFechaLarga,
+  formatearMesAnio,
   obtenerDiasDeLaSemana,
   parsearFechaDDMMAAAA,
   sumarDias,
@@ -23,8 +24,21 @@ export default function AgendaScreen({ navigation }) {
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState(() => new Date());
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
+  // Ancho medido de la tira de días (entre las dos flechas), para armar el
+  // carrusel de 3 páginas (semana anterior/actual/siguiente) que permite
+  // deslizar con el dedo — ver handleScrollEndTira.
+  const [anchoTira, setAnchoTira] = useState(0);
+  const scrollTiraRef = useRef(null);
 
   const diasSemana = useMemo(() => obtenerDiasDeLaSemana(fechaSeleccionada), [fechaSeleccionada]);
+  const diasSemanaAnterior = useMemo(
+    () => obtenerDiasDeLaSemana(sumarDias(fechaSeleccionada, -7)),
+    [fechaSeleccionada]
+  );
+  const diasSemanaSiguiente = useMemo(
+    () => obtenerDiasDeLaSemana(sumarDias(fechaSeleccionada, 7)),
+    [fechaSeleccionada]
+  );
 
   const { turnosDelDia, turnosSinFecha } = useMemo(() => {
     const conFecha = [];
@@ -44,6 +58,57 @@ export default function AgendaScreen({ navigation }) {
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
   const esHoy = esMismoDia(fechaSeleccionada, new Date());
 
+  // La tira de días queda siempre "parqueada" en la página del medio cuando
+  // no se está arrastrando: al terminar un swipe que aterriza en la página
+  // izquierda/derecha, se avanza/retrocede la semana Y se reacomoda el
+  // scroll de vuelta al medio en el mismo gesto, para que el próximo swipe
+  // siga funcionando igual.
+  function handleScrollEndTira(evento) {
+    if (!anchoTira) return;
+    const x = evento.nativeEvent.contentOffset.x;
+    const pagina = Math.round(x / anchoTira);
+    if (pagina === 1) return;
+
+    scrollTiraRef.current?.scrollTo({ x: anchoTira, animated: false });
+    if (pagina === 0) {
+      setFechaSeleccionada((f) => sumarDias(f, -7));
+    } else if (pagina === 2) {
+      setFechaSeleccionada((f) => sumarDias(f, 7));
+    }
+  }
+
+  function renderDiasFila(dias) {
+    return (
+      <View style={[styles.diasFila, { width: anchoTira }]}>
+        {dias.map((dia) => {
+          const seleccionado = esMismoDia(dia, fechaSeleccionada);
+          const esHoyEsteDia = esMismoDia(dia, new Date());
+          return (
+            <TouchableOpacity
+              key={dia.toISOString()}
+              style={[styles.diaChip, seleccionado && styles.diaChipSeleccionado]}
+              onPress={() => setFechaSeleccionada(dia)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.diaLabel, seleccionado && styles.diaTextoSeleccionado]}>
+                {formatearDiaSemanaCorto(dia)}
+              </Text>
+              <Text
+                style={[
+                  styles.diaNumero,
+                  esHoyEsteDia && !seleccionado && styles.diaNumeroHoy,
+                  seleccionado && styles.diaTextoSeleccionado,
+                ]}
+              >
+                {dia.getDate()}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
+
   function renderTurno(turno) {
     return (
       <TurnoCard
@@ -61,6 +126,17 @@ export default function AgendaScreen({ navigation }) {
       <StatusBar style="light" />
       <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
 
+      <View style={styles.encabezadoFila}>
+        <Text style={styles.tituloAgenda}>Agenda</Text>
+        {!esHoy && (
+          <TouchableOpacity style={styles.botonHoyChip} onPress={() => setFechaSeleccionada(new Date())} activeOpacity={0.85}>
+            <Text style={styles.botonHoyChipTexto}>Hoy</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <Text style={styles.mesAnio}>{formatearMesAnio(diasSemana[0])}</Text>
+
       <View style={styles.selectorSemana}>
         <TouchableOpacity
           onPress={() => setFechaSeleccionada((f) => sumarDias(f, -7))}
@@ -69,32 +145,24 @@ export default function AgendaScreen({ navigation }) {
           <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 
-        <View style={styles.diasFila}>
-          {diasSemana.map((dia) => {
-            const seleccionado = esMismoDia(dia, fechaSeleccionada);
-            const esHoyEsteDia = esMismoDia(dia, new Date());
-            return (
-              <TouchableOpacity
-                key={dia.toISOString()}
-                style={[styles.diaChip, seleccionado && styles.diaChipSeleccionado]}
-                onPress={() => setFechaSeleccionada(dia)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.diaLabel, seleccionado && styles.diaTextoSeleccionado]}>
-                  {formatearDiaSemanaCorto(dia)}
-                </Text>
-                <Text
-                  style={[
-                    styles.diaNumero,
-                    esHoyEsteDia && !seleccionado && styles.diaNumeroHoy,
-                    seleccionado && styles.diaTextoSeleccionado,
-                  ]}
-                >
-                  {dia.getDate()}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View
+          style={styles.tiraContenedor}
+          onLayout={(evento) => setAnchoTira(evento.nativeEvent.layout.width)}
+        >
+          {anchoTira > 0 && (
+            <ScrollView
+              ref={scrollTiraRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleScrollEndTira}
+              contentOffset={{ x: anchoTira, y: 0 }}
+            >
+              {renderDiasFila(diasSemanaAnterior)}
+              {renderDiasFila(diasSemana)}
+              {renderDiasFila(diasSemanaSiguiente)}
+            </ScrollView>
+          )}
         </View>
 
         <TouchableOpacity
@@ -106,17 +174,10 @@ export default function AgendaScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
-        <View style={styles.tituloFila}>
-          <Text style={styles.tituloDia}>
-            {esHoy ? "Hoy, " : ""}
-            {formatearFechaLarga(fechaSeleccionada)}
-          </Text>
-          {!esHoy && (
-            <TouchableOpacity onPress={() => setFechaSeleccionada(new Date())}>
-              <Text style={styles.botonHoy}>Hoy</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <Text style={styles.tituloDia}>
+          {esHoy ? "Hoy, " : ""}
+          {formatearFechaLarga(fechaSeleccionada)}
+        </Text>
 
         {turnosDelDia.length > 0 ? (
           turnosDelDia.map(renderTurno)
@@ -153,14 +214,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  encabezadoFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginTop: 4,
+  },
+  tituloAgenda: {
+    fontFamily: fonts.heading,
+    fontSize: 22,
+    color: colors.textPrimary,
+  },
+  botonHoyChip: {
+    backgroundColor: colors.accent,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  botonHoyChipTexto: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.bg,
+  },
+  mesAnio: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    paddingHorizontal: 20,
+    marginTop: 14,
+    marginBottom: 6,
+  },
   selectorSemana: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    marginTop: 8,
+  },
+  tiraContenedor: {
+    flex: 1,
   },
   diasFila: {
-    flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 4,
@@ -200,24 +295,13 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
     paddingTop: 20,
   },
-  tituloFila: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginBottom: 4,
-  },
   tituloDia: {
     fontFamily: fonts.heading,
     fontSize: 18,
     color: colors.textPrimary,
     textTransform: "capitalize",
-    flexShrink: 1,
-  },
-  botonHoy: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-    color: colors.accentLight,
+    paddingHorizontal: 20,
+    marginBottom: 4,
   },
   seccionTitulo: {
     fontFamily: fonts.bodySemiBold,
