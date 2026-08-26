@@ -22,7 +22,7 @@ export default function Button({
       activeOpacity={0.85}
     >
       {loading ? (
-        <ActivityIndicator color={esPrimario ? colors.bg : colors.textPrimary} />
+        <ActivityIndicator color={esPrimario ? colors.bg : colors.textSecondary} />
       ) : (
         <Text style={esPrimario ? styles.textoPrimario : styles.textoSecundario}>
           {title}
@@ -44,9 +44,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   secundario: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: colors.borderAccent,
+    backgroundColor: colors.surface2,
   },
   deshabilitado: {
     opacity: 0.5,
@@ -59,6 +57,6 @@ const styles = StyleSheet.create({
   textoSecundario: {
     fontFamily: fonts.bodyBold,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.textSecondary,
   },
 });

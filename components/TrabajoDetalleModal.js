@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
@@ -5,13 +6,36 @@ import { ESTADOS_TRABAJO } from "../data/mockData";
 import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
+// Mismo criterio de color por estado que TurnoCard.js.
+const COLOR_ESTADO = {
+  Pendiente: colors.error,
+  "En proceso": colors.amber,
+  Finalizado: colors.success,
+  Entregado: colors.success,
+};
+
 // Detalle de solo lectura de un trabajo ya cargado (cliente, vehículo y
 // datos del servicio), con un selector de estado debajo para ir avanzando
 // (o volviendo) por las etapas del trabajo.
 export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onCambiarEstado, onEliminar, onClose }) {
+  // Estado "de prueba": tocar un chip solo cambia esto, no el turno real.
+  // Se resetea al estado real del turno cada vez que el modal se vuelve a
+  // abrir, así cualquier chip probado sin guardar queda descartado.
+  const [estadoLocal, setEstadoLocal] = useState(turno?.estado ?? null);
+
+  useEffect(() => {
+    if (visible) setEstadoLocal(turno?.estado ?? null);
+  }, [visible, turno?.id, turno?.estado]);
+
   if (!turno || !cliente) return null;
 
-  const vehiculosDelCliente = cliente.vehiculos;
+  const hayCambioSinGuardar = estadoLocal !== turno.estado;
+
+  function handleGuardarCambios() {
+    if (!hayCambioSinGuardar) return;
+    onCambiarEstado(estadoLocal);
+    onClose();
+  }
 
   function handleEliminar() {
     Alert.alert(
@@ -32,61 +56,98 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
             <Text style={styles.titulo}>Turno de las {turno.hora}</Text>
             <Text style={styles.servicio}>{turno.servicio}</Text>
 
-            <Text style={styles.seccion}>Ficha del cliente</Text>
-            <View style={styles.tarjeta}>
-              <Text style={styles.filaLabel}>Nombre</Text>
-              <Text style={styles.filaValor}>{cliente.nombre}</Text>
-              <Text style={styles.filaLabel}>Teléfono</Text>
-              <Text style={styles.filaValor}>{cliente.telefono}</Text>
-              <Text style={styles.filaLabel}>Vehículos</Text>
-              {vehiculosDelCliente.map((v) => (
-                <Text key={v.id} style={styles.filaValor}>
-                  · {v.marca} {v.modelo} ({v.patente})
-                </Text>
-              ))}
+            <View style={styles.tarjetaSeccion}>
+              <Text style={styles.tituloTarjeta}>Estado del trabajo</Text>
+              <View style={styles.chips}>
+                {ESTADOS_TRABAJO.map((estado) => {
+                  const seleccionado = estadoLocal === estado;
+                  const colorEstado = COLOR_ESTADO[estado];
+                  return (
+                    <TouchableOpacity
+                      key={estado}
+                      style={[styles.chip, seleccionado && { backgroundColor: colorEstado }]}
+                      onPress={() => setEstadoLocal(estado)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[styles.chipTexto, seleccionado && styles.chipTextoSeleccionado]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.75}
+                      >
+                        {estado}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
 
-            <Text style={styles.seccion}>Ficha del vehículo de este turno</Text>
-            <View style={styles.tarjeta}>
-              <Text style={styles.filaLabel}>Marca y modelo</Text>
-              <Text style={styles.filaValor}>
-                {auto ? `${auto.marca} ${auto.modelo}` : "-"}
-              </Text>
-              <Text style={styles.filaLabel}>Patente</Text>
-              <Text style={styles.filaValor}>{auto?.patente ?? "-"}</Text>
-              <Text style={styles.filaLabel}>Color</Text>
-              <Text style={styles.filaValor}>{auto?.color ?? "-"}</Text>
-              <Text style={styles.filaLabel}>Dueño</Text>
-              <Text style={styles.filaValor}>{cliente.nombre}</Text>
+            <View style={styles.tarjetaSeccion}>
+              <Text style={styles.tituloTarjeta}>Cliente y vehículo</Text>
+              <View style={styles.grilla}>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Nombre</Text>
+                  <Text style={styles.campoValor}>{cliente.nombre}</Text>
+                </View>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Teléfono</Text>
+                  <Text style={styles.campoValor}>{cliente.telefono}</Text>
+                </View>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Vehículo</Text>
+                  <Text style={styles.campoValor}>
+                    {auto ? `${auto.marca} ${auto.modelo}` : "-"}
+                  </Text>
+                </View>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Patente</Text>
+                  <Text style={styles.campoValor}>{auto?.patente ?? "-"}</Text>
+                </View>
+                {auto?.color && (
+                  <View style={styles.celda}>
+                    <Text style={styles.campoLabel}>Color</Text>
+                    <Text style={styles.campoValor}>{auto.color}</Text>
+                  </View>
+                )}
+              </View>
             </View>
 
-            <Text style={styles.seccion}>Datos del servicio</Text>
-            <View style={styles.tarjeta}>
-              <Text style={styles.filaLabel}>Fecha</Text>
-              <Text style={styles.filaValor}>{turno.fecha || "-"}</Text>
-              <Text style={styles.filaLabel}>Hora</Text>
-              <Text style={styles.filaValor}>{turno.hora || "-"}</Text>
-              {turno.tiempoEstimado && (
-                <>
-                  <Text style={styles.filaLabel}>Tiempo estimado</Text>
-                  <Text style={styles.filaValor}>{turno.tiempoEstimado}</Text>
-                </>
+            <View style={styles.tarjetaSeccion}>
+              <Text style={styles.tituloTarjeta}>Servicio</Text>
+              <View style={styles.grilla}>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Fecha</Text>
+                  <Text style={styles.campoValor}>{turno.fecha || "-"}</Text>
+                </View>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Hora de llegada</Text>
+                  <Text style={styles.campoValor}>{turno.hora || "-"}</Text>
+                </View>
+                {turno.tiempoEstimado && (
+                  <View style={styles.celda}>
+                    <Text style={styles.campoLabel}>Tiempo estimado</Text>
+                    <Text style={styles.campoValor}>{turno.tiempoEstimado}</Text>
+                  </View>
+                )}
+              </View>
+              {turno.observaciones && (
+                <View style={styles.observacionesContenedor}>
+                  <Text style={styles.campoLabel}>Observaciones</Text>
+                  <Text style={styles.campoValor}>{turno.observaciones}</Text>
+                </View>
               )}
-              <Text style={styles.filaLabel}>Observaciones</Text>
-              <Text style={styles.filaValor}>{turno.observaciones || "Sin observaciones"}</Text>
             </View>
 
             {turno.empleadosAsignados?.length > 0 && (
-              <>
-                <Text style={styles.seccion}>Empleados asignados</Text>
-                <View style={styles.tarjeta}>
-                  {turno.empleadosAsignados.map((e) => (
-                    <Text key={e.empleadoId} style={styles.filaValor}>
-                      · {e.nombreEmpleado}
-                    </Text>
-                  ))}
-                </View>
-              </>
+              <View style={styles.tarjetaSeccion}>
+                <Text style={styles.tituloTarjeta}>Empleados asignados</Text>
+                {turno.empleadosAsignados.map((e) => (
+                  <Text key={e.empleadoId} style={styles.campoValor}>
+                    · {e.nombreEmpleado}
+                  </Text>
+                ))}
+              </View>
             )}
 
             {turno.recetaAplicada?.length > 0 && (
@@ -103,34 +164,17 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
               </>
             )}
 
-            <Text style={styles.seccion}>Estado del trabajo</Text>
-            <View style={styles.chips}>
-              {ESTADOS_TRABAJO.map((estado) => {
-                const activo = turno.estado === estado;
-                return (
-                  <TouchableOpacity
-                    key={estado}
-                    style={[styles.chip, activo && styles.chipSeleccionado]}
-                    onPress={() => onCambiarEstado(estado)}
-                    disabled={activo}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                      {estado}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
             <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
-              <Ionicons name="trash-outline" size={16} color={colors.error} />
+              <Ionicons name="trash-outline" size={16} color={colors.textPrimary} />
               <Text style={styles.eliminarBotonTexto}>Eliminar turno</Text>
             </TouchableOpacity>
           </ScrollView>
 
-          <View style={styles.botonCerrar}>
-            <Button title="Cerrar" variant="secondary" onPress={onClose} />
+          <View style={styles.botonesFijos}>
+            <Button title="Guardar cambios" onPress={handleGuardarCambios} disabled={!hayCambioSinGuardar} />
+            <View style={styles.botonCerrar}>
+              <Button title="Cerrar" variant="secondary" onPress={onClose} />
+            </View>
           </View>
         </View>
       </View>
@@ -186,39 +230,67 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
-  filaLabel: {
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 8,
-  },
   filaValor: {
     fontFamily: fonts.body,
     fontSize: 15,
     color: colors.textPrimary,
   },
-  chips: {
+  tarjetaSeccion: {
+    backgroundColor: colors.surface2,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    padding: 14,
+    marginBottom: 12,
+  },
+  tituloTarjeta: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  grilla: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 4,
+    justifyContent: "space-between",
+    rowGap: 12,
+  },
+  celda: {
+    width: "48%",
+  },
+  campoLabel: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  campoValor: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  observacionesContenedor: {
+    marginTop: 12,
+  },
+  chips: {
+    flexDirection: "row",
+    gap: 6,
   },
   chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
     borderRadius: 999,
-    paddingHorizontal: 14,
+    paddingHorizontal: 4,
     paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
   },
   chipTexto: {
     fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: "center",
   },
   chipTextoSeleccionado: {
     fontFamily: fonts.bodySemiBold,
@@ -232,16 +304,18 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: radii.button,
     ...continuousCorner,
-    borderWidth: 1,
-    borderColor: colors.error,
+    backgroundColor: colors.error,
     marginTop: 16,
   },
   eliminarBotonTexto: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
-    color: colors.error,
+    color: colors.textPrimary,
+  },
+  botonesFijos: {
+    marginTop: 16,
   },
   botonCerrar: {
-    marginTop: 16,
+    marginTop: 10,
   },
 });
