@@ -20,6 +20,8 @@ export default function ServicioModal({ visible, item, onClose }) {
   const [categoria, setCategoria] = useState(null);
   const [duracionEstimada, setDuracionEstimada] = useState("");
   const [receta, setReceta] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
   const editando = item !== null;
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export default function ServicioModal({ visible, item, onClose }) {
       setCategoria(item?.categoria ?? null);
       setDuracionEstimada(item?.duracionEstimada ? String(item.duracionEstimada) : "");
       setReceta(item?.receta ?? []);
+      setError(null);
     }
   }, [visible, item]);
 
@@ -55,7 +58,7 @@ export default function ServicioModal({ visible, item, onClose }) {
     setFase("receta");
   }
 
-  function handleGuardar() {
+  async function handleGuardar() {
     // Sólo se guardan líneas con una cantidad numérica válida — una línea
     // marcada pero sin cantidad cargada se descarta en vez de bloquear el
     // guardado del servicio.
@@ -70,17 +73,34 @@ export default function ServicioModal({ visible, item, onClose }) {
       duracionEstimada: duracionNumerica,
       receta: recetaFinal,
     };
-    if (editando) {
-      editarServicio(item.id, datos);
-    } else {
-      agregarServicio(datos);
+
+    setCargando(true);
+    setError(null);
+    try {
+      if (editando) {
+        await editarServicio(item.id, datos);
+      } else {
+        await agregarServicio(datos);
+      }
+      handleCerrar();
+    } catch (err) {
+      setError("No se pudo guardar el servicio. Probá de nuevo.");
+    } finally {
+      setCargando(false);
     }
-    handleCerrar();
   }
 
-  function handleEliminar() {
-    eliminarServicio(item.id);
-    handleCerrar();
+  async function handleEliminar() {
+    setCargando(true);
+    setError(null);
+    try {
+      await eliminarServicio(item.id);
+      handleCerrar();
+    } catch (err) {
+      setError("No se pudo eliminar el servicio. Probá de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   }
 
   return (
@@ -146,15 +166,22 @@ export default function ServicioModal({ visible, item, onClose }) {
                   <Button title="Continuar a receta de insumos" onPress={handleContinuar} disabled={!esValido} />
                 </View>
 
+                {error && <Text style={styles.error}>{error}</Text>}
+
                 {editando && (
-                  <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
+                  <TouchableOpacity
+                    style={styles.eliminarBoton}
+                    onPress={handleEliminar}
+                    disabled={cargando}
+                    activeOpacity={0.85}
+                  >
                     <Ionicons name="trash-outline" size={16} color={colors.error} />
                     <Text style={styles.eliminarBotonTexto}>Eliminar servicio</Text>
                   </TouchableOpacity>
                 )}
 
                 <View style={styles.botonCancelar}>
-                  <Button title="Cancelar" variant="secondary" onPress={handleCerrar} />
+                  <Button title="Cancelar" variant="secondary" onPress={handleCerrar} disabled={cargando} />
                 </View>
               </ScrollView>
             </>
@@ -168,6 +195,8 @@ export default function ServicioModal({ visible, item, onClose }) {
               totalPasos={TOTAL_PASOS}
               onAtras={() => setFase("datos")}
               onGuardar={handleGuardar}
+              cargando={cargando}
+              error={error}
             />
           )}
           </KeyboardAvoidingView>
@@ -225,6 +254,13 @@ const styles = StyleSheet.create({
     color: colors.bg,
   },
   boton: {
+    marginTop: 12,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
     marginTop: 12,
   },
   eliminarBoton: {

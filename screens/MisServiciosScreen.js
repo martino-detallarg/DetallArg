@@ -4,15 +4,17 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import ServicioModal from "../components/ServicioModal";
+import EstadoCarga from "../components/EstadoCarga";
 import { useServicios } from "../data/ServicioContext";
 import { CATEGORIAS_SERVICIOS } from "../data/mockServicios";
 import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 export default function MisServiciosScreen({ navigation }) {
-  const { servicios, eliminarServicio } = useServicios();
+  const { servicios, cargandoServicios, errorCargaServicios, recargarServicios, eliminarServicio } = useServicios();
   const [modalVisible, setModalVisible] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
+  const [error, setError] = useState(null);
 
   function handleAgregar() {
     setItemEditando(null);
@@ -24,52 +26,67 @@ export default function MisServiciosScreen({ navigation }) {
     setModalVisible(true);
   }
 
+  async function handleEliminar(id) {
+    setError(null);
+    try {
+      await eliminarServicio(id);
+    } catch (err) {
+      setError("No se pudo eliminar el servicio. Probá de nuevo.");
+    }
+  }
+
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
       <ScreenHeader onVolver={() => navigation.navigate("MiTaller")} />
 
-      <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
-        <Text style={styles.titulo}>Mis Servicios</Text>
+      <EstadoCarga cargando={cargandoServicios} error={errorCargaServicios} onReintentar={recargarServicios}>
+        <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+          <Text style={styles.titulo}>Mis Servicios</Text>
 
-        {servicios.length === 0 ? (
-          <Text style={styles.vacio}>Todavía no cargaste servicios.</Text>
-        ) : (
-          servicios.map((item) => {
-            const categoria = CATEGORIAS_SERVICIOS[item.categoria];
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.fila}
-                onPress={() => handleEditar(item)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.filaIcono}>
-                  <Ionicons name={categoria?.icono ?? "construct-outline"} size={20} color={colors.accentLight} />
-                </View>
-                <View style={styles.filaTexto}>
-                  <Text style={styles.filaNombre} numberOfLines={1}>
-                    {item.nombre}
-                  </Text>
-                  <Text style={styles.filaPrecio}>{formatearPesos(item.precio)}</Text>
-                </View>
+          {error && <Text style={styles.error}>{error}</Text>}
+
+          {servicios.length === 0 ? (
+            <Text style={styles.vacio}>Todavía no cargaste servicios.</Text>
+          ) : (
+            servicios.map((item) => {
+              const categoria = CATEGORIAS_SERVICIOS[item.categoria];
+              return (
                 <TouchableOpacity
-                  style={styles.quitarBoton}
-                  onPress={() => eliminarServicio(item.id)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  key={item.id}
+                  style={styles.fila}
+                  onPress={() => handleEditar(item)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="trash-outline" size={16} color={colors.error} />
+                  <View style={styles.filaIcono}>
+                    <Ionicons name={categoria?.icono ?? "construct-outline"} size={20} color={colors.accentLight} />
+                  </View>
+                  <View style={styles.filaTexto}>
+                    <Text style={styles.filaNombre} numberOfLines={1}>
+                      {item.nombre}
+                    </Text>
+                    <Text style={styles.filaPrecio}>{formatearPesos(item.precio)}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.quitarBoton}
+                    onPress={() => handleEliminar(item.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.error} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </ScrollView>
+              );
+            })
+          )}
+        </ScrollView>
+      </EstadoCarga>
 
-      <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
-        <Text style={styles.fabTexto}>+</Text>
-      </TouchableOpacity>
+      {!cargandoServicios && !errorCargaServicios && (
+        <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
+          <Text style={styles.fabTexto}>+</Text>
+        </TouchableOpacity>
+      )}
 
       <ServicioModal visible={modalVisible} item={itemEditando} onClose={() => setModalVisible(false)} />
     </SafeAreaView>
@@ -91,6 +108,13 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 4,
     marginBottom: 16,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 12,
   },
   vacio: {
     fontFamily: fonts.body,

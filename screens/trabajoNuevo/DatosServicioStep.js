@@ -22,7 +22,7 @@ import { formatearPesos } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
 export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
-  const { servicios } = useServicios();
+  const { servicios, cargandoServicios } = useServicios();
   const { horarios, limiteEmpleados } = useTaller();
   const { empleados } = useEquipo();
   const empleadosActivos = empleados.filter((e) => e.activo);
@@ -108,7 +108,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
       <SwipeVolver onAtras={onAtras}>
       <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Servicio</Text>
-        {servicios.length === 0 ? (
+        {servicios.length === 0 && !cargandoServicios ? (
           <Text style={styles.vacioAviso}>
             Todavía no cargaste servicios en Mis Servicios. Cargalos desde Mi Taller para poder elegirlos acá.
           </Text>

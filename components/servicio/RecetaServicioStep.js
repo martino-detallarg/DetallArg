@@ -10,7 +10,7 @@ import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../them
 // Paso 2 de ServicioModal.js: marcar qué insumos usa el servicio y en qué
 // cantidad. La receta se guarda como [{ insumoId, cantidad }] — la unidad se
 // resuelve siempre desde el insumo (capacidadUnidad), no se duplica acá.
-export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos, onAtras, onGuardar }) {
+export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos, onAtras, onGuardar, cargando, error }) {
   const { misInsumos } = useData();
 
   const idsInsumosVivos = useMemo(() => new Set(misInsumos.map((i) => i.id)), [misInsumos]);
@@ -116,7 +116,8 @@ export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos
       />
 
       <View style={styles.boton}>
-        <Button title="Guardar servicio" onPress={onGuardar} />
+        {error && <Text style={styles.error}>{error}</Text>}
+        <Button title="Guardar servicio" onPress={onGuardar} loading={cargando} disabled={cargando} />
       </View>
     </View>
   );
@@ -236,5 +237,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     paddingTop: 10,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 8,
   },
 });
