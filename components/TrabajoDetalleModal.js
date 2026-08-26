@@ -11,12 +11,17 @@ import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onCambiarEstado, onEliminar, onClose }) {
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
   const [errorEstado, setErrorEstado] = useState(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState(null);
 
   // Al pasar a "Finalizado", onCambiarEstado (TurnoContext.actualizarEstadoTrabajo)
   // ahora escribe de verdad en Supabase (descuenta insumos) y puede fallar —
   // se resetea el error al reabrir o cambiar de turno.
   useEffect(() => {
-    if (visible) setErrorEstado(null);
+    if (visible) {
+      setErrorEstado(null);
+      setErrorEliminar(null);
+    }
   }, [visible, turno?.id]);
 
   if (!turno || !cliente) return null;
@@ -35,13 +40,24 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
     }
   }
 
+  async function confirmarEliminar() {
+    setEliminando(true);
+    setErrorEliminar(null);
+    try {
+      await onEliminar();
+    } catch (err) {
+      setErrorEliminar("No se pudo eliminar el turno. Probá de nuevo.");
+      setEliminando(false);
+    }
+  }
+
   function handleEliminar() {
     Alert.alert(
       "Eliminar turno",
       "Esta acción no se puede deshacer. ¿Eliminar este turno?",
       [
         { text: "Cancelar", style: "cancel" },
-        { text: "Eliminar", style: "destructive", onPress: onEliminar },
+        { text: "Eliminar", style: "destructive", onPress: confirmarEliminar },
       ]
     );
   }
@@ -129,7 +145,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                     key={estado}
                     style={[styles.chip, activo && styles.chipSeleccionado]}
                     onPress={() => handleCambiarEstado(estado)}
-                    disabled={activo || cambiandoEstado}
+                    disabled={activo || cambiandoEstado || eliminando}
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
@@ -141,19 +157,21 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
             </View>
             {errorEstado && <Text style={styles.errorEstado}>{errorEstado}</Text>}
 
+            {errorEliminar && <Text style={styles.errorEstado}>{errorEliminar}</Text>}
+
             <TouchableOpacity
               style={styles.eliminarBoton}
               onPress={handleEliminar}
-              disabled={cambiandoEstado}
+              disabled={cambiandoEstado || eliminando}
               activeOpacity={0.85}
             >
               <Ionicons name="trash-outline" size={16} color={colors.error} />
-              <Text style={styles.eliminarBotonTexto}>Eliminar turno</Text>
+              <Text style={styles.eliminarBotonTexto}>{eliminando ? "Eliminando..." : "Eliminar turno"}</Text>
             </TouchableOpacity>
           </ScrollView>
 
           <View style={styles.botonCerrar}>
-            <Button title="Cerrar" variant="secondary" onPress={onClose} />
+            <Button title="Cerrar" variant="secondary" onPress={onClose} disabled={eliminando} />
           </View>
         </View>
       </View>

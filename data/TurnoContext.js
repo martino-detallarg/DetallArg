@@ -1,45 +1,186 @@
-import { createContext, useContext, useMemo, useState } from "react";
-import { turnosIniciales } from "./mockData";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "./AuthContext";
 import { useServicios } from "./ServicioContext";
 import { useData } from "./DataContext";
+import { mensajeErrorCarga } from "../utils/errores";
+import { convertirFechaAISO, convertirFechaDesdeISO } from "../utils/fecha";
 
 const TurnoContext = createContext(null);
 
-// Mismo patrón de Context + useState en memoria que ClienteContext,
-// TallerContext y PedidoContext (sin backend). Depende de ServicioContext y
-// DataContext (ver App.js: TurnoProvider queda anidado dentro de ambos) para
-// poder descontar insumos al completar un trabajo.
+// Mapeo camelCase (forma que usa el resto de la app) -> snake_case (columnas
+// reales de `turnos`, ver supabase/schema.sql). Sirve para el INSERT
+// completo de agregarTurno y para el UPDATE parcial de actualizarTurno (solo
+// se traducen las claves presentes en `datos`) — así no se duplica la
+// traducción en los dos lugares.
+const MAPEO_CAMPOS_TURNO = {
+  clienteId: "cliente_id",
+  autoId: "vehiculo_id",
+  servicio: "servicio_nombre",
+  servicioId: "servicio_id",
+  precio: "precio",
+  fecha: "fecha",
+  hora: "hora",
+  tiempoEstimado: "tiempo_estimado",
+  observaciones: "observaciones",
+  estado: "estado",
+  tipoVehiculo: "tipo_vehiculo",
+  grupoVehiculo: "grupo_vehiculo",
+  subdivisionVehiculo: "subdivision_vehiculo",
+  nivelNafta: "nivel_nafta",
+};
+
+function turnoACamposDb(datos) {
+  const campos = {};
+  for (const [clave, columna] of Object.entries(MAPEO_CAMPOS_TURNO)) {
+    if (!(clave in datos)) continue;
+    campos[columna] = clave === "fecha" ? convertirFechaAISO(datos.fecha) : datos[clave];
+  }
+  return campos;
+}
+
+const COLUMNAS_TURNO =
+  "id, cliente_id, vehiculo_id, servicio_id, servicio_nombre, precio, fecha, hora, " +
+  "tiempo_estimado, observaciones, estado, tipo_vehiculo, grupo_vehiculo, " +
+  "subdivision_vehiculo, nivel_nafta, turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad)";
+
+// Traduce una fila de `turnos` + su embed de `turno_receta_aplicada` a la
+// forma que espera el resto de la app. `danios`/`fotosDano`/
+// `empleadosAsignados` quedan en su valor vacío por defecto: las tablas
+// (turno_danios/turno_fotos_danio/turno_empleados) todavía no se escriben
+// ni se leen desde acá — Etapas C/D de la migración.
+function filaATurno(fila) {
+  return {
+    id: fila.id,
+    clienteId: fila.cliente_id,
+    autoId: fila.vehiculo_id,
+    servicio: fila.servicio_nombre,
+    servicioId: fila.servicio_id,
+    precio: fila.precio,
+    fecha: convertirFechaDesdeISO(fila.fecha),
+    hora: fila.hora ? fila.hora.slice(0, 5) : "",
+    tiempoEstimado: fila.tiempo_estimado ?? "",
+    observaciones: fila.observaciones ?? "",
+    estado: fila.estado,
+    tipoVehiculo: fila.tipo_vehiculo,
+    grupoVehiculo: fila.grupo_vehiculo,
+    subdivisionVehiculo: fila.subdivision_vehiculo,
+    nivelNafta: fila.nivel_nafta,
+    empleadosAsignados: [],
+    danios: {},
+    fotosDano: [],
+    // null (no []) cuando todavía no hay snapshot: el guard de
+    // actualizarEstadoTrabajo es `!turno.recetaAplicada`, y un array vacío
+    // es truthy en JS — con null el guard se comporta igual que hoy.
+    recetaAplicada:
+      fila.turno_receta_aplicada.length > 0
+        ? fila.turno_receta_aplicada.map((linea) => ({
+            insumoId: linea.insumo_id,
+            nombreInsumo: linea.nombre_insumo,
+            unidad: linea.unidad,
+            cantidad: linea.cantidad,
+          }))
+        : null,
+  };
+}
+
+// Migrado a Supabase (tabla `turnos` + snapshot en `turno_receta_aplicada`,
+// ver supabase/schema.sql). Todas las mutaciones son `async` y escriben de
+// verdad contra Supabase antes de tocar el estado local (sin actualización
+// optimista, mismo criterio que el resto de los Contexts ya migrados): si
+// Supabase devuelve error, se relanza (`throw`) y el estado en memoria no se
+// toca — quien llama debe hacer `await` + `try/catch`.
+//
+// Fuera de alcance de esta etapa (Etapas C/D): turno_danios,
+// turno_fotos_danio y turno_empleados. Si un turno nuevo trae daños/fotos/
+// empleados asignados, esos datos quedan solo en memoria de esta sesión —
+// se pierden al recargar, igual que pasaba con todo TurnoContext antes de
+// migrar.
 export function TurnoProvider({ children }) {
-  const [turnos, setTurnos] = useState(turnosIniciales);
+  const { user } = useAuth();
+  const [turnos, setTurnos] = useState([]);
+  const [cargandoTurnos, setCargandoTurnos] = useState(true);
+  const [errorCargaTurnos, setErrorCargaTurnos] = useState(null);
+  const [intentoCargaTurnos, setIntentoCargaTurnos] = useState(0);
+
   const { getServicioById } = useServicios();
   const { getInsumoById, descontarInsumos } = useData();
 
-  function agregarTurno(datosTurno) {
-    // empleadosAsignados guarda { empleadoId, nombreEmpleado } con el
-    // nombre "congelado" al momento de asignar (mismo criterio que
-    // recetaAplicada más abajo): si el empleado después cambia de nombre o
-    // se desactiva, el turno viejo sigue mostrando el nombre que tenía.
-    const nuevoTurno = { id: `t${Date.now()}`, empleadosAsignados: [], ...datosTurno };
+  useEffect(() => {
+    if (!user) return;
+    let cancelado = false;
+
+    async function cargarTurnos() {
+      setCargandoTurnos(true);
+      setErrorCargaTurnos(null);
+
+      const { data, error } = await supabase
+        .from("turnos")
+        .select(COLUMNAS_TURNO)
+        .eq("taller_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (cancelado) return;
+
+      if (error) {
+        setErrorCargaTurnos(mensajeErrorCarga(error, "los turnos"));
+        setCargandoTurnos(false);
+        return;
+      }
+
+      setTurnos(data.map(filaATurno));
+      setCargandoTurnos(false);
+    }
+
+    cargarTurnos();
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.id, intentoCargaTurnos]);
+
+  function recargarTurnos() {
+    setIntentoCargaTurnos((n) => n + 1);
+  }
+
+  async function agregarTurno(datosTurno) {
+    const camposDb = turnoACamposDb(datosTurno);
+    const { data, error } = await supabase
+      .from("turnos")
+      .insert({ taller_id: user.id, ...camposDb })
+      .select(COLUMNAS_TURNO)
+      .single();
+    if (error) throw error;
+
+    // empleadosAsignados/danios/fotosDano no tienen dónde persistir todavía
+    // (Etapas C/D) — se guardan igual en el objeto local para que la sesión
+    // actual los siga mostrando, mismo criterio que cualquier Context que
+    // todavía no migró del todo.
+    const nuevoTurno = {
+      ...filaATurno(data),
+      empleadosAsignados: datosTurno.empleadosAsignados ?? [],
+      danios: datosTurno.danios ?? {},
+      fotosDano: datosTurno.fotosDano ?? [],
+    };
     setTurnos((actuales) => [...actuales, nuevoTurno]);
     return nuevoTurno;
   }
 
-  function actualizarTurno(id, cambios) {
+  async function actualizarTurno(id, cambios) {
+    const camposDb = turnoACamposDb(cambios);
+    const { error } = await supabase.from("turnos").update(camposDb).eq("id", id);
+    if (error) throw error;
+
     setTurnos((actuales) => actuales.map((t) => (t.id === id ? { ...t, ...cambios } : t)));
   }
 
-  // Al pasar un trabajo a "Finalizado" por primera vez, se descuenta stock
-  // según la receta ACTUAL del servicio y se guarda una copia congelada en
-  // `recetaAplicada` (con nombre/unidad incluidos, no solo el id, para que el
-  // registro no dependa de que el insumo siga existiendo igual después). El
-  // guard `!turno.recetaAplicada` evita descontar dos veces si el trabajo se
-  // vuelve a mover a Finalizado tras pasar por otro estado — a propósito no
-  // se repone stock si se revierte hacia atrás (ver ESTADO_PROYECTO.md).
-  //
-  // `async` porque descontarInsumos (DataContext, migrado a Supabase) ahora
-  // escribe de verdad y puede fallar: si tira, no se llega a actualizarTurno
-  // y el trabajo NO cambia de estado — quien llama debe hacer `await` +
-  // `try/catch` (ver TrabajoDetalleModal.js).
+  // Al pasar un trabajo a "Finalizado" por primera vez: descuenta stock
+  // según la receta ACTUAL del servicio (DataContext, ya migrado), inserta
+  // el snapshot congelado en turno_receta_aplicada, y recién si eso confirma
+  // actualiza el estado del turno — en ese orden, sin transacción real
+  // envolviendo los 3 pasos (mismo criterio que descontarInsumos/
+  // editarServicio). El guard `!turno.recetaAplicada` evita descontar dos
+  // veces si el trabajo se vuelve a mover a Finalizado tras pasar por otro
+  // estado — a propósito no se repone stock si se revierte hacia atrás.
   async function actualizarEstadoTrabajo(id, nuevoEstado) {
     const turno = getTurnoById(id);
 
@@ -47,24 +188,46 @@ export function TurnoProvider({ children }) {
       const servicio = getServicioById(turno.servicioId);
       if (servicio?.receta?.length) {
         await descontarInsumos(servicio.receta);
-        const recetaAplicada = servicio.receta.map((linea) => {
+
+        const filasReceta = servicio.receta.map((linea) => {
           const insumo = getInsumoById(linea.insumoId);
           return {
-            insumoId: linea.insumoId,
-            nombreInsumo: insumo?.nombre ?? "Insumo eliminado",
-            unidad: insumo?.capacidadUnidad ?? "",
+            turno_id: id,
+            insumo_id: linea.insumoId,
+            nombre_insumo: insumo?.nombre ?? "Insumo eliminado",
+            unidad: insumo?.capacidadUnidad ?? null,
             cantidad: linea.cantidad,
           };
         });
-        actualizarTurno(id, { estado: nuevoEstado, recetaAplicada });
+        const { error: errorReceta } = await supabase.from("turno_receta_aplicada").insert(filasReceta);
+        if (errorReceta) throw errorReceta;
+
+        const { error: errorEstado } = await supabase
+          .from("turnos")
+          .update({ estado: nuevoEstado })
+          .eq("id", id);
+        if (errorEstado) throw errorEstado;
+
+        const recetaAplicada = filasReceta.map((fila) => ({
+          insumoId: fila.insumo_id,
+          nombreInsumo: fila.nombre_insumo,
+          unidad: fila.unidad,
+          cantidad: fila.cantidad,
+        }));
+        setTurnos((actuales) =>
+          actuales.map((t) => (t.id === id ? { ...t, estado: nuevoEstado, recetaAplicada } : t))
+        );
         return;
       }
     }
 
-    actualizarTurno(id, { estado: nuevoEstado });
+    await actualizarTurno(id, { estado: nuevoEstado });
   }
 
-  function eliminarTurno(id) {
+  async function eliminarTurno(id) {
+    const { error } = await supabase.from("turnos").delete().eq("id", id);
+    if (error) throw error;
+
     setTurnos((actuales) => actuales.filter((t) => t.id !== id));
   }
 
@@ -75,13 +238,16 @@ export function TurnoProvider({ children }) {
   const value = useMemo(
     () => ({
       turnos,
+      cargandoTurnos,
+      errorCargaTurnos,
+      recargarTurnos,
       agregarTurno,
       actualizarTurno,
       actualizarEstadoTrabajo,
       eliminarTurno,
       getTurnoById,
     }),
-    [turnos]
+    [turnos, cargandoTurnos, errorCargaTurnos]
   );
 
   return <TurnoContext.Provider value={value}>{children}</TurnoContext.Provider>;

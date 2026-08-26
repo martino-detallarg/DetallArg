@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import TurnoCard from "../components/TurnoCard";
 import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
+import EstadoCarga from "../components/EstadoCarga";
 import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
 import {
@@ -18,7 +19,8 @@ import {
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 export default function AgendaScreen({ navigation }) {
-  const { turnos, actualizarEstadoTrabajo, eliminarTurno } = useTurnos();
+  const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, actualizarEstadoTrabajo, eliminarTurno } =
+    useTurnos();
   const { getClienteById, getVehiculoById } = useClientes();
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState(() => new Date());
@@ -105,32 +107,34 @@ export default function AgendaScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
-        <View style={styles.tituloFila}>
-          <Text style={styles.tituloDia}>
-            {esHoy ? "Hoy, " : ""}
-            {formatearFechaLarga(fechaSeleccionada)}
-          </Text>
-          {!esHoy && (
-            <TouchableOpacity onPress={() => setFechaSeleccionada(new Date())}>
-              <Text style={styles.botonHoy}>Hoy</Text>
-            </TouchableOpacity>
+      <View style={styles.tituloFila}>
+        <Text style={styles.tituloDia}>
+          {esHoy ? "Hoy, " : ""}
+          {formatearFechaLarga(fechaSeleccionada)}
+        </Text>
+        {!esHoy && (
+          <TouchableOpacity onPress={() => setFechaSeleccionada(new Date())}>
+            <Text style={styles.botonHoy}>Hoy</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <EstadoCarga cargando={cargandoTurnos} error={errorCargaTurnos} onReintentar={recargarTurnos}>
+        <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+          {turnosDelDia.length > 0 ? (
+            turnosDelDia.map(renderTurno)
+          ) : (
+            <Text style={styles.vacio}>No hay turnos para este día.</Text>
           )}
-        </View>
 
-        {turnosDelDia.length > 0 ? (
-          turnosDelDia.map(renderTurno)
-        ) : (
-          <Text style={styles.vacio}>No hay turnos para este día.</Text>
-        )}
-
-        {turnosSinFecha.length > 0 && (
-          <>
-            <Text style={styles.seccionTitulo}>Sin fecha asignada</Text>
-            {turnosSinFecha.map(renderTurno)}
-          </>
-        )}
-      </ScrollView>
+          {turnosSinFecha.length > 0 && (
+            <>
+              <Text style={styles.seccionTitulo}>Sin fecha asignada</Text>
+              {turnosSinFecha.map(renderTurno)}
+            </>
+          )}
+        </ScrollView>
+      </EstadoCarga>
 
       <TrabajoDetalleModal
         visible={turnoSeleccionado !== null}
@@ -138,8 +142,8 @@ export default function AgendaScreen({ navigation }) {
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
         auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
         onCambiarEstado={(nuevoEstado) => actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado)}
-        onEliminar={() => {
-          eliminarTurno(turnoSeleccionado.id);
+        onEliminar={async () => {
+          await eliminarTurno(turnoSeleccionado.id);
           setTurnoSeleccionadoId(null);
         }}
         onClose={() => setTurnoSeleccionadoId(null)}
@@ -198,13 +202,13 @@ const styles = StyleSheet.create({
   },
   contenido: {
     paddingBottom: 100,
-    paddingTop: 20,
   },
   tituloFila: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+    marginTop: 20,
     marginBottom: 4,
   },
   tituloDia: {

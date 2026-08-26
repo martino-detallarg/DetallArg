@@ -23,7 +23,16 @@ const PADDING_PANTALLA = 20;
 // completa, navegado con swipe (mismo patrón de Mis Insumos/Finanzas). El
 // botón de agregar foto y el de guardar quedan fijos abajo, visibles sin
 // importar en qué vista del carrusel se esté parado.
-export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambiar, onAtras, onFinalizar }) {
+export default function InspeccionVisualStep({
+  datos,
+  paso,
+  totalPasos,
+  onCambiar,
+  onAtras,
+  onFinalizar,
+  guardando,
+  error,
+}) {
   const { width } = useWindowDimensions();
   const [vistaActiva, setVistaActiva] = useState(0);
 
@@ -135,8 +144,10 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
           </Text>
         )}
 
+        {error && <Text style={styles.error}>{error}</Text>}
+
         <View style={styles.boton}>
-          <Button title="Finalizar y Guardar Trabajo" onPress={onFinalizar} />
+          <Button title="Finalizar y Guardar Trabajo" onPress={onFinalizar} loading={guardando} disabled={guardando} />
         </View>
       </View>
       </SwipeVolver>
@@ -212,6 +223,13 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 8,
     textAlign: "center",
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginTop: 10,
   },
   boton: {
     marginTop: 14,

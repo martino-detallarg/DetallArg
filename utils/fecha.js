@@ -128,3 +128,21 @@ export function formatearHoraHHMM(fecha) {
   const minutos = String(fecha.getMinutes()).padStart(2, "0");
   return `${horas}:${minutos}`;
 }
+
+// Traducción DD/MM/AAAA (formato de turno.fecha en toda la app) <-> ISO
+// (formato real de la columna `date` de turnos en Supabase). Reutilizan el
+// parseo/validación ya existente en vez de duplicarlo.
+export function convertirFechaAISO(ddmmaaaa) {
+  const fecha = parsearFechaDDMMAAAA(ddmmaaaa);
+  if (!fecha) return null;
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
+
+export function convertirFechaDesdeISO(iso) {
+  if (!iso) return "";
+  const [anio, mes, dia] = iso.split("-").map(Number);
+  return formatearFechaDDMMAAAA(new Date(anio, mes - 1, dia));
+}

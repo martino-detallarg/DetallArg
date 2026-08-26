@@ -8,6 +8,7 @@ import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
 import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
 import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
 import ConfirmarTrabajoModal from "../components/ConfirmarTrabajoModal";
+import EstadoCarga from "../components/EstadoCarga";
 import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
 import { useClientes } from "../data/ClienteContext";
@@ -19,7 +20,8 @@ const ESTADOS_TERMINADOS = new Set(["Finalizado", "Entregado"]);
 
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
-  const { turnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } = useTurnos();
+  const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } =
+    useTurnos();
   const { misDatos } = useTaller();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
 
@@ -100,37 +102,41 @@ export default function HomeScreen({ navigation }) {
       <StatusBar style="light" />
       <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
 
-      <FlatList
-        data={turnosOrdenados}
-        keyExtractor={(turno) => turno.id}
-        contentContainerStyle={styles.lista}
-        ListHeaderComponent={
-          <>
-            <Text style={styles.saludo}>Hola{misDatos.nombrePersonal ? `, ${misDatos.nombrePersonal}` : ""} 👋</Text>
+      <EstadoCarga cargando={cargandoTurnos} error={errorCargaTurnos} onReintentar={recargarTurnos}>
+        <FlatList
+          data={turnosOrdenados}
+          keyExtractor={(turno) => turno.id}
+          contentContainerStyle={styles.lista}
+          ListHeaderComponent={
+            <>
+              <Text style={styles.saludo}>Hola{misDatos.nombrePersonal ? `, ${misDatos.nombrePersonal}` : ""} 👋</Text>
 
-            <View style={styles.stats}>
-              <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
-            </View>
+              <View style={styles.stats}>
+                <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
+              </View>
 
-            <Text style={styles.seccionTitulo}>Turnos de hoy</Text>
-          </>
-        }
-        renderItem={({ item }) => (
-          <TurnoCard
-            turno={item}
-            cliente={getClienteById(item.clienteId)}
-            auto={getVehiculoById(item.autoId)}
-            onPress={() => setTurnoSeleccionadoId(item.id)}
-          />
-        )}
-        ListEmptyComponent={
-          <Text style={styles.vacio}>Todavía no hay turnos cargados para hoy.</Text>
-        }
-      />
+              <Text style={styles.seccionTitulo}>Turnos de hoy</Text>
+            </>
+          }
+          renderItem={({ item }) => (
+            <TurnoCard
+              turno={item}
+              cliente={getClienteById(item.clienteId)}
+              auto={getVehiculoById(item.autoId)}
+              onPress={() => setTurnoSeleccionadoId(item.id)}
+            />
+          )}
+          ListEmptyComponent={
+            <Text style={styles.vacio}>Todavía no hay turnos cargados para hoy.</Text>
+          }
+        />
+      </EstadoCarga>
 
-      <TouchableOpacity style={styles.fab} onPress={() => setOpcionesVisibles(true)}>
-        <Text style={styles.fabTexto}>+</Text>
-      </TouchableOpacity>
+      {!cargandoTurnos && !errorCargaTurnos && (
+        <TouchableOpacity style={styles.fab} onPress={() => setOpcionesVisibles(true)}>
+          <Text style={styles.fabTexto}>+</Text>
+        </TouchableOpacity>
+      )}
 
       <OpcionesNuevoModal
         visible={opcionesVisibles}
@@ -153,8 +159,8 @@ export default function HomeScreen({ navigation }) {
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
         auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
         onCambiarEstado={(nuevoEstado) => actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado)}
-        onEliminar={() => {
-          eliminarTurno(turnoSeleccionado.id);
+        onEliminar={async () => {
+          await eliminarTurno(turnoSeleccionado.id);
           setTurnoSeleccionadoId(null);
         }}
         onClose={() => setTurnoSeleccionadoId(null)}

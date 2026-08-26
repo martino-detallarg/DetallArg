@@ -55,12 +55,15 @@ export default function TrabajoNuevoWizard({
   const [fase, setFase] = useState(seSaltaSeleccion ? "servicio" : "elegirCliente");
   const [datos, setDatos] = useState(datosVacios(clienteIdInicial, autoIdInicial));
   const [clienteTemporal, setClienteTemporal] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardado, setErrorGuardado] = useState(null);
 
   useEffect(() => {
     if (visible) {
       setDatos(datosVacios(clienteIdInicial, autoIdInicial));
       setFase(clienteIdInicial && autoIdInicial ? "servicio" : "elegirCliente");
       setClienteTemporal(null);
+      setErrorGuardado(null);
     }
   }, [visible, clienteIdInicial, autoIdInicial]);
 
@@ -86,27 +89,35 @@ export default function TrabajoNuevoWizard({
     setFase("servicio");
   }
 
-  function handleFinalizar() {
-    onGuardarTrabajo({
-      clienteId: datos.clienteId,
-      autoId: datos.autoId,
-      servicio: datos.servicio.tipo,
-      servicioId: datos.servicio.servicioId,
-      precio: datos.servicio.precio,
-      fecha: datos.servicio.fecha,
-      hora: datos.servicio.hora,
-      tiempoEstimado: datos.servicio.tiempoEstimado,
-      observaciones: datos.servicio.observaciones,
-      empleadosAsignados: datos.servicio.empleadosAsignados,
-      tipoVehiculo: datos.inspeccion.tipoVehiculo,
-      grupoVehiculo: datos.inspeccion.grupo,
-      subdivisionVehiculo: datos.inspeccion.subdivision,
-      nivelNafta: datos.inspeccion.nivelNafta,
-      danios: datos.inspeccion.danios,
-      fotosDano: datos.inspeccion.fotosDano,
-      estado: "Pendiente",
-    });
-    setFase("confirmacion");
+  async function handleFinalizar() {
+    setGuardando(true);
+    setErrorGuardado(null);
+    try {
+      await onGuardarTrabajo({
+        clienteId: datos.clienteId,
+        autoId: datos.autoId,
+        servicio: datos.servicio.tipo,
+        servicioId: datos.servicio.servicioId,
+        precio: datos.servicio.precio,
+        fecha: datos.servicio.fecha,
+        hora: datos.servicio.hora,
+        tiempoEstimado: datos.servicio.tiempoEstimado,
+        observaciones: datos.servicio.observaciones,
+        empleadosAsignados: datos.servicio.empleadosAsignados,
+        tipoVehiculo: datos.inspeccion.tipoVehiculo,
+        grupoVehiculo: datos.inspeccion.grupo,
+        subdivisionVehiculo: datos.inspeccion.subdivision,
+        nivelNafta: datos.inspeccion.nivelNafta,
+        danios: datos.inspeccion.danios,
+        fotosDano: datos.inspeccion.fotosDano,
+        estado: "Pendiente",
+      });
+      setFase("confirmacion");
+    } catch (err) {
+      setErrorGuardado("No se pudo guardar el trabajo. Probá de nuevo.");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   const pasoActual = {
@@ -174,6 +185,8 @@ export default function TrabajoNuevoWizard({
               onCambiar={actualizarInspeccion}
               onAtras={() => setFase("tipoVehiculo")}
               onFinalizar={handleFinalizar}
+              guardando={guardando}
+              error={errorGuardado}
             />
           )}
           {fase === "confirmacion" && clienteSeleccionado && (
