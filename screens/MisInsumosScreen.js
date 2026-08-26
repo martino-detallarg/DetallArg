@@ -19,7 +19,7 @@ import { CATEGORIAS, ORDEN_CATEGORIAS, PAGINAS_ESTANTERIA } from "../data/mockIn
 import { colors, continuousCorner, fonts, radii, shadow, shadowSubtle } from "../theme";
 
 const COLUMNAS = 3;
-const MAX_COMPACTO = 3;
+const MAX_COMPACTO = 6;
 const PADDING_GRILLA = 20;
 const ESPACIO_CASILLERO = 12;
 
@@ -30,24 +30,42 @@ function CategoriaSection({ categoriaKey, productos, tamanoCasillero, onAbrir })
   return (
     <View style={styles.seccion}>
       <TouchableOpacity style={styles.seccionHeader} onPress={onAbrir} activeOpacity={0.7}>
+        <View style={styles.seccionIcono}>
+          <Ionicons name={categoria.icono} size={16} color={colors.accentLight} />
+        </View>
         <Text style={styles.seccionTitulo} numberOfLines={1}>
           {categoria.etiqueta} <Text style={styles.seccionCantidad}>({productos.length})</Text>
         </Text>
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </TouchableOpacity>
 
-      {productos.length === 0 ? (
-        <View style={styles.vacioCategoria}>
-          <Text style={styles.vacioCategoriaTexto}>Sin productos cargados todavía</Text>
-        </View>
-      ) : (
-        <View style={styles.filaCasilleros}>
-          {visibles.map((producto) => (
-            <ProductoCasillero key={producto.id} producto={producto} tamano={tamanoCasillero} />
-          ))}
-        </View>
-      )}
+      <View style={styles.filaCasilleros}>
+        {visibles.map((producto) => (
+          <ProductoCasillero key={producto.id} producto={producto} tamano={tamanoCasillero} />
+        ))}
+      </View>
     </View>
+  );
+}
+
+// Categorías sin productos cargados se muestran como una fila angosta tipo
+// menú (como en Mi Taller) en vez de reservar el mismo espacio que una
+// sección con estantería — invitan a tocar sin ocupar lugar de más mientras
+// el taller todavía no cargó nada ahí.
+function CategoriaVaciaFila({ categoriaKey, onAbrir }) {
+  const categoria = CATEGORIAS[categoriaKey];
+
+  return (
+    <TouchableOpacity style={styles.filaVacia} onPress={onAbrir} activeOpacity={0.7}>
+      <View style={styles.filaVaciaIcono}>
+        <Ionicons name={categoria.icono} size={17} color={colors.textMuted} />
+      </View>
+      <Text style={styles.filaVaciaTexto} numberOfLines={1}>
+        {categoria.etiqueta}
+      </Text>
+      <Text style={styles.filaVaciaCantidad}>(0)</Text>
+      <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+    </TouchableOpacity>
   );
 }
 
@@ -55,6 +73,7 @@ export default function MisInsumosScreen({ navigation }) {
   const { misInsumos } = useData();
   const { width } = useWindowDimensions();
   const [modalVisible, setModalVisible] = useState(false);
+  const [busquedaPrefiltro, setBusquedaPrefiltro] = useState(null);
   const [categoriaAbierta, setCategoriaAbierta] = useState(null);
   const [paginaActiva, setPaginaActiva] = useState(0);
 
@@ -79,6 +98,20 @@ export default function MisInsumosScreen({ navigation }) {
     setPaginaActiva(indice);
   }
 
+  // Se llama desde el estado vacío de CategoriaInsumosModal: cierra ese
+  // modal y abre Agregar Insumo con la búsqueda ya filtrada por la
+  // categoría que el taller estaba mirando.
+  function handleAgregarEnCategoria(etiquetaCategoria) {
+    setCategoriaAbierta(null);
+    setBusquedaPrefiltro(etiquetaCategoria ?? null);
+    setModalVisible(true);
+  }
+
+  function handleCerrarAgregar() {
+    setModalVisible(false);
+    setBusquedaPrefiltro(null);
+  }
+
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
@@ -100,17 +133,28 @@ export default function MisInsumosScreen({ navigation }) {
             contentContainerStyle={styles.pagina}
             showsVerticalScrollIndicator={false}
           >
-            {categoriasPagina.map((claveCategoria, indice) => (
-              <View key={claveCategoria}>
-                <CategoriaSection
-                  categoriaKey={claveCategoria}
-                  productos={productosPorCategoria[claveCategoria]}
-                  tamanoCasillero={tamanoCasillero}
-                  onAbrir={() => setCategoriaAbierta(claveCategoria)}
-                />
-                {indice < categoriasPagina.length - 1 && <View style={styles.repisa} />}
-              </View>
-            ))}
+            {categoriasPagina.map((claveCategoria, indice) => {
+              const productos = productosPorCategoria[claveCategoria];
+              const estaVacia = productos.length === 0;
+              return (
+                <View key={claveCategoria}>
+                  {estaVacia ? (
+                    <CategoriaVaciaFila
+                      categoriaKey={claveCategoria}
+                      onAbrir={() => setCategoriaAbierta(claveCategoria)}
+                    />
+                  ) : (
+                    <CategoriaSection
+                      categoriaKey={claveCategoria}
+                      productos={productos}
+                      tamanoCasillero={tamanoCasillero}
+                      onAbrir={() => setCategoriaAbierta(claveCategoria)}
+                    />
+                  )}
+                  {indice < categoriasPagina.length - 1 && <View style={styles.repisa} />}
+                </View>
+              );
+            })}
           </ScrollView>
         ))}
       </ScrollView>
@@ -125,13 +169,18 @@ export default function MisInsumosScreen({ navigation }) {
         <Text style={styles.fabTexto}>+</Text>
       </TouchableOpacity>
 
-      <AgregarInsumoModal visible={modalVisible} onClose={() => setModalVisible(false)} />
+      <AgregarInsumoModal
+        visible={modalVisible}
+        busquedaInicial={busquedaPrefiltro}
+        onClose={handleCerrarAgregar}
+      />
 
       <CategoriaInsumosModal
         visible={categoriaAbierta !== null}
         categoriaKey={categoriaAbierta}
         productos={categoriaAbierta ? productosPorCategoria[categoriaAbierta] : []}
         onClose={() => setCategoriaAbierta(null)}
+        onAgregarEnCategoria={handleAgregarEnCategoria}
       />
     </SafeAreaView>
   );
@@ -154,6 +203,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pagina: {
+    flexGrow: 1,
+    justifyContent: "center",
     paddingHorizontal: PADDING_GRILLA,
     paddingBottom: 20,
   },
@@ -165,6 +216,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 6,
+  },
+  seccionIcono: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    backgroundColor: colors.accentDark,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
   },
   seccionTitulo: {
     fontFamily: fonts.bodySemiBold,
@@ -179,20 +240,38 @@ const styles = StyleSheet.create({
   },
   filaCasilleros: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: ESPACIO_CASILLERO,
   },
-  vacioCategoria: {
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.borderSubtle,
+  filaVacia: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: colors.surface,
     borderRadius: radii.card,
     ...continuousCorner,
-    paddingVertical: 18,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  filaVaciaIcono: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    backgroundColor: colors.surface2,
     alignItems: "center",
     justifyContent: "center",
   },
-  vacioCategoriaTexto: {
-    fontFamily: fonts.body,
+  filaVaciaTexto: {
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  filaVaciaCantidad: {
+    fontFamily: fonts.mono,
     fontSize: 12,
     color: colors.textMuted,
   },

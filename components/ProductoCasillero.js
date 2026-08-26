@@ -50,6 +50,9 @@ export default function ProductoCasillero({ producto, tamano }) {
       </View>
 
       <View style={styles.franjaNombre}>
+        <Text style={styles.marcaTexto} numberOfLines={1}>
+          {producto.marca}
+        </Text>
         <Text style={styles.nombreTexto} numberOfLines={2}>
           {producto.nombre}
         </Text>
@@ -120,6 +123,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(4, 3, 3, 0.72)",
     paddingHorizontal: 6,
     paddingVertical: 4,
+  },
+  marcaTexto: {
+    fontFamily: fonts.mono,
+    fontSize: 7.5,
+    color: colors.accentLight,
+    textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
   nombreTexto: {
     fontFamily: fonts.bodyMedium,

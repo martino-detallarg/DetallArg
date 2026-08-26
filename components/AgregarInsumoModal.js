@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -18,6 +18,16 @@ import Input from "./Input";
 import { CATEGORIAS, UNIDADES_CAPACIDAD, catalogoInsumos } from "../data/mockInsumos";
 import { useData } from "../data/DataContext";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../theme";
+
+// Muchas diluciones reales del catálogo vienen como frase completa con
+// aclaración entre paréntesis (ej. "1:50 (general — paneles, puertas,
+// cuero)"). El chip solo puede mostrar la parte corta del ratio; la frase
+// completa se ve aparte, debajo de los chips, cuando esa opción está
+// seleccionada.
+function etiquetaCortaDilucion(opcion) {
+  const indiceParentesis = opcion.indexOf("(");
+  return indiceParentesis > 0 ? opcion.slice(0, indiceParentesis).trim() : opcion;
+}
 
 function FilaProducto({ producto, agregado, onAgregar }) {
   const categoria = CATEGORIAS[producto.categoria];
@@ -50,7 +60,7 @@ function FilaProducto({ producto, agregado, onAgregar }) {
       </View>
 
       <View style={styles.filaInfo}>
-        <Text style={styles.filaNombre} numberOfLines={1}>
+        <Text style={styles.filaNombre} numberOfLines={2}>
           {producto.nombre}
         </Text>
         <Text style={styles.filaMarca}>
@@ -64,22 +74,28 @@ function FilaProducto({ producto, agregado, onAgregar }) {
           <View style={styles.campo}>
             <Text style={styles.campoLabel}>Dilución</Text>
             {tieneMultiplesDiluciones ? (
-              <View style={styles.dilucionChips}>
-                {producto.diluciones.map((opcion) => {
-                  const activa = dilucion === opcion;
-                  return (
-                    <TouchableOpacity
-                      key={opcion}
-                      style={[styles.unidadChip, activa && styles.unidadChipActivo]}
-                      onPress={() => setDilucion(opcion)}
-                    >
-                      <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}>
-                        {opcion}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <>
+                <View style={styles.dilucionChips}>
+                  {producto.diluciones.map((opcion) => {
+                    const activa = dilucion === opcion;
+                    return (
+                      <TouchableOpacity
+                        key={opcion}
+                        style={[styles.unidadChip, activa && styles.unidadChipActivo]}
+                        onPress={() => setDilucion(opcion)}
+                      >
+                        <Text
+                          style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}
+                          numberOfLines={1}
+                        >
+                          {etiquetaCortaDilucion(opcion)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {dilucion ? <Text style={styles.dilucionAclaracion}>{dilucion}</Text> : null}
+              </>
             ) : (
               <Text style={styles.campoInput}>{producto.diluciones[0]}</Text>
             )}
@@ -158,10 +174,18 @@ function FilaProducto({ producto, agregado, onAgregar }) {
   );
 }
 
-export default function AgregarInsumoModal({ visible, onClose }) {
+export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }) {
   const { agregarInsumo } = useData();
   const [busqueda, setBusqueda] = useState("");
   const [idsAgregados, setIdsAgregados] = useState(new Set());
+
+  // Cuando se abre desde el estado vacío de una categoría (CategoriaInsumosModal),
+  // arranca con esa categoría ya buscada en vez de la lista completa de 478 productos.
+  useEffect(() => {
+    if (visible) {
+      setBusqueda(busquedaInicial ?? "");
+    }
+  }, [visible, busquedaInicial]);
 
   const filtrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -336,6 +360,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
+  },
+  dilucionAclaracion: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 6,
+    lineHeight: 15,
   },
   unidadChip: {
     borderWidth: 1,
