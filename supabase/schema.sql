@@ -41,6 +41,9 @@ create table talleres (
   correo             text,
   telefono           text,
   ubicacion          text,
+  ubicacion_place_id text,
+  ubicacion_lat      numeric,
+  ubicacion_lng      numeric,
   situacion_fiscal   text
                        check (situacion_fiscal is null or situacion_fiscal in (
                          'Monotributista', 'Responsable Inscripto', 'Exento',
@@ -52,6 +55,10 @@ create table talleres (
 );
 
 comment on table talleres is 'Un taller = un usuario logueado (auth.users). Fusiona datos del taller y "Mis Datos" del titular.';
+comment on column talleres.ubicacion is 'Dirección formateada que devuelve Google Places al elegirla en el autocompletado de Mis Datos (ver supabase/functions/places-proxy). Puede quedar vacía si el titular todavía no cargó ubicación.';
+comment on column talleres.ubicacion_place_id is 'Place ID de Google de la dirección elegida — permite volver a pedir el detalle a Google (ej. recalcular lat/lng) sin repetir la búsqueda del usuario.';
+comment on column talleres.ubicacion_lat is 'Latitud de `ubicacion`, resuelta por Google Places Details al momento de elegir la dirección. Null en filas cargadas antes de esta columna.';
+comment on column talleres.ubicacion_lng is 'Longitud de `ubicacion`, mismo origen que ubicacion_lat.';
 
 -- Horario de atención (Mis Horarios) — hoy solo informativo, no restringe
 -- nada del wizard de Trabajo Nuevo.
