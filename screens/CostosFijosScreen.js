@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import CostoFijoModal from "../components/CostoFijoModal";
+import EstadoCarga from "../components/EstadoCarga";
 import { useData } from "../data/DataContext";
 import { CATEGORIAS_COSTOS_FIJOS } from "../data/mockFinanzas";
 import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 export default function CostosFijosScreen({ navigation }) {
-  const { costosFijos, eliminarCostoFijo } = useData();
+  const { costosFijos, cargandoCostosFijos, errorCargaCostosFijos, recargarCostosFijos, eliminarCostoFijo } =
+    useData();
   const [modalVisible, setModalVisible] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
 
@@ -26,51 +28,61 @@ export default function CostosFijosScreen({ navigation }) {
     setModalVisible(true);
   }
 
+  async function handleEliminar(id) {
+    try {
+      await eliminarCostoFijo(id);
+    } catch (err) {
+      Alert.alert("No se pudo eliminar", "No se pudo eliminar el costo fijo. Probá de nuevo.");
+    }
+  }
+
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
       <ScreenHeader onVolver={() => navigation.navigate("Finanzas")} />
 
-      <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
-        <Text style={styles.titulo}>Costos Fijos</Text>
+      <Text style={styles.titulo}>Costos Fijos</Text>
 
-        <View style={styles.totalTarjeta}>
-          <Text style={styles.totalLabel}>Total mensual</Text>
-          <Text style={styles.totalMonto}>{formatearPesos(total)}</Text>
-        </View>
+      <EstadoCarga cargando={cargandoCostosFijos} error={errorCargaCostosFijos} onReintentar={recargarCostosFijos}>
+        <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+          <View style={styles.totalTarjeta}>
+            <Text style={styles.totalLabel}>Total mensual</Text>
+            <Text style={styles.totalMonto}>{formatearPesos(total)}</Text>
+          </View>
 
-        {costosFijos.length === 0 ? (
-          <Text style={styles.vacio}>Todavía no cargaste costos fijos.</Text>
-        ) : (
-          costosFijos.map((item) => {
-            const categoria = CATEGORIAS_COSTOS_FIJOS[item.categoria];
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.fila}
-                onPress={() => handleEditar(item)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.filaIcono}>
-                  <Ionicons name={categoria?.icono ?? "cash-outline"} size={20} color={colors.accentLight} />
-                </View>
-                <View style={styles.filaTexto}>
-                  <Text style={styles.filaCategoria}>{categoria?.etiqueta ?? "Otro"}</Text>
-                  <Text style={styles.filaMonto}>{formatearPesos(item.monto)} / mes</Text>
-                </View>
+          {costosFijos.length === 0 ? (
+            <Text style={styles.vacio}>Todavía no cargaste costos fijos.</Text>
+          ) : (
+            costosFijos.map((item) => {
+              const categoria = CATEGORIAS_COSTOS_FIJOS[item.categoria];
+              return (
                 <TouchableOpacity
-                  style={styles.quitarBoton}
-                  onPress={() => eliminarCostoFijo(item.id)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  key={item.id}
+                  style={styles.fila}
+                  onPress={() => handleEditar(item)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="trash-outline" size={16} color={colors.error} />
+                  <View style={styles.filaIcono}>
+                    <Ionicons name={categoria?.icono ?? "cash-outline"} size={20} color={colors.accentLight} />
+                  </View>
+                  <View style={styles.filaTexto}>
+                    <Text style={styles.filaCategoria}>{categoria?.etiqueta ?? "Otro"}</Text>
+                    <Text style={styles.filaMonto}>{formatearPesos(item.monto)} / mes</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.quitarBoton}
+                    onPress={() => handleEliminar(item.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.error} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </ScrollView>
+              );
+            })
+          )}
+        </ScrollView>
+      </EstadoCarga>
 
       <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
         <Text style={styles.fabTexto}>+</Text>
@@ -94,6 +106,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 22,
     color: colors.textPrimary,
+    paddingHorizontal: 20,
     marginTop: 4,
     marginBottom: 16,
   },

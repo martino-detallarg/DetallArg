@@ -9,11 +9,3 @@ export const CATEGORIAS_COSTOS_FIJOS = {
 };
 
 export const ORDEN_CATEGORIAS_COSTOS_FIJOS = Object.keys(CATEGORIAS_COSTOS_FIJOS);
-
-// Costos fijos de ejemplo para mostrar el diseño de la pantalla con datos
-// cargados desde el arranque.
-export const costosFijosIniciales = [
-  { id: "cf-alquiler", categoria: "alquiler", monto: 150000 },
-  { id: "cf-sueldos", categoria: "sueldos", monto: 220000 },
-  { id: "cf-servicios", categoria: "servicios", monto: 45000 },
-];

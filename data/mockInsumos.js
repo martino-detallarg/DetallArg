@@ -66,9 +66,9 @@ export const UNIDADES_CAPACIDAD = ["ml", "g", "unidades"];
 
 // Catálogo de referencia definitivo — 478 productos. Ver notas de campos
 // arriba. Este catálogo alimenta el buscador de "Agregar Insumo"; lo que el
-// taller efectivamente tiene en stock vive en `misInsumosIniciales` /
-// `misInsumos` (DataContext), que arranca vacío: cada taller carga acá solo
-// lo que realmente tiene, con su propio precio y tamaño de envase reales.
+// taller efectivamente tiene en stock vive en la tabla `insumos` de Supabase
+// (`misInsumos` en DataContext), que arranca vacía: cada taller carga acá
+// solo lo que realmente tiene, con su propio precio y tamaño de envase reales.
 export const catalogoInsumos = [
   {
     "id": "vonixx-v-eco-fast",
@@ -8125,9 +8125,3 @@ export const catalogoInsumos = [
     "prioridadSugerida": null
   }
 ];
-
-
-// Estantería real: arranca vacía. La lista de fantasía anterior (con
-// niveles de stock de ejemplo) se sacó junto con el catálogo viejo — cada
-// taller carga acá su stock real desde "Agregar Insumo".
-export const misInsumosIniciales = [];

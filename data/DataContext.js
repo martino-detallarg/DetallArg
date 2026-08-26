@@ -1,19 +1,130 @@
-import { createContext, useContext, useMemo, useState } from "react";
-import { misInsumosIniciales } from "./mockInsumos";
-import { costosFijosIniciales } from "./mockFinanzas";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "./AuthContext";
+import { mensajeErrorCarga } from "../utils/errores";
 
 const DataContext = createContext(null);
 
-export function DataProvider({ children }) {
-  const [misInsumos, setMisInsumos] = useState(misInsumosIniciales);
-  const [costosFijos, setCostosFijos] = useState(costosFijosIniciales);
+// Traduce una fila de `insumos` (snake_case, ver supabase/schema.sql) a la
+// forma que espera el resto de la app (camelCase) — mismo criterio que
+// TallerContext con `talleres`.
+function filaAInsumo(fila) {
+  return {
+    id: fila.id,
+    productoId: fila.producto_id,
+    marca: fila.marca,
+    nombre: fila.nombre,
+    categoria: fila.categoria,
+    dilucion: fila.dilucion,
+    rendimiento: fila.rendimiento,
+    imagen: fila.imagen_url,
+    precioCompra: fila.precio_compra,
+    capacidadTotal: fila.capacidad_total,
+    capacidadUnidad: fila.capacidad_unidad,
+    nivel: fila.nivel,
+  };
+}
 
-  function agregarInsumo({
+const COLUMNAS_INSUMO =
+  "id, producto_id, marca, nombre, categoria, dilucion, rendimiento, imagen_url, precio_compra, capacidad_total, capacidad_unidad, nivel";
+
+// Migrado a Supabase (tablas `insumos` y `costos_fijos`, ver supabase/schema.sql).
+// Todas las mutaciones son `async` y escriben de verdad contra Supabase antes
+// de tocar el estado local (sin actualización optimista, mismo criterio que
+// ClienteContext/TallerContext): si Supabase devuelve error, se relanza
+// (`throw`) y el estado en memoria no se toca — quien llama debe hacer
+// `await` + `try/catch`.
+export function DataProvider({ children }) {
+  const { user } = useAuth();
+  const [misInsumos, setMisInsumos] = useState([]);
+  const [cargandoInsumos, setCargandoInsumos] = useState(true);
+  const [errorCargaInsumos, setErrorCargaInsumos] = useState(null);
+  const [intentoCargaInsumos, setIntentoCargaInsumos] = useState(0);
+
+  const [costosFijos, setCostosFijos] = useState([]);
+  const [cargandoCostosFijos, setCargandoCostosFijos] = useState(true);
+  const [errorCargaCostosFijos, setErrorCargaCostosFijos] = useState(null);
+  const [intentoCargaCostosFijos, setIntentoCargaCostosFijos] = useState(0);
+
+  // Dependencia `user?.id`, no `user` completo — mismo detalle que
+  // ClienteContext/TallerContext (evita recargar en cada refresh automático
+  // de token).
+  useEffect(() => {
+    if (!user) return;
+    let cancelado = false;
+
+    async function cargarInsumos() {
+      setCargandoInsumos(true);
+      setErrorCargaInsumos(null);
+
+      const { data, error } = await supabase
+        .from("insumos")
+        .select(COLUMNAS_INSUMO)
+        .eq("taller_id", user.id)
+        .order("nombre", { ascending: true });
+
+      if (cancelado) return;
+
+      if (error) {
+        setErrorCargaInsumos(mensajeErrorCarga(error, "los insumos"));
+        setCargandoInsumos(false);
+        return;
+      }
+
+      setMisInsumos(data.map(filaAInsumo));
+      setCargandoInsumos(false);
+    }
+
+    cargarInsumos();
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.id, intentoCargaInsumos]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelado = false;
+
+    async function cargarCostosFijos() {
+      setCargandoCostosFijos(true);
+      setErrorCargaCostosFijos(null);
+
+      const { data, error } = await supabase
+        .from("costos_fijos")
+        .select("id, categoria, monto")
+        .eq("taller_id", user.id);
+
+      if (cancelado) return;
+
+      if (error) {
+        setErrorCargaCostosFijos(mensajeErrorCarga(error, "los costos fijos"));
+        setCargandoCostosFijos(false);
+        return;
+      }
+
+      setCostosFijos(data);
+      setCargandoCostosFijos(false);
+    }
+
+    cargarCostosFijos();
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.id, intentoCargaCostosFijos]);
+
+  function recargarInsumos() {
+    setIntentoCargaInsumos((n) => n + 1);
+  }
+
+  function recargarCostosFijos() {
+    setIntentoCargaCostosFijos((n) => n + 1);
+  }
+
+  async function agregarInsumo({
     productoId,
     marca,
     nombre,
     categoria,
-    ph,
     dilucion,
     rendimiento,
     imagen,
@@ -21,23 +132,26 @@ export function DataProvider({ children }) {
     capacidadTotal,
     capacidadUnidad,
   }) {
-    const nuevoInsumo = {
-      id: `mi${Date.now()}`,
-      productoId,
-      marca,
-      nombre,
-      categoria,
-      ph,
-      dilucion,
-      rendimiento,
-      imagen,
-      precioCompra,
-      capacidadTotal,
-      capacidadUnidad,
-      // Un insumo recién agregado se asume lleno hasta que carguemos control
-      // real de stock.
-      nivel: 100,
-    };
+    const { data, error } = await supabase
+      .from("insumos")
+      .insert({
+        taller_id: user.id,
+        producto_id: productoId,
+        marca,
+        nombre,
+        categoria,
+        dilucion,
+        rendimiento,
+        imagen_url: imagen,
+        precio_compra: precioCompra,
+        capacidad_total: capacidadTotal,
+        capacidad_unidad: capacidadUnidad,
+      })
+      .select(COLUMNAS_INSUMO)
+      .single();
+    if (error) throw error;
+
+    const nuevoInsumo = filaAInsumo(data);
     setMisInsumos((actuales) => [...actuales, nuevoInsumo]);
     return nuevoInsumo;
   }
@@ -53,36 +167,81 @@ export function DataProvider({ children }) {
   // dos veces". Un insumo sin `capacidadTotal` cargada o que ya no exista
   // (borrado de Mis Insumos) se ignora en vez de romper el descuento del
   // resto de la receta.
-  function descontarInsumos(receta) {
+  //
+  // Async, sin actualización optimista igual que el resto de este archivo:
+  // se escriben TODOS los `UPDATE` de la receta primero (en paralelo) y solo
+  // si ninguno falla se aplica el descuento al estado local. Si alguno falla,
+  // se relanza el error y el estado local no se toca — aunque, a diferencia
+  // de una mutación de un solo registro, es posible que algún `UPDATE` previo
+  // del mismo `Promise.all` ya haya quedado guardado en Supabase antes de que
+  // otro fallara (no hay una transacción real envolviendo el lote).
+  // TurnoContext.actualizarEstadoTrabajo espera (`await`) esta función antes
+  // de mover el turno a "Finalizado": si descontarInsumos tira, el turno
+  // tampoco cambia de estado.
+  async function descontarInsumos(receta) {
     if (!receta || receta.length === 0) return;
+
+    const actualizaciones = receta
+      .map((item) => {
+        const insumo = misInsumos.find((i) => i.id === item.insumoId);
+        if (!insumo || !insumo.capacidadTotal) return null;
+        const puntosADescontar = (item.cantidad / insumo.capacidadTotal) * 100;
+        return { id: insumo.id, nivel: Math.max(0, insumo.nivel - puntosADescontar) };
+      })
+      .filter(Boolean);
+
+    if (actualizaciones.length === 0) return;
+
+    const resultados = await Promise.all(
+      actualizaciones.map(({ id, nivel }) => supabase.from("insumos").update({ nivel }).eq("id", id))
+    );
+    const resultadoConError = resultados.find((r) => r.error);
+    if (resultadoConError) throw resultadoConError.error;
+
     setMisInsumos((actuales) =>
       actuales.map((insumo) => {
-        const item = receta.find((r) => r.insumoId === insumo.id);
-        if (!item || !insumo.capacidadTotal) return insumo;
-        const puntosADescontar = (item.cantidad / insumo.capacidadTotal) * 100;
-        return { ...insumo, nivel: Math.max(0, insumo.nivel - puntosADescontar) };
+        const actualizacion = actualizaciones.find((a) => a.id === insumo.id);
+        return actualizacion ? { ...insumo, nivel: actualizacion.nivel } : insumo;
       })
     );
   }
 
-  function agregarCostoFijo({ categoria, monto }) {
-    const nuevoCostoFijo = { id: `cf${Date.now()}`, categoria, monto };
-    setCostosFijos((actuales) => [...actuales, nuevoCostoFijo]);
-    return nuevoCostoFijo;
+  async function agregarCostoFijo({ categoria, monto }) {
+    const { data, error } = await supabase
+      .from("costos_fijos")
+      .insert({ taller_id: user.id, categoria, monto })
+      .select("id, categoria, monto")
+      .single();
+    if (error) throw error;
+
+    setCostosFijos((actuales) => [...actuales, data]);
+    return data;
   }
 
-  function actualizarCostoFijo(id, cambios) {
+  async function actualizarCostoFijo(id, cambios) {
+    const { error } = await supabase.from("costos_fijos").update(cambios).eq("id", id);
+    if (error) throw error;
+
     setCostosFijos((actuales) => actuales.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
   }
 
-  function eliminarCostoFijo(id) {
+  async function eliminarCostoFijo(id) {
+    const { error } = await supabase.from("costos_fijos").delete().eq("id", id);
+    if (error) throw error;
+
     setCostosFijos((actuales) => actuales.filter((c) => c.id !== id));
   }
 
   const value = useMemo(
     () => ({
       misInsumos,
+      cargandoInsumos,
+      errorCargaInsumos,
+      recargarInsumos,
       costosFijos,
+      cargandoCostosFijos,
+      errorCargaCostosFijos,
+      recargarCostosFijos,
       agregarInsumo,
       getInsumoById,
       descontarInsumos,
@@ -90,7 +249,7 @@ export function DataProvider({ children }) {
       actualizarCostoFijo,
       eliminarCostoFijo,
     }),
-    [misInsumos, costosFijos]
+    [misInsumos, cargandoInsumos, errorCargaInsumos, costosFijos, cargandoCostosFijos, errorCargaCostosFijos]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

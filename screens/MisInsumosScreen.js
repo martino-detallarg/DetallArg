@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
+import EstadoCarga from "../components/EstadoCarga";
 import AgregarInsumoModal from "../components/AgregarInsumoModal";
 import CategoriaInsumosModal from "../components/CategoriaInsumosModal";
 import ProductoCasillero from "../components/ProductoCasillero";
@@ -70,7 +71,7 @@ function CategoriaVaciaFila({ categoriaKey, onAbrir }) {
 }
 
 export default function MisInsumosScreen({ navigation }) {
-  const { misInsumos } = useData();
+  const { misInsumos, cargandoInsumos, errorCargaInsumos, recargarInsumos } = useData();
   const { width } = useWindowDimensions();
   const [modalVisible, setModalVisible] = useState(false);
   const [busquedaPrefiltro, setBusquedaPrefiltro] = useState(null);
@@ -119,51 +120,53 @@ export default function MisInsumosScreen({ navigation }) {
 
       <Text style={styles.titulo}>Mis Insumos</Text>
 
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScrollFin}
-        style={styles.estanteria}
-      >
-        {PAGINAS_ESTANTERIA.map((categoriasPagina, indicePagina) => (
-          <ScrollView
-            key={indicePagina}
-            style={{ width }}
-            contentContainerStyle={styles.pagina}
-            showsVerticalScrollIndicator={false}
-          >
-            {categoriasPagina.map((claveCategoria, indice) => {
-              const productos = productosPorCategoria[claveCategoria];
-              const estaVacia = productos.length === 0;
-              return (
-                <View key={claveCategoria}>
-                  {estaVacia ? (
-                    <CategoriaVaciaFila
-                      categoriaKey={claveCategoria}
-                      onAbrir={() => setCategoriaAbierta(claveCategoria)}
-                    />
-                  ) : (
-                    <CategoriaSection
-                      categoriaKey={claveCategoria}
-                      productos={productos}
-                      tamanoCasillero={tamanoCasillero}
-                      onAbrir={() => setCategoriaAbierta(claveCategoria)}
-                    />
-                  )}
-                  {indice < categoriasPagina.length - 1 && <View style={styles.repisa} />}
-                </View>
-              );
-            })}
-          </ScrollView>
-        ))}
-      </ScrollView>
+      <EstadoCarga cargando={cargandoInsumos} error={errorCargaInsumos} onReintentar={recargarInsumos}>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleScrollFin}
+          style={styles.estanteria}
+        >
+          {PAGINAS_ESTANTERIA.map((categoriasPagina, indicePagina) => (
+            <ScrollView
+              key={indicePagina}
+              style={{ width }}
+              contentContainerStyle={styles.pagina}
+              showsVerticalScrollIndicator={false}
+            >
+              {categoriasPagina.map((claveCategoria, indice) => {
+                const productos = productosPorCategoria[claveCategoria];
+                const estaVacia = productos.length === 0;
+                return (
+                  <View key={claveCategoria}>
+                    {estaVacia ? (
+                      <CategoriaVaciaFila
+                        categoriaKey={claveCategoria}
+                        onAbrir={() => setCategoriaAbierta(claveCategoria)}
+                      />
+                    ) : (
+                      <CategoriaSection
+                        categoriaKey={claveCategoria}
+                        productos={productos}
+                        tamanoCasillero={tamanoCasillero}
+                        onAbrir={() => setCategoriaAbierta(claveCategoria)}
+                      />
+                    )}
+                    {indice < categoriasPagina.length - 1 && <View style={styles.repisa} />}
+                  </View>
+                );
+              })}
+            </ScrollView>
+          ))}
+        </ScrollView>
 
-      <View style={styles.puntos}>
-        {PAGINAS_ESTANTERIA.map((_, indice) => (
-          <View key={indice} style={[styles.punto, indice === paginaActiva && styles.puntoActivo]} />
-        ))}
-      </View>
+        <View style={styles.puntos}>
+          {PAGINAS_ESTANTERIA.map((_, indice) => (
+            <View key={indice} style={[styles.punto, indice === paginaActiva && styles.puntoActivo]} />
+          ))}
+        </View>
+      </EstadoCarga>
 
       <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <Text style={styles.fabTexto}>+</Text>

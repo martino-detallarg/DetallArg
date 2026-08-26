@@ -35,13 +35,18 @@ export function TurnoProvider({ children }) {
   // guard `!turno.recetaAplicada` evita descontar dos veces si el trabajo se
   // vuelve a mover a Finalizado tras pasar por otro estado — a propósito no
   // se repone stock si se revierte hacia atrás (ver ESTADO_PROYECTO.md).
-  function actualizarEstadoTrabajo(id, nuevoEstado) {
+  //
+  // `async` porque descontarInsumos (DataContext, migrado a Supabase) ahora
+  // escribe de verdad y puede fallar: si tira, no se llega a actualizarTurno
+  // y el trabajo NO cambia de estado — quien llama debe hacer `await` +
+  // `try/catch` (ver TrabajoDetalleModal.js).
+  async function actualizarEstadoTrabajo(id, nuevoEstado) {
     const turno = getTurnoById(id);
 
     if (nuevoEstado === "Finalizado" && turno && !turno.recetaAplicada && turno.servicioId) {
       const servicio = getServicioById(turno.servicioId);
       if (servicio?.receta?.length) {
-        descontarInsumos(servicio.receta);
+        await descontarInsumos(servicio.receta);
         const recetaAplicada = servicio.receta.map((linea) => {
           const insumo = getInsumoById(linea.insumoId);
           return {

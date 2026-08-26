@@ -136,10 +136,10 @@ create table insumos (
   nombre            text not null,
   categoria         text not null
                       check (categoria in (
-                        'desengrasantes', 'shampoo', 'pulidores',
-                        'protecciones', 'interiores', 'rejuvenecedores'
+                        'lavado_exterior', 'interior', 'pulido_correccion', 'proteccion_sellado',
+                        'accesorios_consumibles', 'ceras', 'vidrios', 'llantas_neumaticos',
+                        'apc_desengrasante', 'ceramicos'
                       )),
-  ph                text,
   dilucion          text,
   rendimiento       text,
   imagen_url        text,

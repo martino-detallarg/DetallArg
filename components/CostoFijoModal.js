@@ -13,31 +13,50 @@ export default function CostoFijoModal({ visible, item, onClose }) {
   const { agregarCostoFijo, actualizarCostoFijo, eliminarCostoFijo } = useData();
   const [categoria, setCategoria] = useState(null);
   const [monto, setMonto] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
   const editando = item !== null;
 
   useEffect(() => {
     if (visible) {
       setCategoria(item?.categoria ?? null);
       setMonto(item ? String(item.monto) : "");
+      setError(null);
     }
   }, [visible, item]);
 
   const montoNumerico = Number(monto.replace(",", "."));
   const esValido = categoria !== null && monto.trim() !== "" && !Number.isNaN(montoNumerico) && montoNumerico > 0;
 
-  function handleGuardar() {
+  async function handleGuardar() {
     if (!esValido) return;
-    if (editando) {
-      actualizarCostoFijo(item.id, { categoria, monto: montoNumerico });
-    } else {
-      agregarCostoFijo({ categoria, monto: montoNumerico });
+    setCargando(true);
+    setError(null);
+    try {
+      if (editando) {
+        await actualizarCostoFijo(item.id, { categoria, monto: montoNumerico });
+      } else {
+        await agregarCostoFijo({ categoria, monto: montoNumerico });
+      }
+      onClose();
+    } catch (err) {
+      setError("No se pudo guardar el costo fijo. Probá de nuevo.");
+    } finally {
+      setCargando(false);
     }
-    onClose();
   }
 
-  function handleEliminar() {
-    eliminarCostoFijo(item.id);
-    onClose();
+  async function handleEliminar() {
+    setCargando(true);
+    setError(null);
+    try {
+      await eliminarCostoFijo(item.id);
+      onClose();
+    } catch (err) {
+      setError("No se pudo eliminar el costo fijo. Probá de nuevo.");
+    } finally {
+      setCargando(false);
+    }
   }
 
   return (
@@ -82,19 +101,26 @@ export default function CostoFijoModal({ visible, item, onClose }) {
               keyboardType="numeric"
             />
 
+            {error && <Text style={styles.error}>{error}</Text>}
+
             <View style={styles.boton}>
-              <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} />
+              <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} loading={cargando} />
             </View>
 
             {editando && (
-              <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
+              <TouchableOpacity
+                style={styles.eliminarBoton}
+                onPress={handleEliminar}
+                disabled={cargando}
+                activeOpacity={0.85}
+              >
                 <Ionicons name="trash-outline" size={16} color={colors.error} />
                 <Text style={styles.eliminarBotonTexto}>Eliminar costo fijo</Text>
               </TouchableOpacity>
             )}
 
             <View style={styles.botonCancelar}>
-              <Button title="Cancelar" variant="secondary" onPress={onClose} />
+              <Button title="Cancelar" variant="secondary" onPress={onClose} disabled={cargando} />
             </View>
           </ScrollView>
           </KeyboardAvoidingView>
@@ -150,6 +176,13 @@ const styles = StyleSheet.create({
   chipTextoSeleccionado: {
     fontFamily: fonts.bodySemiBold,
     color: colors.bg,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 4,
   },
   boton: {
     marginTop: 12,

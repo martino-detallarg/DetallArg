@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
@@ -8,9 +9,31 @@ import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 // datos del servicio), con un selector de estado debajo para ir avanzando
 // (o volviendo) por las etapas del trabajo.
 export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onCambiarEstado, onEliminar, onClose }) {
+  const [cambiandoEstado, setCambiandoEstado] = useState(false);
+  const [errorEstado, setErrorEstado] = useState(null);
+
+  // Al pasar a "Finalizado", onCambiarEstado (TurnoContext.actualizarEstadoTrabajo)
+  // ahora escribe de verdad en Supabase (descuenta insumos) y puede fallar —
+  // se resetea el error al reabrir o cambiar de turno.
+  useEffect(() => {
+    if (visible) setErrorEstado(null);
+  }, [visible, turno?.id]);
+
   if (!turno || !cliente) return null;
 
   const vehiculosDelCliente = cliente.vehiculos;
+
+  async function handleCambiarEstado(estado) {
+    setCambiandoEstado(true);
+    setErrorEstado(null);
+    try {
+      await onCambiarEstado(estado);
+    } catch (err) {
+      setErrorEstado("No se pudo actualizar el estado del trabajo. Probá de nuevo.");
+    } finally {
+      setCambiandoEstado(false);
+    }
+  }
 
   function handleEliminar() {
     Alert.alert(
@@ -105,8 +128,8 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                   <TouchableOpacity
                     key={estado}
                     style={[styles.chip, activo && styles.chipSeleccionado]}
-                    onPress={() => onCambiarEstado(estado)}
-                    disabled={activo}
+                    onPress={() => handleCambiarEstado(estado)}
+                    disabled={activo || cambiandoEstado}
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
@@ -116,8 +139,14 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                 );
               })}
             </View>
+            {errorEstado && <Text style={styles.errorEstado}>{errorEstado}</Text>}
 
-            <TouchableOpacity style={styles.eliminarBoton} onPress={handleEliminar} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.eliminarBoton}
+              onPress={handleEliminar}
+              disabled={cambiandoEstado}
+              activeOpacity={0.85}
+            >
               <Ionicons name="trash-outline" size={16} color={colors.error} />
               <Text style={styles.eliminarBotonTexto}>Eliminar turno</Text>
             </TouchableOpacity>
@@ -217,6 +246,12 @@ const styles = StyleSheet.create({
   chipTextoSeleccionado: {
     fontFamily: fonts.bodySemiBold,
     color: colors.bg,
+  },
+  errorEstado: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.error,
+    marginTop: 6,
   },
   eliminarBoton: {
     flexDirection: "row",

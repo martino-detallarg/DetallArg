@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -39,6 +40,8 @@ function FilaProducto({ producto, agregado, onAgregar }) {
   const [capacidadTotal, setCapacidadTotal] = useState("");
   const [capacidadUnidad, setCapacidadUnidad] = useState(UNIDADES_CAPACIDAD[0]);
   const [precioCompra, setPrecioCompra] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
 
   const capacidadNumerica = Number(capacidadTotal.replace(",", "."));
   const capacidadValida = capacidadTotal.trim() !== "" && !Number.isNaN(capacidadNumerica) && capacidadNumerica > 0;
@@ -48,6 +51,24 @@ function FilaProducto({ producto, agregado, onAgregar }) {
 
   const dilucionValida = !tieneMultiplesDiluciones || dilucion !== null;
   const puedeAgregar = capacidadValida && precioValido && dilucionValida;
+
+  async function handlePress() {
+    setGuardando(true);
+    setError(null);
+    try {
+      await onAgregar({
+        dilucion,
+        rendimiento: producto.rendimientoEstimado,
+        capacidadTotal: capacidadNumerica,
+        capacidadUnidad,
+        precioCompra: precioNumerico,
+      });
+    } catch (err) {
+      setError("No se pudo agregar. Probá de nuevo.");
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   return (
     <View style={styles.fila}>
@@ -152,23 +173,20 @@ function FilaProducto({ producto, agregado, onAgregar }) {
             </View>
           </View>
         </View>
+        {error && <Text style={styles.filaError}>{error}</Text>}
       </View>
 
       <TouchableOpacity
         style={[styles.botonAgregar, (agregado || !puedeAgregar) && styles.botonAgregarHecho]}
-        onPress={() =>
-          onAgregar({
-            dilucion,
-            rendimiento: producto.rendimientoEstimado,
-            capacidadTotal: capacidadNumerica,
-            capacidadUnidad,
-            precioCompra: precioNumerico,
-          })
-        }
-        disabled={agregado || !puedeAgregar}
+        onPress={handlePress}
+        disabled={agregado || !puedeAgregar || guardando}
         activeOpacity={0.85}
       >
-        <Ionicons name={agregado ? "checkmark" : "add"} size={20} color={colors.bg} />
+        {guardando ? (
+          <ActivityIndicator color={colors.bg} size="small" />
+        ) : (
+          <Ionicons name={agregado ? "checkmark" : "add"} size={20} color={colors.bg} />
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -206,8 +224,8 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
     onClose();
   }
 
-  function handleAgregar(producto, { dilucion, rendimiento, capacidadTotal, capacidadUnidad, precioCompra }) {
-    agregarInsumo({
+  async function handleAgregar(producto, { dilucion, rendimiento, capacidadTotal, capacidadUnidad, precioCompra }) {
+    await agregarInsumo({
       productoId: producto.id,
       marca: producto.marca,
       nombre: producto.nombre,
@@ -322,6 +340,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  filaError: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.error,
+    marginTop: 8,
   },
   camposEditables: {
     flexDirection: "row",
