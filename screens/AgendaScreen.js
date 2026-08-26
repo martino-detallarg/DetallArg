@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import TurnoCard from "../components/TurnoCard";
 import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
+import AlmanaqueModal from "../components/AlmanaqueModal";
 import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
 import {
@@ -24,6 +25,7 @@ export default function AgendaScreen({ navigation }) {
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState(() => new Date());
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
+  const [almanaqueVisible, setAlmanaqueVisible] = useState(false);
   // Ancho medido de la tira de días (entre las dos flechas), para armar el
   // carrusel de 3 páginas (semana anterior/actual/siguiente) que permite
   // deslizar con el dedo — ver handleScrollEndTira.
@@ -171,6 +173,14 @@ export default function AgendaScreen({ navigation }) {
         >
           <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.botonAlmanaque}
+          onPress={() => setAlmanaqueVisible(true)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
@@ -204,6 +214,16 @@ export default function AgendaScreen({ navigation }) {
           setTurnoSeleccionadoId(null);
         }}
         onClose={() => setTurnoSeleccionadoId(null)}
+      />
+
+      <AlmanaqueModal
+        visible={almanaqueVisible}
+        fechaInicial={fechaSeleccionada}
+        onSeleccionarDia={(dia) => {
+          setFechaSeleccionada(dia);
+          setAlmanaqueVisible(false);
+        }}
+        onClose={() => setAlmanaqueVisible(false)}
       />
     </SafeAreaView>
   );
@@ -254,6 +274,9 @@ const styles = StyleSheet.create({
   },
   tiraContenedor: {
     flex: 1,
+  },
+  botonAlmanaque: {
+    marginLeft: 10,
   },
   diasFila: {
     flexDirection: "row",
