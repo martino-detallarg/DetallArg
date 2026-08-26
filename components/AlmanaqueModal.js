@@ -12,6 +12,14 @@ import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const INICIALES_DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 
+// Alto de una fila de la grilla (círculo del día de 34 + el espacio del
+// punto de "con turnos" + el padding vertical de la celda). Se usa para fijar
+// la altura total de la grilla siempre en 6 filas, el máximo posible en un
+// calendario mensual (hay meses que solo necesitan 5), así el header y todo
+// lo que va debajo de la grilla no saltan de posición según el mes visible.
+const ALTO_FILA = 52;
+const FILAS_MAXIMAS_MES = 6;
+
 // Todas las celdas del mes de `mesVisible`, con `null` antes del día 1 para
 // que la grilla arranque alineada al día de la semana real (la semana
 // empieza en lunes, mismo criterio que obtenerDiasDeLaSemana en fecha.js).
@@ -175,7 +183,9 @@ const styles = StyleSheet.create({
   grilla: {
     flexDirection: "row",
     flexWrap: "wrap",
+    alignContent: "flex-start",
     marginTop: 6,
+    height: ALTO_FILA * FILAS_MAXIMAS_MES,
   },
   celda: {
     width: "14.2857%",
