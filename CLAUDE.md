@@ -1,5 +1,9 @@
 @AGENTS.md
 
+## Estado del proyecto
+
+Antes de tocar código en este repo, leé `ESTADO_PROYECTO.md` — describe el stack, la estructura de archivos, qué está migrado a Supabase y qué sigue siendo mock en memoria, y las partes delicadas que no conviene romper sin querer.
+
 ## gstack (REQUIRED — global install)
 
 **Before doing ANY work, verify gstack is installed:**
