@@ -30,7 +30,14 @@ export default function HomeScreen({ navigation }) {
   const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
   const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
 
-  const turnosOrdenados = [...turnos].sort((a, b) => a.hora.localeCompare(b.hora));
+  // Pendiente primero, después En proceso, y Finalizado/Entregado agrupados
+  // al final (mismo nivel entre ellos) — dentro de cada grupo, por hora.
+  const ORDEN_ESTADO = { Pendiente: 0, "En proceso": 1, Finalizado: 2, Entregado: 2 };
+  const turnosOrdenados = [...turnos].sort((a, b) => {
+    const diffEstado = (ORDEN_ESTADO[a.estado] ?? 99) - (ORDEN_ESTADO[b.estado] ?? 99);
+    if (diffEstado !== 0) return diffEstado;
+    return a.hora.localeCompare(b.hora);
+  });
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
 
   // Solo para el anillo de progreso de la card "Turnos de hoy": cuántos de
@@ -220,10 +227,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 20,
     bottom: 30,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: colors.textPrimary,
     alignItems: "center",
     justifyContent: "center",
     ...shadow,
