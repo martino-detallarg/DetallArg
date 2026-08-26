@@ -15,16 +15,6 @@ import { useTurnos } from "../data/TurnoContext";
 import { useTaller } from "../data/TallerContext";
 import { colors, fonts, shadow } from "../theme";
 
-const INGRESOS_DEL_MES = 1245000;
-
-function formatearMonto(valor) {
-  if (Math.abs(valor) >= 1_000_000) {
-    const millones = (valor / 1_000_000).toFixed(1).replace(".0", "").replace(".", ",");
-    return `$${millones}M`;
-  }
-  return `$${valor.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
-}
-
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
   const { turnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } = useTurnos();
@@ -106,8 +96,9 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.saludo}>Hola{misDatos.nombrePersonal ? `, ${misDatos.nombrePersonal}` : ""} 👋</Text>
 
             <View style={styles.stats}>
-              <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
-              <StatCard label="Ingresos del mes" valor={formatearMonto(INGRESOS_DEL_MES)} />
+              <View style={styles.statUnico}>
+                <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
+              </View>
             </View>
 
             <Text style={styles.seccionTitulo}>Turnos de hoy</Text>
@@ -198,9 +189,12 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "center",
     paddingHorizontal: 20,
     marginTop: 18,
+  },
+  statUnico: {
+    width: "55%",
   },
   seccionTitulo: {
     fontFamily: fonts.bodySemiBold,
