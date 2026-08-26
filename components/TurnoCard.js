@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const COLORES_ESTADO = {
@@ -7,6 +8,17 @@ const COLORES_ESTADO = {
   Finalizado: "#4C9A6A",
   Entregado: colors.accentLight,
 };
+
+// Máximo de nombres que se muestran antes de truncar con "+N" (ej. "Juan,
+// María +1"), para que la fila no se desborde con muchos asignados.
+const MAX_NOMBRES_VISIBLES = 2;
+
+function formatearEmpleadosAsignados(empleadosAsignados) {
+  const nombres = empleadosAsignados.map((e) => e.nombreEmpleado);
+  if (nombres.length <= MAX_NOMBRES_VISIBLES) return nombres.join(", ");
+  const visibles = nombres.slice(0, MAX_NOMBRES_VISIBLES).join(", ");
+  return `${visibles} +${nombres.length - MAX_NOMBRES_VISIBLES}`;
+}
 
 export default function TurnoCard({ turno, cliente, auto, onPress }) {
   const colorEstado = COLORES_ESTADO[turno.estado] ?? colors.textMuted;
@@ -23,6 +35,14 @@ export default function TurnoCard({ turno, cliente, auto, onPress }) {
           {auto ? `${auto.marca} ${auto.modelo} · ${auto.patente}` : "Auto sin datos"}
         </Text>
         <Text style={styles.servicio}>{turno.servicio}</Text>
+        {turno.empleadosAsignados?.length > 0 && (
+          <View style={styles.empleadosFila}>
+            <Ionicons name="person-outline" size={12} color={colors.textMuted} />
+            <Text style={styles.empleados} numberOfLines={1}>
+              {formatearEmpleadosAsignados(turno.empleadosAsignados)}
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={[styles.badge, { borderColor: colorEstado }]}>
@@ -74,6 +94,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  empleadosFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 3,
+  },
+  empleados: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    flexShrink: 1,
   },
   badge: {
     paddingHorizontal: 10,

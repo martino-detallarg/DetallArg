@@ -15,7 +15,11 @@ export function TurnoProvider({ children }) {
   const { getInsumoById, descontarInsumos } = useData();
 
   function agregarTurno(datosTurno) {
-    const nuevoTurno = { id: `t${Date.now()}`, ...datosTurno };
+    // empleadosAsignados guarda { empleadoId, nombreEmpleado } con el
+    // nombre "congelado" al momento de asignar (mismo criterio que
+    // recetaAplicada más abajo): si el empleado después cambia de nombre o
+    // se desactiva, el turno viejo sigue mostrando el nombre que tenía.
+    const nuevoTurno = { id: `t${Date.now()}`, empleadosAsignados: [], ...datosTurno };
     setTurnos((actuales) => [...actuales, nuevoTurno]);
     return nuevoTurno;
   }

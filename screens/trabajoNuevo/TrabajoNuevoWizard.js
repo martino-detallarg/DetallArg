@@ -15,7 +15,16 @@ function datosVacios(clienteId, autoId) {
   return {
     clienteId: clienteId ?? null,
     autoId: autoId ?? null,
-    servicio: { tipo: "", servicioId: null, precio: null, fecha: "", hora: "", tiempoEstimado: "", observaciones: "" },
+    servicio: {
+      tipo: "",
+      servicioId: null,
+      precio: null,
+      fecha: "",
+      hora: "",
+      tiempoEstimado: "",
+      observaciones: "",
+      empleadosAsignados: [],
+    },
     inspeccion: {
       tipoVehiculo: null,
       grupo: null,
@@ -88,6 +97,7 @@ export default function TrabajoNuevoWizard({
       hora: datos.servicio.hora,
       tiempoEstimado: datos.servicio.tiempoEstimado,
       observaciones: datos.servicio.observaciones,
+      empleadosAsignados: datos.servicio.empleadosAsignados,
       tipoVehiculo: datos.inspeccion.tipoVehiculo,
       grupoVehiculo: datos.inspeccion.grupo,
       subdivisionVehiculo: datos.inspeccion.subdivision,

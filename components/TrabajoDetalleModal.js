@@ -71,6 +71,19 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
               <Text style={styles.filaValor}>{turno.observaciones || "Sin observaciones"}</Text>
             </View>
 
+            {turno.empleadosAsignados?.length > 0 && (
+              <>
+                <Text style={styles.seccion}>Empleados asignados</Text>
+                <View style={styles.tarjeta}>
+                  {turno.empleadosAsignados.map((e) => (
+                    <Text key={e.empleadoId} style={styles.filaValor}>
+                      · {e.nombreEmpleado}
+                    </Text>
+                  ))}
+                </View>
+              </>
+            )}
+
             {turno.recetaAplicada?.length > 0 && (
               <>
                 <Text style={styles.seccion}>Insumos usados</Text>

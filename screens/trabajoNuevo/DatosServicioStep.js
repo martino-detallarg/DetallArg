@@ -17,12 +17,15 @@ import {
 } from "../../utils/fecha";
 import { useServicios } from "../../data/ServicioContext";
 import { useTaller } from "../../data/TallerContext";
+import { useEquipo } from "../../data/EquipoContext";
 import { formatearPesos } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
 export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
   const { servicios } = useServicios();
-  const { horarios } = useTaller();
+  const { horarios, limiteEmpleados } = useTaller();
+  const { empleados } = useEquipo();
+  const empleadosActivos = empleados.filter((e) => e.activo);
   const [errores, setErrores] = useState({});
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [mostrarPickerHora, setMostrarPickerHora] = useState(false);
@@ -79,6 +82,15 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     onCambiar({ tipo: servicio.nombre, servicioId: servicio.id, precio: servicio.precio });
   }
 
+  function toggleEmpleado(empleado) {
+    const asignadosActuales = datos.empleadosAsignados ?? [];
+    const yaAsignado = asignadosActuales.some((e) => e.empleadoId === empleado.id);
+    const empleadosAsignados = yaAsignado
+      ? asignadosActuales.filter((e) => e.empleadoId !== empleado.id)
+      : [...asignadosActuales, { empleadoId: empleado.id, nombreEmpleado: empleado.nombre }];
+    onCambiar({ empleadosAsignados });
+  }
+
   const esValido =
     !!datos.servicioId &&
     datos.fecha.trim() !== "" &&
@@ -119,6 +131,40 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
           </View>
         )}
         {errores.tipo && <Text style={styles.error}>{errores.tipo}</Text>}
+
+        {limiteEmpleados === 0 ? (
+          <View style={styles.empleadosBloqueado}>
+            <View style={styles.empleadosBloqueadoTitulo}>
+              <Ionicons name="lock-closed" size={14} color={colors.textMuted} />
+              <Text style={styles.empleadosBloqueadoTexto}>Empleados asignados</Text>
+            </View>
+            <Text style={styles.empleadosBloqueadoAyuda}>Disponible en el plan Intermedio o PRO.</Text>
+          </View>
+        ) : (
+          empleadosActivos.length > 0 && (
+            <View style={styles.empleadosContenedor}>
+              <Text style={styles.label}>Empleados asignados</Text>
+              <View style={styles.chips}>
+                {empleadosActivos.map((empleado) => {
+                  const asignado = (datos.empleadosAsignados ?? []).some(
+                    (e) => e.empleadoId === empleado.id
+                  );
+                  return (
+                    <TouchableOpacity
+                      key={empleado.id}
+                      style={[styles.chip, asignado && styles.chipSeleccionado]}
+                      onPress={() => toggleEmpleado(empleado)}
+                    >
+                      <Text style={[styles.chipTexto, asignado && styles.chipTextoSeleccionado]}>
+                        {empleado.nombre}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )
+        )}
 
         <View style={styles.fechaContenedor}>
           <Text style={styles.label}>Fecha</Text>
@@ -285,6 +331,34 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     marginBottom: 4,
+  },
+  empleadosBloqueado: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderAccent,
+    padding: 14,
+    marginBottom: 16,
+  },
+  empleadosBloqueadoTitulo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  empleadosBloqueadoTexto: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  empleadosBloqueadoAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  empleadosContenedor: {
+    marginBottom: 16,
   },
   fechaContenedor: {
     marginBottom: 16,
