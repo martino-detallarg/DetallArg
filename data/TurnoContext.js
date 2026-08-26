@@ -43,12 +43,15 @@ const COLUMNAS_TURNO =
   "id, cliente_id, vehiculo_id, servicio_id, servicio_nombre, precio, fecha, hora, " +
   "tiempo_estimado, observaciones, estado, tipo_vehiculo, grupo_vehiculo, " +
   "subdivision_vehiculo, nivel_nafta, turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad), " +
-  "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado)";
+  "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado), " +
+  "turno_fotos_danio(storage_path)";
 
 // Traduce una fila de `turnos` + sus embeds (turno_receta_aplicada,
-// turno_danios, turno_empleados) a la forma que espera el resto de la app.
-// `fotosDano` queda en su valor vacío por defecto: turno_fotos_danio todavía
-// no se escribe ni se lee desde acá (Etapa D de la migración).
+// turno_danios, turno_empleados, turno_fotos_danio) a la forma que espera el
+// resto de la app. `fotosDano` queda como el array de `storage_path` (no
+// signed URLs): todavía no hay ninguna pantalla que muestre las fotos, así
+// que generar URLs firmadas acá sería trabajo de más para datos que nadie
+// mira — eso se resuelve el día que exista un consumidor real.
 function filaATurno(fila) {
   return {
     id: fila.id,
@@ -73,7 +76,7 @@ function filaATurno(fila) {
     danios: Object.fromEntries(
       fila.turno_danios.map((d) => [d.zona_id, { tipos: d.tipos, nota: d.nota ?? "" }])
     ),
-    fotosDano: [],
+    fotosDano: fila.turno_fotos_danio.map((f) => f.storage_path),
     // null (no []) cuando todavía no hay snapshot: el guard de
     // actualizarEstadoTrabajo es `!turno.recetaAplicada`, y un array vacío
     // es truthy en JS — con null el guard se comporta igual que hoy.
@@ -89,17 +92,13 @@ function filaATurno(fila) {
   };
 }
 
-// Migrado a Supabase (tabla `turnos` + snapshot en `turno_receta_aplicada`,
+// Migrado a Supabase por completo: `turnos` + sus 4 tablas relacionadas
+// (turno_receta_aplicada, turno_danios, turno_empleados, turno_fotos_danio,
 // ver supabase/schema.sql). Todas las mutaciones son `async` y escriben de
 // verdad contra Supabase antes de tocar el estado local (sin actualización
 // optimista, mismo criterio que el resto de los Contexts ya migrados): si
 // Supabase devuelve error, se relanza (`throw`) y el estado en memoria no se
 // toca — quien llama debe hacer `await` + `try/catch`.
-//
-// Fuera de alcance todavía (Etapa D): turno_fotos_danio. Si un turno nuevo
-// trae fotos de daños, esos datos quedan solo en memoria de esta sesión —
-// se pierden al recargar, igual que pasaba con todo TurnoContext antes de
-// migrar.
 export function TurnoProvider({ children }) {
   const { user } = useAuth();
   const [turnos, setTurnos] = useState([]);
@@ -146,16 +145,55 @@ export function TurnoProvider({ children }) {
     setIntentoCargaTurnos((n) => n + 1);
   }
 
-  // Daños y empleados asignados se escriben UNA SOLA VEZ, acá: no existe
-  // ninguna pantalla que edite un turno ya guardado, así que a diferencia de
-  // servicio_receta_items no hace falta reconciliar (upsert+delete) — es un
-  // insert puro.
+  // Sube las fotos de daño (locales, [{ uri, mimeType }]) al bucket privado
+  // fotos-danios (ver supabase/storage_fotos_danios.sql) y recién después
+  // inserta sus filas en turno_fotos_danio. Ruta por foto:
+  // {taller_id}/{turno_id}/{timestamp}-{indice}.{ext}, con un solo
+  // Date.now() compartido por todo el lote (no uno por foto) y el índice
+  // disambiguando dentro del lote. Sube de a una (no en paralelo entre sí)
+  // para saber con precisión cuáles quedaron subidas si alguna falla a
+  // mitad de camino — esas rutas se devuelven igual (`rutas`) aunque haya
+  // error, pero por decisión explícita NO se intenta limpiarlas de Storage:
+  // si todo el turno se termina borrando por este error (ver agregarTurno),
+  // esos archivos quedan huérfanos en el bucket — costo aceptado a
+  // propósito (bucket privado, nadie los ve, no amerita más código para un
+  // camino de falla poco frecuente).
+  async function subirFotosDano(turnoId, fotos) {
+    if (!fotos || fotos.length === 0) return { error: null, rutas: [] };
+
+    const marcaTiempo = Date.now();
+    const rutas = [];
+    for (let indice = 0; indice < fotos.length; indice++) {
+      const { uri, mimeType } = fotos[indice];
+      const extension = mimeType === "image/png" ? "png" : "jpg";
+      const ruta = `${user.id}/${turnoId}/${marcaTiempo}-${indice}.${extension}`;
+
+      const respuesta = await fetch(uri);
+      const arrayBuffer = await respuesta.arrayBuffer();
+      const { error } = await supabase.storage
+        .from("fotos-danios")
+        .upload(ruta, arrayBuffer, { contentType: mimeType || "image/jpeg" });
+      if (error) return { error, rutas };
+
+      rutas.push(ruta);
+    }
+
+    const filas = rutas.map((ruta) => ({ turno_id: turnoId, storage_path: ruta }));
+    const { error: errorInsert } = await supabase.from("turno_fotos_danio").insert(filas);
+    return { error: errorInsert ?? null, rutas };
+  }
+
+  // Daños, empleados asignados y fotos se escriben UNA SOLA VEZ, acá: no
+  // existe ninguna pantalla que edite un turno ya guardado, así que a
+  // diferencia de servicio_receta_items no hace falta reconciliar
+  // (upsert+delete) — son inserts puros (y, para las fotos, además la
+  // subida a Storage).
   //
-  // Si el insert de turnos confirma pero el de daños/empleados falla
+  // Si el insert de turnos confirma pero cualquiera de los tres falla
   // después, se borra el turno recién creado antes de relanzar el error —
   // sin este `DELETE` de compensación, un reintento del usuario (que ve el
   // error y vuelve a guardar) crearía un turno duplicado además del
-  // huérfano sin daños/empleados que hubiera quedado en Supabase.
+  // huérfano que hubiera quedado en Supabase.
   async function agregarTurno(datosTurno) {
     const camposDb = turnoACamposDb(datosTurno);
     const { data, error } = await supabase
@@ -177,28 +215,29 @@ export function TurnoProvider({ children }) {
       nombre_empleado: e.nombreEmpleado,
     }));
 
-    const [resultadoDanios, resultadoEmpleados] = await Promise.all([
+    const [resultadoDanios, resultadoEmpleados, resultadoFotos] = await Promise.all([
       filasDanios.length > 0
         ? supabase.from("turno_danios").insert(filasDanios)
         : Promise.resolve({ error: null }),
       filasEmpleados.length > 0
         ? supabase.from("turno_empleados").insert(filasEmpleados)
         : Promise.resolve({ error: null }),
+      subirFotosDano(data.id, datosTurno.fotosDano),
     ]);
-    const errorHijos = resultadoDanios.error ?? resultadoEmpleados.error;
+    const errorHijos = resultadoDanios.error ?? resultadoEmpleados.error ?? resultadoFotos.error;
     if (errorHijos) {
       await supabase.from("turnos").delete().eq("id", data.id);
       throw errorHijos;
     }
 
-    // fotosDano no tiene dónde persistir todavía (Etapa D) — se guarda igual
-    // en el objeto local para que la sesión actual lo siga mostrando, mismo
-    // criterio que cualquier Context que todavía no migró del todo.
+    // fotosDano se normaliza a las rutas de Storage ya subidas (misma forma
+    // que devolvería un fetch después, ver filaATurno) en vez de los
+    // objetos { uri, mimeType } locales del picker.
     const nuevoTurno = {
       ...filaATurno(data),
       empleadosAsignados: datosTurno.empleadosAsignados ?? [],
       danios: datosTurno.danios ?? {},
-      fotosDano: datosTurno.fotosDano ?? [],
+      fotosDano: resultadoFotos.rutas,
     };
     setTurnos((actuales) => [...actuales, nuevoTurno]);
     return nuevoTurno;

@@ -70,7 +70,8 @@ export default function InspeccionVisualStep({
     });
 
     if (!resultado.canceled) {
-      onCambiar({ fotosDano: [...datos.fotosDano, ...resultado.assets.map((a) => a.uri)] });
+      const nuevasFotos = resultado.assets.map((a) => ({ uri: a.uri, mimeType: a.mimeType }));
+      onCambiar({ fotosDano: [...datos.fotosDano, ...nuevasFotos] });
     }
   }
 
