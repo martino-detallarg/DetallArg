@@ -8,7 +8,7 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 // estantería como en la pantalla de categoría completa. El relleno que sube
 // desde abajo representa el nivel de stock; la franja de nombre es temporal
 // hasta que tengamos fotos reales de los productos.
-export default function ProductoCasillero({ producto, tamano }) {
+export default function ProductoCasillero({ producto, tamano, onPress }) {
   const categoria = CATEGORIAS[producto.categoria];
   const nivel = Math.max(0, Math.min(100, producto.nivel ?? 0));
   const stockBajo = nivel <= UMBRAL_STOCK_BAJO;
@@ -16,7 +16,12 @@ export default function ProductoCasillero({ producto, tamano }) {
   const enPedido = estaEnPedido(producto.id);
 
   return (
-    <View style={[styles.casillero, { width: tamano, height: tamano }]}>
+    <TouchableOpacity
+      style={[styles.casillero, { width: tamano, height: tamano }]}
+      onPress={onPress ? () => onPress(producto) : undefined}
+      disabled={!onPress}
+      activeOpacity={0.85}
+    >
       <View style={[styles.relleno, { height: `${nivel}%` }]} />
 
       <TouchableOpacity
@@ -54,7 +59,7 @@ export default function ProductoCasillero({ producto, tamano }) {
           {producto.nombre}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

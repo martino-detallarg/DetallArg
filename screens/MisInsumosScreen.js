@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import AgregarInsumoModal from "../components/AgregarInsumoModal";
 import CategoriaInsumosModal from "../components/CategoriaInsumosModal";
+import MoverCategoriaModal from "../components/MoverCategoriaModal";
 import ProductoCasillero from "../components/ProductoCasillero";
 import { useData } from "../data/DataContext";
 import { CATEGORIAS, ORDEN_CATEGORIAS, PAGINAS_ESTANTERIA } from "../data/mockInsumos";
@@ -23,7 +24,7 @@ const MAX_COMPACTO = 3;
 const PADDING_GRILLA = 20;
 const ESPACIO_CASILLERO = 12;
 
-function CategoriaSection({ categoriaKey, productos, tamanoCasillero, onAbrir }) {
+function CategoriaSection({ categoriaKey, productos, tamanoCasillero, onAbrir, onSeleccionarProducto }) {
   const categoria = CATEGORIAS[categoriaKey];
   const visibles = productos.slice(0, MAX_COMPACTO);
 
@@ -43,7 +44,12 @@ function CategoriaSection({ categoriaKey, productos, tamanoCasillero, onAbrir })
       ) : (
         <View style={styles.filaCasilleros}>
           {visibles.map((producto) => (
-            <ProductoCasillero key={producto.id} producto={producto} tamano={tamanoCasillero} />
+            <ProductoCasillero
+              key={producto.id}
+              producto={producto}
+              tamano={tamanoCasillero}
+              onPress={onSeleccionarProducto}
+            />
           ))}
         </View>
       )}
@@ -57,6 +63,7 @@ export default function MisInsumosScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [categoriaAbierta, setCategoriaAbierta] = useState(null);
   const [paginaActiva, setPaginaActiva] = useState(0);
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
 
   const tamanoCasillero =
     (width - PADDING_GRILLA * 2 - ESPACIO_CASILLERO * (COLUMNAS - 1)) / COLUMNAS;
@@ -107,6 +114,7 @@ export default function MisInsumosScreen({ navigation }) {
                   productos={productosPorCategoria[claveCategoria]}
                   tamanoCasillero={tamanoCasillero}
                   onAbrir={() => setCategoriaAbierta(claveCategoria)}
+                  onSeleccionarProducto={setProductoSeleccionado}
                 />
                 {indice < categoriasPagina.length - 1 && <View style={styles.repisa} />}
               </View>
@@ -132,6 +140,19 @@ export default function MisInsumosScreen({ navigation }) {
         categoriaKey={categoriaAbierta}
         productos={categoriaAbierta ? productosPorCategoria[categoriaAbierta] : []}
         onClose={() => setCategoriaAbierta(null)}
+      />
+
+      {/* Instancia propia para los casilleros de la estantería compacta (no
+          los de CategoriaInsumosModal, que maneja la suya para poder ocultar
+          su propio Modal de pantalla completa mientras este está abierto —
+          ver el comentario en CategoriaInsumosModal.js). Nunca coexisten
+          visibles: los casilleros de acá solo son tocables cuando ningún
+          Modal de pantalla completa (CategoriaInsumosModal/AgregarInsumoModal)
+          está cubriendo la pantalla. */}
+      <MoverCategoriaModal
+        visible={productoSeleccionado !== null}
+        insumo={productoSeleccionado}
+        onClose={() => setProductoSeleccionado(null)}
       />
     </SafeAreaView>
   );

@@ -31,6 +31,7 @@ import { PedidoProvider } from "./data/PedidoContext";
 import { ClienteProvider } from "./data/ClienteContext";
 import { TurnoProvider } from "./data/TurnoContext";
 import { ServicioProvider } from "./data/ServicioContext";
+import { CatalogoProvider } from "./data/CatalogoContext";
 import { EquipoProvider } from "./data/EquipoContext";
 import { colors } from "./theme";
 
@@ -147,17 +148,19 @@ function FlujoApp() {
         <DataProvider>
           <ClienteProvider>
             <ServicioProvider>
-              <TurnoProvider>
-                <TallerProvider>
-                  <PedidoProvider>
-                    <EquipoProvider>
-                      <NavigationContainer>
-                        <DashboardNavigator />
-                      </NavigationContainer>
-                    </EquipoProvider>
-                  </PedidoProvider>
-                </TallerProvider>
-              </TurnoProvider>
+              <CatalogoProvider>
+                <TurnoProvider>
+                  <TallerProvider>
+                    <PedidoProvider>
+                      <EquipoProvider>
+                        <NavigationContainer>
+                          <DashboardNavigator />
+                        </NavigationContainer>
+                      </EquipoProvider>
+                    </PedidoProvider>
+                  </TallerProvider>
+                </TurnoProvider>
+              </CatalogoProvider>
             </ServicioProvider>
           </ClienteProvider>
         </DataProvider>

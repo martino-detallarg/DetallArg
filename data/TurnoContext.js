@@ -42,7 +42,19 @@ export function TurnoProvider({ children }) {
       const servicio = getServicioById(turno.servicioId);
       if (servicio?.receta?.length) {
         descontarInsumos(servicio.receta);
+        // Una línea "libre" (insumo sin ficha en Mis Insumos, ver
+        // RecetaServicioStep.js) no tiene insumoId/cantidad: se congela con
+        // su nombre y costo estimado tal como se cargaron, en vez de
+        // intentar resolverla como si fuera del catálogo de insumos.
         const recetaAplicada = servicio.receta.map((linea) => {
+          if (linea.libre) {
+            return {
+              libre: true,
+              libreId: linea.libreId,
+              nombreInsumo: linea.nombre,
+              costoEstimado: linea.costoEstimado,
+            };
+          }
           const insumo = getInsumoById(linea.insumoId);
           return {
             insumoId: linea.insumoId,

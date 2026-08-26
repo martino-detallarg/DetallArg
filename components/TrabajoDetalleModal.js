@@ -2,6 +2,7 @@ import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
 import { ESTADOS_TRABAJO } from "../data/mockData";
+import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 // Detalle de solo lectura de un trabajo ya cargado (cliente, vehículo y
@@ -89,8 +90,9 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                 <Text style={styles.seccion}>Insumos usados</Text>
                 <View style={styles.tarjeta}>
                   {turno.recetaAplicada.map((linea) => (
-                    <Text key={linea.insumoId} style={styles.filaValor}>
-                      · {linea.nombreInsumo} — {linea.cantidad} {linea.unidad}
+                    <Text key={linea.libre ? linea.libreId : linea.insumoId} style={styles.filaValor}>
+                      · {linea.nombreInsumo} —{" "}
+                      {linea.libre ? formatearPesos(linea.costoEstimado) : `${linea.cantidad} ${linea.unidad}`}
                     </Text>
                   ))}
                 </View>

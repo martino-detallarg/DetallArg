@@ -1,0 +1,126 @@
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Button from "./Button";
+import { useData } from "../data/DataContext";
+import { CATEGORIAS } from "../data/mockInsumos";
+import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
+
+// Modal chico (bottom sheet) para mover un insumo ya cargado en "Mis
+// Insumos" a otra categoría de la estantería. Se abre desde un
+// ProductoCasillero (ver MisInsumosScreen.js y CategoriaInsumosModal.js).
+export default function MoverCategoriaModal({ visible, insumo, onClose }) {
+  const { moverInsumoDeCategoria } = useData();
+
+  function handleElegir(clave) {
+    if (!insumo || clave === insumo.categoria) return;
+    moverInsumoDeCategoria(insumo.id, clave);
+    onClose();
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.fondo}>
+        <View style={styles.contenedor}>
+          <Text style={styles.titulo}>Mover a otra categoría</Text>
+          {insumo ? (
+            <Text style={styles.subtitulo} numberOfLines={1}>
+              {insumo.nombre}
+            </Text>
+          ) : null}
+
+          <ScrollView style={styles.lista} showsVerticalScrollIndicator={false}>
+            {Object.entries(CATEGORIAS).map(([clave, datos]) => {
+              const esActual = insumo?.categoria === clave;
+              return (
+                <TouchableOpacity
+                  key={clave}
+                  style={[styles.opcion, esActual && styles.opcionActual]}
+                  onPress={() => handleElegir(clave)}
+                  disabled={esActual}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.opcionIcono}>
+                    <Ionicons name={datos.icono} size={20} color={colors.accentLight} />
+                  </View>
+                  <Text style={styles.opcionTexto}>{datos.etiqueta}</Text>
+                  {esActual ? (
+                    <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <Button title="Cancelar" variant="secondary" onPress={onClose} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  fondo: {
+    flex: 1,
+    backgroundColor: "rgba(4, 3, 3, 0.7)",
+    justifyContent: "flex-end",
+  },
+  contenedor: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.card,
+    borderTopRightRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 20,
+    gap: 12,
+    maxHeight: "75%",
+    ...shadow,
+    shadowOffset: { width: 0, height: -4 },
+  },
+  titulo: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    color: colors.textPrimary,
+  },
+  subtitulo: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  lista: {
+    flexGrow: 0,
+  },
+  opcion: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 12,
+    gap: 12,
+    marginBottom: 8,
+  },
+  opcionActual: {
+    borderColor: colors.accent,
+  },
+  opcionIcono: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    backgroundColor: colors.accentDark,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  opcionTexto: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+});

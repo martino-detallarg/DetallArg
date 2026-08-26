@@ -13,30 +13,33 @@ export function DataProvider({ children }) {
     marca,
     nombre,
     categoria,
-    ph,
-    dilucion,
+    diluciones,
     rendimiento,
     imagen,
     precioCompra,
     capacidadTotal,
     capacidadUnidad,
+    cantidadActual,
+    esPersonalizado = false,
   }) {
+    const nivel =
+      capacidadTotal > 0
+        ? Math.max(0, Math.min(100, Math.round((cantidadActual / capacidadTotal) * 100)))
+        : 100;
     const nuevoInsumo = {
       id: `mi${Date.now()}`,
       productoId,
       marca,
       nombre,
       categoria,
-      ph,
-      dilucion,
+      diluciones,
       rendimiento,
       imagen,
       precioCompra,
       capacidadTotal,
       capacidadUnidad,
-      // Un insumo recién agregado se asume lleno hasta que carguemos control
-      // real de stock.
-      nivel: 100,
+      esPersonalizado,
+      nivel,
     };
     setMisInsumos((actuales) => [...actuales, nuevoInsumo]);
     return nuevoInsumo;
@@ -44,6 +47,12 @@ export function DataProvider({ children }) {
 
   function getInsumoById(id) {
     return misInsumos.find((i) => i.id === id);
+  }
+
+  function moverInsumoDeCategoria(id, nuevaCategoria) {
+    setMisInsumos((actuales) =>
+      actuales.map((insumo) => (insumo.id === id ? { ...insumo, categoria: nuevaCategoria } : insumo))
+    );
   }
 
   // Descuenta stock de insumos según una receta de servicio ([{ insumoId,
@@ -85,6 +94,7 @@ export function DataProvider({ children }) {
       costosFijos,
       agregarInsumo,
       getInsumoById,
+      moverInsumoDeCategoria,
       descontarInsumos,
       agregarCostoFijo,
       actualizarCostoFijo,
