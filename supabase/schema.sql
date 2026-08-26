@@ -223,6 +223,10 @@ create table turnos (
   -- de precio después). Mismo principio que turno_receta_aplicada.
   precio                 numeric(12, 2),
 
+  -- Copia congelada del NOMBRE del servicio, mismo criterio que precio: no
+  -- se recalcula si el servicio se renombra o se borra después.
+  servicio_nombre        text,
+
   fecha                  date,
   hora                   time,
   tiempo_estimado        text, -- sigue como texto libre ("2 horas"), no normalizado
@@ -240,6 +244,23 @@ create table turnos (
 
   created_at             timestamptz not null default now(),
   updated_at             timestamptz not null default now()
+);
+
+-- Empleados asignados a un turno (antes: turno.empleadosAsignados,
+-- [{ empleadoId, nombreEmpleado }]). `nombre_empleado` va denormalizado
+-- (nombre congelado al momento de asignar, no resuelto por join), mismo
+-- criterio que turno_receta_aplicada: si el empleado cambia de nombre o se
+-- desactiva después, la asignación histórica no se ve afectada.
+create table turno_empleados (
+  id               uuid primary key default gen_random_uuid(),
+  turno_id         uuid not null references turnos (id) on delete cascade,
+
+  -- SET NULL (no CASCADE): borrar un empleado no debería borrar el
+  -- historial de a qué turnos estuvo asignado.
+  empleado_id      uuid references empleados (id) on delete set null,
+  nombre_empleado  text not null,
+
+  unique (turno_id, empleado_id)
 );
 
 -- Daños previos por zona del diagrama (antes: turno.danios, mapa

@@ -272,9 +272,9 @@ create policy "servicio_receta_items_delete_propio"
   );
 
 -- ----------------------------------------------------------------------------
--- turnos — taller_id directo. SELECT/INSERT/UPDATE (agregarTurno,
--- actualizarTurno/actualizarEstadoTrabajo). SIN DELETE a propósito: no
--- existe `eliminarTurno` en TurnoContext todavía — mínimo privilegio.
+-- turnos — taller_id directo. CRUD completo (agregarTurno,
+-- actualizarTurno/actualizarEstadoTrabajo, eliminarTurno — ya conectado a
+-- HomeScreen.js/AgendaScreen.js).
 -- ----------------------------------------------------------------------------
 
 alter table public.turnos enable row level security;
@@ -294,6 +294,53 @@ create policy "turnos_update_propio"
   on public.turnos for update to authenticated
   using (auth.uid() = taller_id)
   with check (auth.uid() = taller_id);
+
+drop policy if exists "turnos_delete_propio" on public.turnos;
+create policy "turnos_delete_propio"
+  on public.turnos for delete to authenticated
+  using (auth.uid() = taller_id);
+
+-- ----------------------------------------------------------------------------
+-- turno_empleados — SIN taller_id propio: ownership vía turnos.taller_id.
+-- SOLO SELECT/INSERT/DELETE: toggleEmpleado (DatosServicioStep.js) agrega o
+-- saca una asignación completa, nunca edita el nombre congelado de una ya
+-- existente — sin UPDATE, mínimo privilegio.
+-- ----------------------------------------------------------------------------
+
+alter table public.turno_empleados enable row level security;
+
+drop policy if exists "turno_empleados_select_propio" on public.turno_empleados;
+create policy "turno_empleados_select_propio"
+  on public.turno_empleados for select to authenticated
+  using (
+    exists (
+      select 1 from public.turnos
+      where turnos.id = turno_empleados.turno_id
+        and turnos.taller_id = auth.uid()
+    )
+  );
+
+drop policy if exists "turno_empleados_insert_propio" on public.turno_empleados;
+create policy "turno_empleados_insert_propio"
+  on public.turno_empleados for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.turnos
+      where turnos.id = turno_empleados.turno_id
+        and turnos.taller_id = auth.uid()
+    )
+  );
+
+drop policy if exists "turno_empleados_delete_propio" on public.turno_empleados;
+create policy "turno_empleados_delete_propio"
+  on public.turno_empleados for delete to authenticated
+  using (
+    exists (
+      select 1 from public.turnos
+      where turnos.id = turno_empleados.turno_id
+        and turnos.taller_id = auth.uid()
+    )
+  );
 
 -- ----------------------------------------------------------------------------
 -- turno_danios — SIN taller_id propio: ownership vía turnos.taller_id.
