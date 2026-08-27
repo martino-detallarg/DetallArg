@@ -127,27 +127,18 @@ export function DataProvider({ children }) {
   // recalcular/auditar más adelante, y además se usa acá para calcular
   // `nivel` (0-100) antes de insertar — `nivel` sigue siendo el valor
   // derivado que usa el resto de la app (estantería, stock bajo, etc.).
-  // Shim de compatibilidad TEMPORAL: mientras AgregarInsumoModal.js siga sin
-  // actualizarse (sigue mandando `dilucion` suelto y no manda
-  // `cantidadActual`), esto evita que el alta rompa contra el esquema
-  // nuevo — `dilucion` legacy se envuelve en un array de 1, y sin
-  // `cantidadActual` se asume el envase lleno (mismo comportamiento que
-  // tenía `agregarInsumo` antes de esta migración: nivel = 100). Borrar
-  // este shim (y el parámetro `dilucion`) el día que ese modal se
-  // reescriba para cargar diluciones múltiples/cantidad real/personalizado.
   async function agregarInsumo({
     productoId,
     marca,
     nombre,
     categoria,
-    dilucion,
-    diluciones = dilucion ? [dilucion] : [],
+    diluciones,
     rendimiento,
     imagen,
     precioCompra,
     capacidadTotal,
     capacidadUnidad,
-    cantidadActual = capacidadTotal,
+    cantidadActual,
     esPersonalizado = false,
   }) {
     const nivel =

@@ -94,6 +94,14 @@ export function formatearFechaLarga(fecha) {
   return `${DIAS_SEMANA_LARGO[fecha.getDay()]} ${fecha.getDate()} de ${MESES_LARGO[fecha.getMonth()]}`;
 }
 
+// "agosto 2026" — para el label chico de mes/año arriba de la tira de días
+// de la Agenda (el textTransform: "uppercase" del estilo se encarga de
+// mostrarlo en mayúsculas, mismo criterio que el resto de los labels chicos
+// en fonts.mono).
+export function formatearMesAnio(fecha) {
+  return `${MESES_LARGO[fecha.getMonth()]} ${fecha.getFullYear()}`;
+}
+
 // Inversa de parsearFechaDDMMAAAA: arma el string "DD/MM/AAAA" a partir de
 // la fecha elegida en el date picker nativo, para que el valor guardado
 // siga siendo compatible con el resto de la app (que todavía trata la

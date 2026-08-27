@@ -11,6 +11,8 @@ export const colors = {
   borderSubtle: "rgba(192, 201, 202, 0.12)",
   borderAccent: "rgba(82, 156, 193, 0.38)",
   error: "#B5564A",
+  amber: "#D9A441",
+  success: "#5DCAA5",
 };
 
 export const radii = {
