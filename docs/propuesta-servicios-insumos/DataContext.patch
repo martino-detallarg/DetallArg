@@ -1,0 +1,110 @@
+diff --git a/data/DataContext.js b/data/DataContext.js
+index 03fb226..10d35aa 100644
+--- a/data/DataContext.js
++++ b/data/DataContext.js
+@@ -15,18 +15,20 @@ function filaAInsumo(fila) {
+     marca: fila.marca,
+     nombre: fila.nombre,
+     categoria: fila.categoria,
+-    dilucion: fila.dilucion,
++    diluciones: fila.diluciones ?? [],
+     rendimiento: fila.rendimiento,
+     imagen: fila.imagen_url,
+     precioCompra: fila.precio_compra,
+     capacidadTotal: fila.capacidad_total,
+     capacidadUnidad: fila.capacidad_unidad,
++    cantidadActual: fila.cantidad_actual,
++    esPersonalizado: fila.es_personalizado ?? false,
+     nivel: fila.nivel,
+   };
+ }
+ 
+ const COLUMNAS_INSUMO =
+-  "id, producto_id, marca, nombre, categoria, dilucion, rendimiento, imagen_url, precio_compra, capacidad_total, capacidad_unidad, nivel";
++  "id, producto_id, marca, nombre, categoria, diluciones, rendimiento, imagen_url, precio_compra, capacidad_total, capacidad_unidad, cantidad_actual, es_personalizado, nivel";
+ 
+ // Migrado a Supabase (tablas `insumos` y `costos_fijos`, ver supabase/schema.sql).
+ // Todas las mutaciones son `async` y escriben de verdad contra Supabase antes
+@@ -120,18 +122,30 @@ export function DataProvider({ children }) {
+     setIntentoCargaCostosFijos((n) => n + 1);
+   }
+ 
++  // `cantidadActual` (cuánto tiene el taller ahora mismo, en la unidad de
++  // `capacidadUnidad`) se persiste tal cual en `cantidad_actual` para poder
++  // recalcular/auditar más adelante, y además se usa acá para calcular
++  // `nivel` (0-100) antes de insertar — `nivel` sigue siendo el valor
++  // derivado que usa el resto de la app (estantería, stock bajo, etc.).
+   async function agregarInsumo({
+     productoId,
+     marca,
+     nombre,
+     categoria,
+-    dilucion,
++    diluciones,
+     rendimiento,
+     imagen,
+     precioCompra,
+     capacidadTotal,
+     capacidadUnidad,
++    cantidadActual,
++    esPersonalizado = false,
+   }) {
++    const nivel =
++      capacidadTotal > 0
++        ? Math.max(0, Math.min(100, Math.round((cantidadActual / capacidadTotal) * 100)))
++        : 100;
++
+     const { data, error } = await supabase
+       .from("insumos")
+       .insert({
+@@ -140,12 +154,15 @@ export function DataProvider({ children }) {
+         marca,
+         nombre,
+         categoria,
+-        dilucion,
++        diluciones,
+         rendimiento,
+         imagen_url: imagen,
+         precio_compra: precioCompra,
+         capacidad_total: capacidadTotal,
+         capacidad_unidad: capacidadUnidad,
++        cantidad_actual: cantidadActual,
++        es_personalizado: esPersonalizado,
++        nivel,
+       })
+       .select(COLUMNAS_INSUMO)
+       .single();
+@@ -160,13 +177,24 @@ export function DataProvider({ children }) {
+     return misInsumos.find((i) => i.id === id);
+   }
+ 
++  async function moverInsumoDeCategoria(id, nuevaCategoria) {
++    const { error } = await supabase.from("insumos").update({ categoria: nuevaCategoria }).eq("id", id);
++    if (error) throw error;
++
++    setMisInsumos((actuales) =>
++      actuales.map((insumo) => (insumo.id === id ? { ...insumo, categoria: nuevaCategoria } : insumo))
++    );
++  }
++
+   // Descuenta stock de insumos según una receta de servicio ([{ insumoId,
+   // cantidad }], cantidad en la unidad de `capacidadUnidad` de ese insumo).
+   // Se llama una sola vez por trabajo, desde TurnoContext.actualizarEstadoTrabajo
+   // al pasar a "Finalizado" — ver ese archivo para la lógica de "no descontar
+   // dos veces". Un insumo sin `capacidadTotal` cargada o que ya no exista
+   // (borrado de Mis Insumos) se ignora en vez de romper el descuento del
+-  // resto de la receta.
++  // resto de la receta — también ignora silenciosamente las líneas "libres"
++  // de la receta (sin insumoId, ver RecetaServicioStep.js), que no tienen
++  // stock real que descontar.
+   //
+   // Async, sin actualización optimista igual que el resto de este archivo:
+   // se escriben TODOS los `UPDATE` de la receta primero (en paralelo) y solo
+@@ -244,6 +272,7 @@ export function DataProvider({ children }) {
+       recargarCostosFijos,
+       agregarInsumo,
+       getInsumoById,
++      moverInsumoDeCategoria,
+       descontarInsumos,
+       agregarCostoFijo,
+       actualizarCostoFijo,
