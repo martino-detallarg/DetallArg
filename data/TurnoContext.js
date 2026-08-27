@@ -42,7 +42,8 @@ function turnoACamposDb(datos) {
 const COLUMNAS_TURNO =
   "id, cliente_id, vehiculo_id, servicio_id, servicio_nombre, precio, fecha, hora, " +
   "tiempo_estimado, observaciones, estado, tipo_vehiculo, grupo_vehiculo, " +
-  "subdivision_vehiculo, nivel_nafta, turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad), " +
+  "subdivision_vehiculo, nivel_nafta, " +
+  "turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad, costo_estimado), " +
   "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado), " +
   "turno_fotos_danio(storage_path)";
 
@@ -80,14 +81,21 @@ function filaATurno(fila) {
     // null (no []) cuando todavía no hay snapshot: el guard de
     // actualizarEstadoTrabajo es `!turno.recetaAplicada`, y un array vacío
     // es truthy en JS — con null el guard se comporta igual que hoy.
+    // Una línea "libre" (insumo_id null, ver RecetaServicioStep.js y
+    // ServicioContext.js) no tiene cantidad/unidad — se congeló con
+    // costo_estimado en su lugar.
     recetaAplicada:
       fila.turno_receta_aplicada.length > 0
-        ? fila.turno_receta_aplicada.map((linea) => ({
-            insumoId: linea.insumo_id,
-            nombreInsumo: linea.nombre_insumo,
-            unidad: linea.unidad,
-            cantidad: linea.cantidad,
-          }))
+        ? fila.turno_receta_aplicada.map((linea) =>
+            linea.insumo_id
+              ? {
+                  insumoId: linea.insumo_id,
+                  nombreInsumo: linea.nombre_insumo,
+                  unidad: linea.unidad,
+                  cantidad: linea.cantidad,
+                }
+              : { libre: true, nombreInsumo: linea.nombre_insumo, costoEstimado: linea.costo_estimado }
+          )
         : null,
   };
 }
@@ -267,7 +275,19 @@ export function TurnoProvider({ children }) {
       if (servicio?.receta?.length) {
         await descontarInsumos(servicio.receta);
 
+        // Una línea "libre" (sin ficha en Mis Insumos, ver
+        // RecetaServicioStep.js) se congela con su nombre y costo estimado
+        // tal como se cargaron, en vez de resolverla contra DataContext.
         const filasReceta = servicio.receta.map((linea) => {
+          if (linea.libre) {
+            return {
+              turno_id: id,
+              insumo_id: null,
+              nombre_insumo: linea.nombre,
+              unidad: null,
+              costo_estimado: linea.costoEstimado,
+            };
+          }
           const insumo = getInsumoById(linea.insumoId);
           return {
             turno_id: id,
@@ -286,12 +306,16 @@ export function TurnoProvider({ children }) {
           .eq("id", id);
         if (errorEstado) throw errorEstado;
 
-        const recetaAplicada = filasReceta.map((fila) => ({
-          insumoId: fila.insumo_id,
-          nombreInsumo: fila.nombre_insumo,
-          unidad: fila.unidad,
-          cantidad: fila.cantidad,
-        }));
+        const recetaAplicada = filasReceta.map((fila) =>
+          fila.insumo_id
+            ? {
+                insumoId: fila.insumo_id,
+                nombreInsumo: fila.nombre_insumo,
+                unidad: fila.unidad,
+                cantidad: fila.cantidad,
+              }
+            : { libre: true, nombreInsumo: fila.nombre_insumo, costoEstimado: fila.costo_estimado }
+        );
         setTurnos((actuales) =>
           actuales.map((t) => (t.id === id ? { ...t, estado: nuevoEstado, recetaAplicada } : t))
         );

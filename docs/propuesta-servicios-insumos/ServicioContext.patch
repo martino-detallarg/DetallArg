@@ -1,0 +1,183 @@
+diff --git a/data/ServicioContext.js b/data/ServicioContext.js
+index 0c4aa9b..fb91a69 100644
+--- a/data/ServicioContext.js
++++ b/data/ServicioContext.js
+@@ -7,35 +7,54 @@ const ServicioContext = createContext(null);
+ 
+ // Traduce una fila de `servicios` + su embed de `servicio_receta_items`
+ // (snake_case, ver supabase/schema.sql) a la forma que espera el resto de
+-// la app (camelCase, receta como [{ insumoId, cantidad }]) — mismo criterio
+-// que ClienteContext con `clientes(...vehiculos(...))`.
++// la app (camelCase). Cada línea de `servicio_receta_items` es de catálogo
++// ({ insumoId, cantidad }, cuando insumo_id no es null) o "libre" ({ libre:
++// true, libreId, nombre, costoEstimado }, cuando insumo_id es null — ver
++// RecetaServicioStep.js). `libreId` es el `id` real de la fila una vez
++// guardada (no el `libre${Date.now()}` temporal que usa la UI antes de
++// guardar por primera vez).
+ function filaAServicio(fila) {
+   return {
+     id: fila.id,
+     nombre: fila.nombre,
++    descripcion: fila.descripcion,
+     precio: fila.precio,
+-    categoria: fila.categoria,
+-    duracionEstimada: fila.duracion_estimada,
+-    receta: fila.servicio_receta_items.map((item) => ({
+-      insumoId: item.insumo_id,
+-      cantidad: item.cantidad,
+-    })),
++    duracionValor: fila.duracion_valor,
++    duracionUnidad: fila.duracion_unidad,
++    receta: fila.servicio_receta_items.map((item) =>
++      item.insumo_id
++        ? { insumoId: item.insumo_id, cantidad: item.cantidad }
++        : { libre: true, libreId: item.id, nombre: item.nombre_libre, costoEstimado: item.costo_estimado }
++    ),
+   };
+ }
+ 
+-const COLUMNAS_SERVICIO = "id, nombre, precio, categoria, duracion_estimada, servicio_receta_items(insumo_id, cantidad)";
++const COLUMNAS_SERVICIO =
++  "id, nombre, descripcion, precio, duracion_valor, duracion_unidad, " +
++  "servicio_receta_items(id, insumo_id, cantidad, nombre_libre, costo_estimado)";
+ 
+ // Reconcilia servicio_receta_items contra una receta nueva ([{ insumoId,
+-// cantidad }]): UPSERT (aprovechando el unique(servicio_id, insumo_id) del
+-// esquema) de las líneas presentes, y DELETE solo de las que ya no están.
+-// No hay una transacción real envolviendo ambos pasos (mismo criterio que
+-// descontarInsumos en DataContext.js), pero a diferencia de un borrar-e-
+-// insertar-todo, nunca hay una ventana donde el servicio se quede sin
+-// receta en la base: si el UPSERT confirma y el DELETE de las sobrantes
+-// falla después, las líneas vigentes ya quedaron guardadas.
++// cantidad }] y/o [{ libre, libreId, nombre, costoEstimado }]).
++//
++// Líneas de catálogo: UPSERT (aprovechando el unique(servicio_id, insumo_id)
++// del esquema) de las presentes, y DELETE solo de las que ya no están —
++// mismo criterio que descontarInsumos en DataContext.js: no hay una
++// transacción real envolviendo los pasos, pero nunca hay una ventana donde
++// el servicio se quede sin receta en la base.
++//
++// Líneas libres: NO tienen una clave natural en la base (insumo_id es
++// siempre null, y Postgres no las considera "iguales" entre sí para el
++// unique de arriba, así que un UPSERT nunca las actualizaría, solo las
++// duplicaría). Se reemplazan todas juntas en cada guardado: se borran las
++// libres existentes de este servicio y se insertan las actuales de nuevo —
++// más simple que intentar diffear por libreId, y sin costo real (son pocas
++// líneas por servicio).
+ async function reconciliarReceta(servicioId, receta) {
+-  if (receta.length > 0) {
+-    const filas = receta.map((item) => ({
++  const lineasCatalogo = receta.filter((item) => !item.libre);
++  const lineasLibres = receta.filter((item) => item.libre);
++
++  if (lineasCatalogo.length > 0) {
++    const filas = lineasCatalogo.map((item) => ({
+       servicio_id: servicioId,
+       insumo_id: item.insumoId,
+       cantidad: item.cantidad,
+@@ -46,13 +65,35 @@ async function reconciliarReceta(servicioId, receta) {
+     if (error) throw error;
+   }
+ 
+-  let query = supabase.from("servicio_receta_items").delete().eq("servicio_id", servicioId);
+-  if (receta.length > 0) {
+-    const idsVigentes = receta.map((item) => item.insumoId);
+-    query = query.not("insumo_id", "in", `(${idsVigentes.join(",")})`);
++  let queryCatalogo = supabase
++    .from("servicio_receta_items")
++    .delete()
++    .eq("servicio_id", servicioId)
++    .not("insumo_id", "is", null);
++  if (lineasCatalogo.length > 0) {
++    const idsVigentes = lineasCatalogo.map((item) => item.insumoId);
++    queryCatalogo = queryCatalogo.not("insumo_id", "in", `(${idsVigentes.join(",")})`);
++  }
++  const { error: errorBorrarCatalogo } = await queryCatalogo;
++  if (errorBorrarCatalogo) throw errorBorrarCatalogo;
++
++  const { error: errorBorrarLibres } = await supabase
++    .from("servicio_receta_items")
++    .delete()
++    .eq("servicio_id", servicioId)
++    .is("insumo_id", null);
++  if (errorBorrarLibres) throw errorBorrarLibres;
++
++  if (lineasLibres.length > 0) {
++    const filasLibres = lineasLibres.map((item) => ({
++      servicio_id: servicioId,
++      insumo_id: null,
++      nombre_libre: item.nombre,
++      costo_estimado: item.costoEstimado,
++    }));
++    const { error: errorInsertLibres } = await supabase.from("servicio_receta_items").insert(filasLibres);
++    if (errorInsertLibres) throw errorInsertLibres;
+   }
+-  const { error } = await query;
+-  if (error) throw error;
+ }
+ 
+ // Migrado a Supabase (tablas `servicios` y `servicio_receta_items`, ver
+@@ -104,28 +145,23 @@ export function ServicioProvider({ children }) {
+     setIntentoCargaServicios((n) => n + 1);
+   }
+ 
+-  async function agregarServicio({ nombre, precio, categoria, duracionEstimada, receta = [] }) {
++  async function agregarServicio({ nombre, descripcion, precio, duracionValor, duracionUnidad, receta = [] }) {
+     const { data, error } = await supabase
+       .from("servicios")
+       .insert({
+         taller_id: user.id,
+         nombre,
++        descripcion,
+         precio,
+-        categoria,
+-        duracion_estimada: duracionEstimada,
++        duracion_valor: duracionValor,
++        duracion_unidad: duracionUnidad,
+       })
+-      .select("id, nombre, precio, categoria, duracion_estimada")
++      .select("id, nombre, descripcion, precio, duracion_valor, duracion_unidad")
+       .single();
+     if (error) throw error;
+ 
+     if (receta.length > 0) {
+-      const filas = receta.map((item) => ({
+-        servicio_id: data.id,
+-        insumo_id: item.insumoId,
+-        cantidad: item.cantidad,
+-      }));
+-      const { error: errorReceta } = await supabase.from("servicio_receta_items").insert(filas);
+-      if (errorReceta) throw errorReceta;
++      await reconciliarReceta(data.id, receta);
+     }
+ 
+     const nuevoServicio = { ...filaAServicio({ ...data, servicio_receta_items: [] }), receta };
+@@ -133,17 +169,25 @@ export function ServicioProvider({ children }) {
+     return nuevoServicio;
+   }
+ 
+-  async function editarServicio(id, { nombre, precio, categoria, duracionEstimada, receta = [] }) {
++  async function editarServicio(id, { nombre, descripcion, precio, duracionValor, duracionUnidad, receta = [] }) {
+     const { error } = await supabase
+       .from("servicios")
+-      .update({ nombre, precio, categoria, duracion_estimada: duracionEstimada })
++      .update({
++        nombre,
++        descripcion,
++        precio,
++        duracion_valor: duracionValor,
++        duracion_unidad: duracionUnidad,
++      })
+       .eq("id", id);
+     if (error) throw error;
+ 
+     await reconciliarReceta(id, receta);
+ 
+     setServicios((actuales) =>
+-      actuales.map((s) => (s.id === id ? { ...s, nombre, precio, categoria, duracionEstimada, receta } : s))
++      actuales.map((s) =>
++        s.id === id ? { ...s, nombre, descripcion, precio, duracionValor, duracionUnidad, receta } : s
++      )
+     );
+   }
+ 
