@@ -142,6 +142,15 @@ export default function HomeScreen({ navigation }) {
           ListEmptyComponent={
             <Text style={styles.vacio}>Todavía no hay turnos cargados para hoy.</Text>
           }
+          ListFooterComponent={
+            <TouchableOpacity
+              onPress={() => navigation.navigate("HistorialClientes")}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={styles.linkHistorialWrap}
+            >
+              <Text style={styles.linkHistorial}>Ver historial de clientes</Text>
+            </TouchableOpacity>
+          }
         />
       </EstadoCarga>
 
@@ -234,6 +243,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 24,
     marginBottom: 4,
+  },
+  linkHistorialWrap: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  linkHistorial: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    textDecorationLine: "underline",
   },
   vacio: {
     fontFamily: fonts.body,

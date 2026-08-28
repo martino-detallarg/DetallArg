@@ -40,7 +40,7 @@ function FilaVehiculo({ vehiculo, onEditar, onEliminar }) {
 // Vista de detalle de un cliente: sus datos y la lista de sus vehículos, con
 // alta/edición/borrado de vehículos en un formulario simple que se despliega
 // dentro del mismo modal (sin agregar otra pantalla).
-export default function VehiculosClienteModal({ visible, cliente, onClose, onEditarCliente }) {
+export default function VehiculosClienteModal({ visible, cliente, onClose, onEditarCliente, navigation }) {
   const { agregarVehiculo, editarVehiculo, eliminarVehiculo } = useClientes();
   const [formularioVisible, setFormularioVisible] = useState(false);
   const [vehiculoEditandoId, setVehiculoEditandoId] = useState(null);
@@ -136,6 +136,17 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                 <Ionicons name="pencil-outline" size={16} color={colors.accentLight} />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                onClose();
+                navigation.navigate("HistorialClientes", { clienteIdInicial: cliente.id });
+              }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={styles.verHistorialBoton}
+            >
+              <Text style={styles.verHistorialTexto}>Ver historial</Text>
+            </TouchableOpacity>
 
             {error && <Text style={styles.error}>{error}</Text>}
 
@@ -273,6 +284,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
     alignItems: "center",
     justifyContent: "center",
+  },
+  verHistorialBoton: {
+    alignSelf: "flex-start",
+    marginBottom: 16,
+  },
+  verHistorialTexto: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.accentLight,
+    textDecorationLine: "underline",
   },
   error: {
     fontFamily: fonts.body,
