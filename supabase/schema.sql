@@ -140,27 +140,42 @@ create table insumos (
                         'accesorios_consumibles', 'ceras', 'vidrios', 'llantas_neumaticos',
                         'apc_desengrasante', 'ceramicos'
                       )),
-  dilucion          text,
   rendimiento       text,
   imagen_url        text,
-  precio_compra     numeric(12, 2),
+  precio_compra     numeric(12, 2)
+                      check (precio_compra is null or precio_compra > 0),
 
   -- Capacidad del envase: necesaria para convertir la cantidad de una
   -- receta de servicio (ej. "50ml") en puntos de `nivel` a descontar.
-  capacidad_total   numeric(10, 2),
+  capacidad_total   numeric(10, 2)
+                      check (capacidad_total is null or capacidad_total > 0),
   capacidad_unidad  text
                       check (capacidad_unidad is null or capacidad_unidad in ('ml', 'g', 'unidades')),
 
   -- Stock como % de llenado del envase, no cantidad absoluta.
   nivel             numeric(5, 2) not null default 100
-                      check (nivel >= 0 and nivel <= 100)
+                      check (nivel >= 0 and nivel <= 100),
+
+  -- Diluciones reales que puede usar el taller para este producto (array:
+  -- reemplaza a la vieja columna `dilucion`, singular — ver AgregarInsumoModal.js).
+  diluciones        text[] not null default '{}',
+
+  -- Cuánto tiene el taller ahora mismo, en la unidad de `capacidad_unidad`.
+  -- Se persiste tal cual (para poder recalcular/auditar después) además de
+  -- usarse para derivar `nivel` (0-100) al momento de cargar el insumo — ver
+  -- DataContext.agregarInsumo.
+  cantidad_actual   numeric(10, 2),
+
+  -- true si el insumo no viene del catálogo estático (mockInsumos.js) sino
+  -- que el taller lo cargó a mano, sin ficha de referencia.
+  es_personalizado  boolean not null default false
 );
 
 create table costos_fijos (
   id           uuid primary key default gen_random_uuid(),
   taller_id    uuid not null references talleres (id) on delete cascade,
   nombre       text not null,
-  monto        numeric(12, 2) not null
+  monto        numeric(12, 2) not null check (monto > 0)
 );
 
 -- ----------------------------------------------------------------------------
@@ -171,12 +186,15 @@ create table servicios (
   id                   uuid primary key default gen_random_uuid(),
   taller_id            uuid not null references talleres (id) on delete cascade,
   nombre               text not null,
-  precio               numeric(12, 2) not null,
-  categoria            text not null
-                         check (categoria in (
-                           'lavados', 'interior', 'pintura', 'coating', 'tecnico', 'paquetes'
-                         )),
-  duracion_estimada    integer not null check (duracion_estimada > 0) -- minutos
+  precio               numeric(12, 2) not null check (precio > 0),
+  descripcion          text,
+
+  -- Duración estimada como valor + unidad separados (reemplaza a la vieja
+  -- columna `duracion_estimada`, en minutos) — permite cargar "2 días" sin
+  -- convertir todo a minutos. Ambas nullable: un servicio puede no tener
+  -- duración cargada todavía.
+  duracion_valor       integer check (duracion_valor is null or duracion_valor > 0),
+  duracion_unidad      text check (duracion_unidad is null or duracion_unidad in ('horas', 'dias'))
 );
 
 -- Receta VIVA del servicio: editable en cualquier momento desde
@@ -193,7 +211,19 @@ create table servicio_receta_items (
   -- — mismo criterio defensivo que ya tiene RecetaServicioStep.js hoy.
   insumo_id      uuid references insumos (id) on delete set null,
 
-  cantidad       numeric(10, 2) not null check (cantidad > 0),
+  -- Línea normal (insumo_id + cantidad) o línea "libre" (sin ficha en Mis
+  -- Insumos: nombre_libre + costo_estimado en su lugar, ver
+  -- RecetaServicioStep.js) — el check de abajo exige que sea una u otra,
+  -- nunca las dos ni ninguna.
+  cantidad       numeric(10, 2),
+  nombre_libre   text,
+  costo_estimado numeric(12, 2),
+
+  constraint servicio_receta_items_linea_check check (
+    (insumo_id is not null and cantidad is not null and cantidad > 0)
+    or
+    (insumo_id is null and nombre_libre is not null and costo_estimado is not null and costo_estimado > 0)
+  ),
 
   unique (servicio_id, insumo_id)
 );
@@ -296,12 +326,29 @@ create table turno_fotos_danio (
 -- resueltos por join) para que el registro histórico sobreviva intacto
 -- incluso si el insumo original se borra más adelante.
 create table turno_receta_aplicada (
-  id               uuid primary key default gen_random_uuid(),
-  turno_id         uuid not null references turnos (id) on delete cascade,
-  insumo_id        uuid references insumos (id) on delete set null,
-  nombre_insumo    text not null,
-  unidad           text,
-  cantidad         numeric(10, 2) not null,
+  id                       uuid primary key default gen_random_uuid(),
+  turno_id                 uuid not null references turnos (id) on delete cascade,
+  insumo_id                uuid references insumos (id) on delete set null,
+  nombre_insumo            text not null,
+  unidad                   text,
+
+  -- Línea normal (insumo_id + cantidad) o línea "libre" (sin ficha en Mis
+  -- Insumos: costo_estimado congelado en su lugar) — mismo criterio que
+  -- servicio_receta_items, el check de abajo exige una u otra.
+  cantidad                 numeric(10, 2),
+  costo_estimado           numeric(12, 2),
+
+  -- Costo real congelado (precio_compra × cantidad/capacidad_total) al
+  -- momento de finalizar el trabajo — null en líneas libres (usar
+  -- costo_estimado) y en líneas cuyo insumo no tenía precio_compra/
+  -- capacidad_total cargados. Ver alter_turno_receta_costo_unitario_snapshot.sql.
+  costo_unitario_snapshot  numeric(12, 2),
+
+  constraint turno_receta_aplicada_linea_check check (
+    (insumo_id is not null and cantidad is not null and cantidad > 0)
+    or
+    (insumo_id is null and costo_estimado is not null and costo_estimado > 0)
+  ),
 
   unique (turno_id, insumo_id)
 );
