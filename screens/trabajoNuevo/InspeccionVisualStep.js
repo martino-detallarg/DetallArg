@@ -49,6 +49,11 @@ export default function InspeccionVisualStep({
     ? Object.entries(diagramaVehiculo.vistas).map(([id, v]) => ({ id, etiqueta: v.etiqueta }))
     : [{ id: "frente", etiqueta: "Frente" }];
   const puedeAgregarFoto = Object.keys(datos.danios).length > 0;
+  // Moto tiene subdivisiones que todavía no tienen diagrama propio
+  // (Naked/Sport/Motocross, por ahora — ver components/diagrams/vehicles).
+  // Para esas, en vez de caer al genérico de Frente (que tiene forma de
+  // auto y quedaría roto), se muestra una tarjeta "Próximamente".
+  const esMotoSinDiagrama = datos.tipoVehiculo === "moto" && !diagramaVehiculo;
 
   function handleCambiarZona(zonaId, datosZona) {
     const nuevos = { ...datos.danios };
@@ -94,37 +99,50 @@ export default function InspeccionVisualStep({
       siente en conflicto en el borde izquierdo, achicar ANCHO_BORDE en
       SwipeVolver.js o sacarlo de este paso puntual. */}
       <SwipeVolver onAtras={onAtras}>
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScrollFin}
-        style={styles.pager}
-      >
-        {vistas.map((vista) => (
+      {esMotoSinDiagrama ? (
+        <View style={styles.proximamente}>
+          <Text style={styles.proximamenteTitulo}>Próximamente</Text>
+          <Text style={styles.proximamenteTexto}>
+            Todavía estamos preparando el diagrama de esta categoría de moto. Mientras tanto podés sacarle una
+            foto al daño y guardar el trabajo igual.
+          </Text>
+        </View>
+      ) : (
+        <>
           <ScrollView
-            key={vista.id}
-            style={{ width }}
-            contentContainerStyle={styles.pagina}
-            showsVerticalScrollIndicator={false}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleScrollFin}
+            style={styles.pager}
           >
-            <Text style={styles.vistaTitulo}>Vista: {vista.etiqueta}</Text>
-            <DiagramaDanios
-              claveVehiculo={claveDiagrama}
-              vista={vista.id}
-              danios={datos.danios}
-              onCambiarZona={handleCambiarZona}
-              ancho={anchoDiagrama}
-            />
+            {vistas.map((vista) => (
+              <ScrollView
+                key={vista.id}
+                style={{ width }}
+                contentContainerStyle={styles.pagina}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.vistaTitulo}>Vista: {vista.etiqueta}</Text>
+                <DiagramaDanios
+                  claveVehiculo={claveDiagrama}
+                  vista={vista.id}
+                  danios={datos.danios}
+                  onCambiarZona={handleCambiarZona}
+                  ancho={anchoDiagrama}
+                  tipoVehiculo={datos.tipoVehiculo}
+                />
+              </ScrollView>
+            ))}
           </ScrollView>
-        ))}
-      </ScrollView>
 
-      <View style={styles.puntos}>
-        {vistas.map((vista, indice) => (
-          <View key={vista.id} style={[styles.punto, indice === vistaActiva && styles.puntoActivo]} />
-        ))}
-      </View>
+          <View style={styles.puntos}>
+            {vistas.map((vista, indice) => (
+              <View key={vista.id} style={[styles.punto, indice === vistaActiva && styles.puntoActivo]} />
+            ))}
+          </View>
+        </>
+      )}
 
       <View style={styles.acciones}>
         <TouchableOpacity
@@ -192,6 +210,26 @@ const styles = StyleSheet.create({
   puntoActivo: {
     width: 18,
     backgroundColor: colors.accent,
+  },
+  proximamente: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: PADDING_PANTALLA + 20,
+    paddingBottom: 40,
+  },
+  proximamenteTitulo: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 18,
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  proximamenteTexto: {
+    fontFamily: fonts.body,
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 19,
   },
   acciones: {
     paddingHorizontal: PADDING_PANTALLA,

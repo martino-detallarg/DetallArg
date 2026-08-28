@@ -21,8 +21,8 @@ const TIPOS_VEHICULO = {
     icono: "car-pickup",
     grupos: [
       { grupo: "Cabina simple", opciones: ["Chico", "Mediano"] },
-      { grupo: "Doble cabina", opciones: ["Mediano", "Grande"] },
-      { grupo: "Utilitario acarrozado", opciones: ["Chico", "Mediano"] },
+      { grupo: "Doble cabina", opciones: ["Chico", "Mediano", "Grande"] },
+      { grupo: "Utilitario acarrozado", opciones: ["Chico", "Mediano", "Grande"] },
     ],
   },
   suv: {
@@ -33,7 +33,7 @@ const TIPOS_VEHICULO = {
   moto: {
     etiqueta: "Moto",
     icono: "motorbike",
-    grupos: [{ grupo: null, opciones: ["Naked", "Sport", "Motocross"] }],
+    grupos: [{ grupo: null, opciones: ["Naked", "Sport", "Motocross", "Enduro/Calle", "Scooter"] }],
   },
 };
 
@@ -115,6 +115,8 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
               <Text style={styles.notaPlaceholder}>
                 {tieneDiagramaEspecifico
                   ? "Esta carrocería ya tiene su propio diagrama de paneles reales."
+                  : datos.tipoVehiculo === "moto"
+                  ? "Próximamente — todavía estamos preparando el diagrama de esta categoría de moto."
                   : "Por ahora esta carrocería usa el diagrama genérico, con solo la vista de Frente disponible — más adelante se suman las otras vistas y su modelo real."}
               </Text>
             </View>
