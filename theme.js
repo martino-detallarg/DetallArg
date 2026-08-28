@@ -13,6 +13,11 @@ export const colors = {
   error: "#B5564A",
   amber: "#D9A441",
   success: "#5DCAA5",
+  // Versiones tenues (18% opacidad) de amber/success, para fondos de
+  // indicadores tipo "anillo" (ver AlmanaqueModal.js) sin tapar el color de
+  // fondo de la tarjeta/modal detrás.
+  successTint: "rgba(93, 202, 165, 0.18)",
+  amberTint: "rgba(217, 164, 65, 0.18)",
 };
 
 export const radii = {
