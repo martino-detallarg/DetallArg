@@ -159,10 +159,7 @@ create table insumos (
 create table costos_fijos (
   id           uuid primary key default gen_random_uuid(),
   taller_id    uuid not null references talleres (id) on delete cascade,
-  categoria    text not null
-                 check (categoria in (
-                   'alquiler', 'sueldos', 'servicios', 'mantenimiento', 'seguro', 'otro'
-                 )),
+  nombre       text not null,
   monto        numeric(12, 2) not null
 );
 

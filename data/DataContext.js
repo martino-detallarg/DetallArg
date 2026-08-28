@@ -93,7 +93,7 @@ export function DataProvider({ children }) {
 
       const { data, error } = await supabase
         .from("costos_fijos")
-        .select("id, categoria, monto")
+        .select("id, nombre, monto")
         .eq("taller_id", user.id);
 
       if (cancelado) return;
@@ -234,11 +234,11 @@ export function DataProvider({ children }) {
     );
   }
 
-  async function agregarCostoFijo({ categoria, monto }) {
+  async function agregarCostoFijo({ nombre, monto }) {
     const { data, error } = await supabase
       .from("costos_fijos")
-      .insert({ taller_id: user.id, categoria, monto })
-      .select("id, categoria, monto")
+      .insert({ taller_id: user.id, nombre, monto })
+      .select("id, nombre, monto")
       .single();
     if (error) throw error;
 

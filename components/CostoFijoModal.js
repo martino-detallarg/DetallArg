@@ -6,12 +6,11 @@ import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
 import { useData } from "../data/DataContext";
-import { CATEGORIAS_COSTOS_FIJOS, ORDEN_CATEGORIAS_COSTOS_FIJOS } from "../data/mockFinanzas";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 export default function CostoFijoModal({ visible, item, onClose }) {
   const { agregarCostoFijo, actualizarCostoFijo, eliminarCostoFijo } = useData();
-  const [categoria, setCategoria] = useState(null);
+  const [nombre, setNombre] = useState("");
   const [monto, setMonto] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -19,14 +18,14 @@ export default function CostoFijoModal({ visible, item, onClose }) {
 
   useEffect(() => {
     if (visible) {
-      setCategoria(item?.categoria ?? null);
+      setNombre(item?.nombre ?? "");
       setMonto(item ? String(item.monto) : "");
       setError(null);
     }
   }, [visible, item]);
 
   const montoNumerico = Number(monto.replace(",", "."));
-  const esValido = categoria !== null && monto.trim() !== "" && !Number.isNaN(montoNumerico) && montoNumerico > 0;
+  const esValido = nombre.trim() !== "" && monto.trim() !== "" && !Number.isNaN(montoNumerico) && montoNumerico > 0;
 
   async function handleGuardar() {
     if (!esValido) return;
@@ -34,9 +33,9 @@ export default function CostoFijoModal({ visible, item, onClose }) {
     setError(null);
     try {
       if (editando) {
-        await actualizarCostoFijo(item.id, { categoria, monto: montoNumerico });
+        await actualizarCostoFijo(item.id, { nombre, monto: montoNumerico });
       } else {
-        await agregarCostoFijo({ categoria, monto: montoNumerico });
+        await agregarCostoFijo({ nombre, monto: montoNumerico });
       }
       onClose();
     } catch (err) {
@@ -75,23 +74,12 @@ export default function CostoFijoModal({ visible, item, onClose }) {
           />
 
           <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
-            <Text style={styles.label}>Categoría</Text>
-            <View style={styles.chips}>
-              {ORDEN_CATEGORIAS_COSTOS_FIJOS.map((clave) => {
-                const activo = categoria === clave;
-                return (
-                  <TouchableOpacity
-                    key={clave}
-                    style={[styles.chip, activo && styles.chipSeleccionado]}
-                    onPress={() => setCategoria(clave)}
-                  >
-                    <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                      {CATEGORIAS_COSTOS_FIJOS[clave].etiqueta}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <Input
+              label="Nombre"
+              value={nombre}
+              onChangeText={setNombre}
+              placeholder="Ej: Alquiler del local"
+            />
 
             <Input
               label="Monto mensual"
@@ -141,41 +129,6 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-  },
-  label: {
-    fontFamily: fonts.mono,
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  chipTexto: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  chipTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
   },
   error: {
     fontFamily: fonts.body,
