@@ -7,18 +7,22 @@ import Input from "./Input";
 import Button from "./Button";
 import RecetaServicioStep from "./servicio/RecetaServicioStep";
 import { useServicios } from "../data/ServicioContext";
-import { CATEGORIAS_SERVICIOS } from "../data/mockServicios";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const TOTAL_PASOS = 2;
+const UNIDADES_DURACION = [
+  { clave: "horas", etiqueta: "Horas" },
+  { clave: "dias", etiqueta: "Días" },
+];
 
 export default function ServicioModal({ visible, item, onClose }) {
   const { agregarServicio, editarServicio, eliminarServicio } = useServicios();
   const [fase, setFase] = useState("datos");
   const [nombre, setNombre] = useState("");
+  const [descripcion, setDescripcion] = useState("");
   const [precio, setPrecio] = useState("");
-  const [categoria, setCategoria] = useState(null);
-  const [duracionEstimada, setDuracionEstimada] = useState("");
+  const [duracionValor, setDuracionValor] = useState("");
+  const [duracionUnidad, setDuracionUnidad] = useState(UNIDADES_DURACION[0].clave);
   const [receta, setReceta] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -28,23 +32,24 @@ export default function ServicioModal({ visible, item, onClose }) {
     if (visible) {
       setFase("datos");
       setNombre(item?.nombre ?? "");
+      setDescripcion(item?.descripcion ?? "");
       setPrecio(item ? String(item.precio) : "");
-      setCategoria(item?.categoria ?? null);
-      setDuracionEstimada(item?.duracionEstimada ? String(item.duracionEstimada) : "");
+      setDuracionValor(item?.duracionValor ? String(item.duracionValor) : "");
+      setDuracionUnidad(item?.duracionUnidad ?? UNIDADES_DURACION[0].clave);
       setReceta(item?.receta ?? []);
       setError(null);
     }
   }, [visible, item]);
 
   const precioNumerico = Number(precio.replace(",", "."));
-  const duracionNumerica = Number(duracionEstimada.replace(",", "."));
+  const duracionNumerica = Number(duracionValor.replace(",", "."));
   const esValido =
     nombre.trim() !== "" &&
-    categoria !== null &&
+    descripcion.trim() !== "" &&
     precio.trim() !== "" &&
     !Number.isNaN(precioNumerico) &&
     precioNumerico > 0 &&
-    duracionEstimada.trim() !== "" &&
+    duracionValor.trim() !== "" &&
     !Number.isNaN(duracionNumerica) &&
     duracionNumerica > 0;
 
@@ -59,18 +64,28 @@ export default function ServicioModal({ visible, item, onClose }) {
   }
 
   async function handleGuardar() {
-    // Sólo se guardan líneas con una cantidad numérica válida — una línea
-    // marcada pero sin cantidad cargada se descarta en vez de bloquear el
-    // guardado del servicio.
+    // Sólo se guardan líneas con una cantidad/costo numérico válido — una
+    // línea marcada pero sin cargar se descarta en vez de bloquear el
+    // guardado del servicio. Las líneas libres (sin ficha en Mis Insumos) se
+    // validan por costoEstimado en vez de cantidad.
     const recetaFinal = receta
-      .map((linea) => ({ ...linea, cantidad: Number(String(linea.cantidad).replace(",", ".")) }))
-      .filter((linea) => !Number.isNaN(linea.cantidad) && linea.cantidad > 0);
+      .map((linea) =>
+        linea.libre
+          ? { ...linea, costoEstimado: Number(String(linea.costoEstimado).replace(",", ".")) }
+          : { ...linea, cantidad: Number(String(linea.cantidad).replace(",", ".")) }
+      )
+      .filter((linea) =>
+        linea.libre
+          ? !Number.isNaN(linea.costoEstimado) && linea.costoEstimado > 0
+          : !Number.isNaN(linea.cantidad) && linea.cantidad > 0
+      );
 
     const datos = {
       nombre: nombre.trim(),
+      descripcion: descripcion.trim(),
       precio: precioNumerico,
-      categoria,
-      duracionEstimada: duracionNumerica,
+      duracionValor: duracionNumerica,
+      duracionUnidad,
       receta: recetaFinal,
     };
 
@@ -129,37 +144,43 @@ export default function ServicioModal({ visible, item, onClose }) {
                 />
 
                 <Input
-                  label="Precio"
+                  label="Descripción"
+                  value={descripcion}
+                  onChangeText={setDescripcion}
+                  placeholder="Lo que va a ver el cliente en el Catálogo"
+                  multiline
+                  numberOfLines={4}
+                />
+
+                <Input
+                  label="Precio estimado"
                   value={precio}
                   onChangeText={setPrecio}
                   placeholder="Ej: 20000"
                   keyboardType="numeric"
                 />
 
-                <Input
-                  label="Duración estimada (minutos)"
-                  value={duracionEstimada}
-                  onChangeText={setDuracionEstimada}
-                  placeholder="Ej: 60"
-                  keyboardType="numeric"
-                />
-
-                <Text style={styles.label}>Categoría</Text>
-                <View style={styles.chips}>
-                  {Object.entries(CATEGORIAS_SERVICIOS).map(([clave, cat]) => {
-                    const activo = categoria === clave;
-                    return (
-                      <TouchableOpacity
-                        key={clave}
-                        style={[styles.chip, activo && styles.chipSeleccionado]}
-                        onPress={() => setCategoria(clave)}
-                      >
-                        <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                          {cat.etiqueta}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                <Text style={styles.label}>Duración estimada</Text>
+                <View style={styles.duracionFila}>
+                  <View style={styles.duracionInput}>
+                    <Input value={duracionValor} onChangeText={setDuracionValor} placeholder="Ej: 2" keyboardType="numeric" />
+                  </View>
+                  <View style={styles.chips}>
+                    {UNIDADES_DURACION.map(({ clave, etiqueta }) => {
+                      const activo = duracionUnidad === clave;
+                      return (
+                        <TouchableOpacity
+                          key={clave}
+                          style={[styles.chip, activo && styles.chipSeleccionado]}
+                          onPress={() => setDuracionUnidad(clave)}
+                        >
+                          <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
+                            {etiqueta}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
 
                 <View style={styles.boton}>
@@ -225,6 +246,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  duracionFila: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  duracionInput: {
+    width: 100,
   },
   chips: {
     flexDirection: "row",

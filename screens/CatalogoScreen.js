@@ -11,8 +11,8 @@ import { useCatalogo } from "../data/CatalogoContext";
 import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
 import { PLANTILLAS_CATALOGO } from "../data/plantillasCatalogo";
-import { construirHtmlCatalogoCompleto, construirHtmlFicha, formatearDuracion, generarYCompartirPdf } from "../utils/catalogoPdf";
-import { formatearPesos } from "../utils/formato";
+import { construirHtmlCatalogoCompleto, construirHtmlFicha, generarYCompartirPdf } from "../utils/catalogoPdf";
+import { formatearPesos, formatearDuracion } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const CLAVES_PLANTILLAS = Object.keys(PLANTILLAS_CATALOGO);
@@ -62,7 +62,7 @@ function ItemCatalogoCard({ item, servicio, onQuitar, onCambiarPlantilla, onAgre
             {servicio.nombre}
           </Text>
           <Text style={styles.itemPrecio}>
-            {formatearPesos(servicio.precio)} · {formatearDuracion(servicio)}
+            {formatearPesos(servicio.precio)} · {formatearDuracion(servicio.duracionValor, servicio.duracionUnidad)}
           </Text>
         </View>
         <TouchableOpacity

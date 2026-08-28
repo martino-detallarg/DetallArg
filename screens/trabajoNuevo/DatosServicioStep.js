@@ -69,7 +69,6 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     if (!datos.fecha.trim()) nuevosErrores.fecha = "Ingresá la fecha";
     if (!datos.hora.trim()) nuevosErrores.hora = "Ingresá la hora";
     else if (errorHorario) nuevosErrores.hora = errorHorario;
-    if (!datos.tiempoEstimado.trim()) nuevosErrores.tiempoEstimado = "Ingresá el tiempo estimado";
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   }
@@ -95,8 +94,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     !!datos.servicioId &&
     datos.fecha.trim() !== "" &&
     datos.hora.trim() !== "" &&
-    !errorHorario &&
-    datos.tiempoEstimado.trim() !== "";
+    !errorHorario;
 
   return (
     <KeyboardAvoidingView
@@ -208,7 +206,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
         )}
 
         <View style={styles.fechaContenedor}>
-          <Text style={styles.label}>Hora</Text>
+          <Text style={styles.label}>Hora de llegada</Text>
           <TouchableOpacity
             style={[styles.fechaWrapper, (errores.hora || errorHorario) && styles.fechaWrapperError]}
             onPress={() => setMostrarPickerHora(true)}
@@ -252,11 +250,10 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
         )}
 
         <Input
-          label="Tiempo estimado de trabajo"
+          label="Tiempo estimado de trabajo (opcional)"
           value={datos.tiempoEstimado}
           onChangeText={(v) => onCambiar({ tiempoEstimado: v })}
           placeholder="Ej: 2 horas"
-          error={errores.tiempoEstimado}
         />
         <Input
           label="Observaciones (opcional)"

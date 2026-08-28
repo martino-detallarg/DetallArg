@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import ProductoCasillero from "./ProductoCasillero";
+import MoverCategoriaModal from "./MoverCategoriaModal";
 import { CATEGORIAS } from "../data/mockInsumos";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -12,9 +13,16 @@ const COLUMNAS = 3;
 const PADDING_GRILLA = 20;
 const ESPACIO_CASILLERO = 12;
 
+// El selector de "mover a otra categoría" se maneja acá adentro (en vez de
+// en MisInsumosScreen) para que nunca haya dos <Modal> nativos con
+// visible=true al mismo tiempo: en Android, apilar dos Modal así puede
+// perder eventos de touch/back o parpadear. Mientras se elige la nueva
+// categoría, este Modal de pantalla completa se oculta (visible={visible &&
+// !productoParaMover}) y vuelve a mostrarse solo cuando el otro se cierra.
 export default function CategoriaInsumosModal({ visible, categoriaKey, productos, onClose, onAgregarEnCategoria }) {
   const { width } = useWindowDimensions();
   const [busqueda, setBusqueda] = useState("");
+  const [productoParaMover, setProductoParaMover] = useState(null);
   const tamanoCasillero =
     (width - PADDING_GRILLA * 2 - ESPACIO_CASILLERO * (COLUMNAS - 1)) / COLUMNAS;
   const categoria = categoriaKey ? CATEGORIAS[categoriaKey] : null;
@@ -39,7 +47,13 @@ export default function CategoriaInsumosModal({ visible, categoriaKey, productos
   }
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleClose}>
+    <>
+    <Modal
+      visible={visible && !productoParaMover}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={handleClose}
+    >
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
           <WizardHeader titulo={categoria?.etiqueta ?? ""} paso={1} totalPasos={1} onAtras={handleClose} />
@@ -63,7 +77,9 @@ export default function CategoriaInsumosModal({ visible, categoriaKey, productos
             contentContainerStyle={styles.contenido}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => <ProductoCasillero producto={item} tamano={tamanoCasillero} />}
+            renderItem={({ item }) => (
+              <ProductoCasillero producto={item} tamano={tamanoCasillero} onPress={setProductoParaMover} />
+            )}
             ListEmptyComponent={
               productos.length === 0 ? (
                 <TouchableOpacity
@@ -92,6 +108,13 @@ export default function CategoriaInsumosModal({ visible, categoriaKey, productos
         </SafeAreaView>
       </SafeAreaProvider>
     </Modal>
+
+    <MoverCategoriaModal
+      visible={productoParaMover !== null}
+      insumo={productoParaMover}
+      onClose={() => setProductoParaMover(null)}
+    />
+    </>
   );
 }
 

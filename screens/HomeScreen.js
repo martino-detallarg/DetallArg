@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import ScreenHeader from "../components/ScreenHeader";
 import StatCard from "../components/StatCard";
 import TurnoCard from "../components/TurnoCard";
@@ -24,6 +25,10 @@ export default function HomeScreen({ navigation }) {
     useTurnos();
   const { misDatos } = useTaller();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
+  // Cambia cada vez que Home gana/pierde foco: se usa como `key` del anillo
+  // de progreso para forzar su remount (y que la animación de llenado se
+  // repita) cada vez que se vuelve a esta pantalla, no solo al abrir la app.
+  const estaEnfocada = useIsFocused();
 
   const [opcionesVisibles, setOpcionesVisibles] = useState(false);
   const [submenuClienteVisible, setSubmenuClienteVisible] = useState(false);
@@ -112,7 +117,15 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.saludo}>Hola{misDatos.nombrePersonal ? `, ${misDatos.nombrePersonal}` : ""} 👋</Text>
 
               <View style={styles.stats}>
-                <StatCard label="Turnos de hoy" valor={turnosOrdenados.length} progreso={progresoTurnosHoy} />
+                <View style={styles.statUnico}>
+                  <StatCard
+                    key={estaEnfocada}
+                    label="Turnos de hoy"
+                    valor={turnosOrdenados.length}
+                    progreso={progresoTurnosHoy}
+                    onPress={() => navigation.navigate("Agenda")}
+                  />
+                </View>
               </View>
 
               <Text style={styles.seccionTitulo}>Turnos de hoy</Text>
@@ -207,8 +220,12 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: "row",
+    justifyContent: "center",
     paddingHorizontal: 20,
     marginTop: 18,
+  },
+  statUnico: {
+    width: "55%",
   },
   seccionTitulo: {
     fontFamily: fonts.bodySemiBold,
@@ -228,9 +245,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 20,
     bottom: 30,
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
     backgroundColor: colors.textPrimary,
     alignItems: "center",
     justifyContent: "center",
@@ -238,7 +255,7 @@ const styles = StyleSheet.create({
   },
   fabTexto: {
     color: colors.bg,
-    fontSize: 36,
+    fontSize: 30,
     fontWeight: "400",
     marginTop: -2,
   },

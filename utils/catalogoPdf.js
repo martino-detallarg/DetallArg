@@ -3,19 +3,7 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
-
-// TODO: cuando Nico confirme el esquema nuevo de servicios (duracionValor +
-// duracionUnidad en vez de duracionEstimada en minutos), reemplazar esta
-// conversión por el valor+unidad que venga directo de la base.
-export function formatearDuracion(servicio) {
-  const minutos = servicio.duracionEstimada;
-  if (minutos === null || minutos === undefined) return "";
-  if (minutos < 60) return `${minutos} min`;
-
-  const horas = Math.floor(minutos / 60);
-  const resto = minutos % 60;
-  return resto === 0 ? `${horas} h` : `${horas} h ${resto} min`;
-}
+import { formatearDuracion } from "./formato";
 
 function formatearPrecioCatalogo(precio, monedaCobro) {
   const numero = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(precio ?? 0);
@@ -245,17 +233,16 @@ function bloqueFooter(taller, datosOperativos) {
 // galería + footer), reusado tanto por la ficha individual como por cada
 // sección del catálogo completo.
 function bloqueContenidoServicio(servicio, taller, datosOperativos, plantilla, fotos) {
-  // TODO: reemplazar por servicio.descripcion cuando el esquema nuevo de
-  // servicios lo tenga disponible (hoy no existe ese campo, se usa el
-  // nombre como fallback).
-  const descripcion = servicio.descripcion ?? servicio.nombre;
+  // Fallback al nombre por si el taller todavía no cargó descripción para
+  // este servicio (el campo es opcional en la base).
+  const descripcion = servicio.descripcion || servicio.nombre;
 
   return `
     ${bloqueHeader(taller, plantilla)}
     <h1 class="titulo-servicio">${escapeHtml(servicio.nombre)}</h1>
     <div class="badges">
       <span class="badge badge-precio">${formatearPrecioCatalogo(servicio.precio, datosOperativos?.monedaCobro)}</span>
-      <span class="badge badge-duracion">${escapeHtml(formatearDuracion(servicio))}</span>
+      <span class="badge badge-duracion">${escapeHtml(formatearDuracion(servicio.duracionValor, servicio.duracionUnidad))}</span>
     </div>
     <div class="descripcion">${escapeHtml(descripcion)}</div>
     ${bloqueGaleria(fotos)}
@@ -294,7 +281,7 @@ export function construirHtmlCatalogoCompleto(itemsCatalogo, servicios, taller, 
       <tr>
         <td>${escapeHtml(servicio.nombre)}</td>
         <td>${formatearPrecioCatalogo(servicio.precio, datosOperativos?.monedaCobro)}</td>
-        <td>${escapeHtml(formatearDuracion(servicio))}</td>
+        <td>${escapeHtml(formatearDuracion(servicio.duracionValor, servicio.duracionUnidad))}</td>
       </tr>
     `
     )

@@ -23,8 +23,6 @@ export default function ScreenHeader({ onAbrirMenu, onVolver }) {
       </TouchableOpacity>
 
       <Logo size={26} />
-
-      <View style={styles.spacer} />
     </View>
   );
 }
@@ -37,8 +35,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 8,
-  },
-  spacer: {
-    width: TAMANO_ICONO,
   },
 });

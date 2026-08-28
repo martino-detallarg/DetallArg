@@ -1,6 +1,6 @@
 // Catálogo de referencia de insumos de detailing: la lista definitiva
 // investigada marca por marca (Vonixx, Vintex, Sonax, Meguiar's, Soft99,
-// Koch-Chemie, Chemical Guys, Menzerna, Gyeon — 478 productos), curada y
+// Koch-Chemie, Chemical Guys, Menzerna, Gyeon — 489 productos), curada y
 // aprobada por Augusto. Reemplaza la lista de fantasía anterior.
 //
 // IMPORTANTE — de dónde sale cada campo y cómo se usa:
@@ -25,6 +25,11 @@
 // "Cubiertas/Neumáticos" y "Llantas y neumáticos" (3 variantes de la misma
 // categoría en la planilla) se unificaron en una sola: `llantas_neumaticos`.
 // El resto de las categorías se mantiene tal como las definió Augusto.
+//
+// Actualización 26/08/2026: se sumaron 11 productos de Vintex/Menzerna que
+// faltaban del relevamiento original (Alumax, la línea de aromatizantes
+// spray/gel, Snow Foam Hobby, y el sellador acrílico Power Lock de
+// Menzerna).
 export const CATEGORIAS = {
   lavado_exterior: { etiqueta: "Lavado exterior", icono: "water-outline" },
   interior: { etiqueta: "Interior", icono: "layers-outline" },
@@ -42,7 +47,10 @@ export const CATEGORIAS = {
 // páginas de 3 categorías fijas; con las 10 categorías reales de la lista
 // definitiva no entran todas en 2 páginas). Agrupadas por afinidad temática:
 // lavado, interior/protección, pulido/acabado, vidrios/llantas/accesorios.
-// Reordenar acá no rompe nada — es solo agrupación visual.
+// Reordenar acá no rompe nada — es solo agrupación visual. La categoría de
+// un insumo puntual ahora también se puede reasignar desde la propia app
+// (ver MoverCategoriaModal.js), así que esta agrupación de fábrica es solo
+// el punto de partida.
 export const PAGINAS_ESTANTERIA = [
   ["lavado_exterior", "apc_desengrasante"],
   ["interior", "proteccion_sellado"],
@@ -64,7 +72,7 @@ export const UMBRAL_STOCK_BAJO = 25;
 // (afecta también las cantidades de receta en Mis Servicios).
 export const UNIDADES_CAPACIDAD = ["ml", "g", "unidades"];
 
-// Catálogo de referencia definitivo — 478 productos. Ver notas de campos
+// Catálogo de referencia definitivo — 489 productos. Ver notas de campos
 // arriba. Este catálogo alimenta el buscador de "Agregar Insumo"; lo que el
 // taller efectivamente tiene en stock vive en la tabla `insumos` de Supabase
 // (`misInsumos` en DataContext), que arranca vacía: cada taller carga acá
@@ -8121,6 +8129,184 @@ export const catalogoInsumos = [
       "500ml",
       "1L",
       "4L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-alumax",
+    "marca": "Vintex",
+    "categoria": "apc_desengrasante",
+    "nombre": "Alumax",
+    "descripcion": "Desincrustante ácido concentrado y económico para limpieza de ruedas, chasis, motores, baúles de aluminio y carrocerías de acero inoxidable y madera. Se aplica diluido, se deja actuar 1-2 min y se enjuaga con abundante agua.",
+    "diluciones": [
+      "1:10 (ajustable según nivel de suciedad)"
+    ],
+    "dilucionRecomendada": "1:10 (ajustable según nivel de suciedad)",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "1,5L",
+      "5L",
+      "20L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-aromatizante-fresh-spray",
+    "marca": "Vintex",
+    "categoria": "interior",
+    "nombre": "Aromatizante Fresh Spray",
+    "descripcion": "Aromatizante en spray con fragancia especial de acción prolongada para el interior del vehículo. Aroma Fresh.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "60ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-aromatizante-carro-novo-spray",
+    "marca": "Vintex",
+    "categoria": "interior",
+    "nombre": "Aromatizante Carro Novo Spray",
+    "descripcion": "Aromatizante en spray con fragancia especial de acción prolongada para el interior del vehículo. Misma fórmula que el resto de la línea Aromatizante Spray, aroma \"auto nuevo\".",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "60ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-aromatizante-bom-ar-spray",
+    "marca": "Vintex",
+    "categoria": "interior",
+    "nombre": "Aromatizante Bom Ar Spray",
+    "descripcion": "Aromatizante en spray con fragancia especial de acción prolongada para el interior del vehículo. Misma fórmula que el resto de la línea Aromatizante Spray, aroma \"Bom Ar\".",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "60ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-aromatizante-morango-spray",
+    "marca": "Vintex",
+    "categoria": "interior",
+    "nombre": "Aromatizante Morango Spray",
+    "descripcion": "Aromatizante en spray con fragancia especial de acción prolongada para el interior del vehículo. Misma fórmula que el resto de la línea Aromatizante Spray, aroma frutilla (morango).",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "60ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-arominha-fresh-gel",
+    "marca": "Vintex",
+    "categoria": "interior",
+    "nombre": "Arominha Fresh Gel",
+    "descripcion": "Aromatizante en gel con fragancia especial de acción prolongada para el interior del vehículo. Aroma Fresh.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "60g"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-arominha-carro-novo-gel",
+    "marca": "Vintex",
+    "categoria": "interior",
+    "nombre": "Arominha Carro Novo Gel",
+    "descripcion": "Aromatizante en gel con fragancia especial de acción prolongada para el interior del vehículo. Misma fórmula que el resto de la línea Arominha Gel, aroma \"auto nuevo\".",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "60g"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-arominha-frutal-gel",
+    "marca": "Vintex",
+    "categoria": "interior",
+    "nombre": "Arominha Frutal Gel",
+    "descripcion": "Aromatizante en gel con fragancia especial de acción prolongada para el interior del vehículo. Misma fórmula que el resto de la línea Arominha Gel, aroma frutal.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "60g"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-arominha-uva-gel",
+    "marca": "Vintex",
+    "categoria": "interior",
+    "nombre": "Arominha Uva Gel",
+    "descripcion": "Aromatizante en gel con fragancia especial de acción prolongada para el interior del vehículo. Misma fórmula que el resto de la línea Arominha Gel, aroma uva.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "60g"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "vintex-snow-foam-hobby",
+    "marca": "Vintex",
+    "categoria": "lavado_exterior",
+    "nombre": "Snow Foam Hobby",
+    "descripcion": "Snow foam de alta espumación para pre-lavado con cañón de espuma, pensado para uso hobbista/doméstico; genera espuma densa que ayuda a remover suciedad, polvo y contaminantes.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": null,
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "900ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "menzerna-power-lock",
+    "marca": "Menzerna",
+    "categoria": "proteccion_sellado",
+    "nombre": "Power Lock",
+    "descripcion": "Sellador acrílico de protección y brillo para pintura (Power Lock Ultimate Protection), de aplicación sencilla y rápida.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "250ml"
     ],
     "prioridadSugerida": null
   }

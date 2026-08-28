@@ -10,6 +10,14 @@ import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const ESTADOS_QUE_PERMITEN_COBRO = ["Finalizado", "Entregado"];
 
+// Mismo criterio de color por estado que TurnoCard.js.
+const COLOR_ESTADO = {
+  Pendiente: colors.error,
+  "En proceso": colors.amber,
+  Finalizado: colors.success,
+  Entregado: colors.success,
+};
+
 // Detalle de solo lectura de un trabajo ya cargado (cliente, vehículo y
 // datos del servicio), con un selector de estado debajo para ir avanzando
 // (o volviendo) por las etapas del trabajo.
@@ -21,6 +29,11 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   const [errorEliminar, setErrorEliminar] = useState(null);
   const [modalCobroVisible, setModalCobroVisible] = useState(false);
 
+  // Estado "de prueba": tocar un chip solo cambia esto, no el turno real.
+  // Se resetea al estado real del turno cada vez que el modal se vuelve a
+  // abrir, así cualquier chip probado sin guardar queda descartado.
+  const [estadoLocal, setEstadoLocal] = useState(turno?.estado ?? null);
+
   // Al pasar a "Finalizado", onCambiarEstado (TurnoContext.actualizarEstadoTrabajo)
   // ahora escribe de verdad en Supabase (descuenta insumos) y puede fallar —
   // se resetea el error al reabrir o cambiar de turno.
@@ -28,20 +41,23 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
     if (visible) {
       setErrorEstado(null);
       setErrorEliminar(null);
+      setEstadoLocal(turno?.estado ?? null);
     }
-  }, [visible, turno?.id]);
+  }, [visible, turno?.id, turno?.estado]);
 
   if (!turno || !cliente) return null;
 
-  const vehiculosDelCliente = cliente.vehiculos;
   const cobro = cobros.find((c) => c.turnoId === turno.id);
   const puedeCobrar = ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado);
+  const hayCambioSinGuardar = estadoLocal !== turno.estado;
 
-  async function handleCambiarEstado(estado) {
+  async function handleGuardarCambios() {
+    if (!hayCambioSinGuardar) return;
     setCambiandoEstado(true);
     setErrorEstado(null);
     try {
-      await onCambiarEstado(estado);
+      await onCambiarEstado(estadoLocal);
+      onClose();
     } catch (err) {
       setErrorEstado("No se pudo actualizar el estado del trabajo. Probá de nuevo.");
     } finally {
@@ -80,80 +96,122 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
             <Text style={styles.titulo}>Turno de las {turno.hora}</Text>
             <Text style={styles.servicio}>{turno.servicio}</Text>
 
-            <Text style={styles.seccion}>Ficha del cliente</Text>
-            <View style={styles.tarjeta}>
-              <Text style={styles.filaLabel}>Nombre</Text>
-              <Text style={styles.filaValor}>{cliente.nombre}</Text>
-              <Text style={styles.filaLabel}>Teléfono</Text>
-              <Text style={styles.filaValor}>{cliente.telefono}</Text>
-              <Text style={styles.filaLabel}>Vehículos</Text>
-              {vehiculosDelCliente.map((v) => (
-                <Text key={v.id} style={styles.filaValor}>
-                  · {v.marca} {v.modelo} ({v.patente})
-                </Text>
-              ))}
+            <View style={styles.tarjetaSeccion}>
+              <Text style={styles.tituloTarjeta}>Estado del trabajo</Text>
+              <View style={styles.chips}>
+                {ESTADOS_TRABAJO.map((estado) => {
+                  const seleccionado = estadoLocal === estado;
+                  const colorEstado = COLOR_ESTADO[estado];
+                  return (
+                    <TouchableOpacity
+                      key={estado}
+                      style={[styles.chip, seleccionado && { backgroundColor: colorEstado }]}
+                      onPress={() => setEstadoLocal(estado)}
+                      disabled={cambiandoEstado || eliminando}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[styles.chipTexto, seleccionado && styles.chipTextoSeleccionado]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.75}
+                      >
+                        {estado}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {errorEstado && <Text style={styles.errorTexto}>{errorEstado}</Text>}
             </View>
 
-            <Text style={styles.seccion}>Ficha del vehículo de este turno</Text>
-            <View style={styles.tarjeta}>
-              <Text style={styles.filaLabel}>Marca y modelo</Text>
-              <Text style={styles.filaValor}>
-                {auto ? `${auto.marca} ${auto.modelo}` : "-"}
-              </Text>
-              <Text style={styles.filaLabel}>Patente</Text>
-              <Text style={styles.filaValor}>{auto?.patente ?? "-"}</Text>
-              <Text style={styles.filaLabel}>Color</Text>
-              <Text style={styles.filaValor}>{auto?.color ?? "-"}</Text>
-              <Text style={styles.filaLabel}>Dueño</Text>
-              <Text style={styles.filaValor}>{cliente.nombre}</Text>
+            <View style={styles.tarjetaSeccion}>
+              <Text style={styles.tituloTarjeta}>Cliente y vehículo</Text>
+              <View style={styles.grilla}>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Nombre</Text>
+                  <Text style={styles.campoValor}>{cliente.nombre}</Text>
+                </View>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Teléfono</Text>
+                  <Text style={styles.campoValor}>{cliente.telefono}</Text>
+                </View>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Vehículo</Text>
+                  <Text style={styles.campoValor}>
+                    {auto ? `${auto.marca} ${auto.modelo}` : "-"}
+                  </Text>
+                </View>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Patente</Text>
+                  <Text style={styles.campoValor}>{auto?.patente ?? "-"}</Text>
+                </View>
+                {auto?.color && (
+                  <View style={styles.celda}>
+                    <Text style={styles.campoLabel}>Color</Text>
+                    <Text style={styles.campoValor}>{auto.color}</Text>
+                  </View>
+                )}
+              </View>
             </View>
 
-            <Text style={styles.seccion}>Datos del servicio</Text>
-            <View style={styles.tarjeta}>
-              <Text style={styles.filaLabel}>Fecha</Text>
-              <Text style={styles.filaValor}>{turno.fecha || "-"}</Text>
-              <Text style={styles.filaLabel}>Hora</Text>
-              <Text style={styles.filaValor}>{turno.hora || "-"}</Text>
-              <Text style={styles.filaLabel}>Tiempo estimado</Text>
-              <Text style={styles.filaValor}>{turno.tiempoEstimado || "-"}</Text>
-              <Text style={styles.filaLabel}>Observaciones</Text>
-              <Text style={styles.filaValor}>{turno.observaciones || "Sin observaciones"}</Text>
+            <View style={styles.tarjetaSeccion}>
+              <Text style={styles.tituloTarjeta}>Servicio</Text>
+              <View style={styles.grilla}>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Fecha</Text>
+                  <Text style={styles.campoValor}>{turno.fecha || "-"}</Text>
+                </View>
+                <View style={styles.celda}>
+                  <Text style={styles.campoLabel}>Hora de llegada</Text>
+                  <Text style={styles.campoValor}>{turno.hora || "-"}</Text>
+                </View>
+                {turno.tiempoEstimado && (
+                  <View style={styles.celda}>
+                    <Text style={styles.campoLabel}>Tiempo estimado</Text>
+                    <Text style={styles.campoValor}>{turno.tiempoEstimado}</Text>
+                  </View>
+                )}
+              </View>
+              {turno.observaciones && (
+                <View style={styles.observacionesContenedor}>
+                  <Text style={styles.campoLabel}>Observaciones</Text>
+                  <Text style={styles.campoValor}>{turno.observaciones}</Text>
+                </View>
+              )}
             </View>
 
             {turno.empleadosAsignados?.length > 0 && (
-              <>
-                <Text style={styles.seccion}>Empleados asignados</Text>
-                <View style={styles.tarjeta}>
-                  {turno.empleadosAsignados.map((e) => (
-                    <Text key={e.empleadoId} style={styles.filaValor}>
-                      · {e.nombreEmpleado}
-                    </Text>
-                  ))}
-                </View>
-              </>
+              <View style={styles.tarjetaSeccion}>
+                <Text style={styles.tituloTarjeta}>Empleados asignados</Text>
+                {turno.empleadosAsignados.map((e) => (
+                  <Text key={e.empleadoId} style={styles.campoValor}>
+                    · {e.nombreEmpleado}
+                  </Text>
+                ))}
+              </View>
             )}
 
             {turno.recetaAplicada?.length > 0 && (
-              <>
-                <Text style={styles.seccion}>Insumos usados</Text>
-                <View style={styles.tarjeta}>
-                  {turno.recetaAplicada.map((linea) => (
-                    <Text key={linea.insumoId} style={styles.filaValor}>
-                      · {linea.nombreInsumo} — {linea.cantidad} {linea.unidad}
-                    </Text>
-                  ))}
-                </View>
-              </>
+              <View style={styles.tarjetaSeccion}>
+                <Text style={styles.tituloTarjeta}>Insumos usados</Text>
+                {turno.recetaAplicada.map((linea, indice) => (
+                  <Text key={linea.libre ? `libre-${indice}` : linea.insumoId} style={styles.campoValor}>
+                    · {linea.nombreInsumo} —{" "}
+                    {linea.libre ? formatearPesos(linea.costoEstimado) : `${linea.cantidad} ${linea.unidad}`}
+                  </Text>
+                ))}
+              </View>
             )}
 
             {puedeCobrar && (
-              <>
-                <Text style={styles.seccion}>Cobro</Text>
+              <View style={styles.tarjetaSeccion}>
+                <Text style={styles.tituloTarjeta}>Cobro</Text>
                 {cobro ? (
-                  <View style={styles.tarjeta}>
-                    <Text style={styles.filaLabel}>Monto cobrado</Text>
-                    <Text style={styles.filaValor}>{formatearPesos(cobro.monto)}</Text>
-                  </View>
+                  <>
+                    <Text style={styles.campoLabel}>Monto cobrado</Text>
+                    <Text style={styles.campoValor}>{formatearPesos(cobro.monto)}</Text>
+                  </>
                 ) : (
                   <TouchableOpacity
                     style={styles.cobroBoton}
@@ -164,31 +222,10 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                     <Text style={styles.cobroBotonTexto}>Registrar cobro</Text>
                   </TouchableOpacity>
                 )}
-              </>
+              </View>
             )}
 
-            <Text style={styles.seccion}>Estado del trabajo</Text>
-            <View style={styles.chips}>
-              {ESTADOS_TRABAJO.map((estado) => {
-                const activo = turno.estado === estado;
-                return (
-                  <TouchableOpacity
-                    key={estado}
-                    style={[styles.chip, activo && styles.chipSeleccionado]}
-                    onPress={() => handleCambiarEstado(estado)}
-                    disabled={activo || cambiandoEstado || eliminando}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                      {estado}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            {errorEstado && <Text style={styles.errorEstado}>{errorEstado}</Text>}
-
-            {errorEliminar && <Text style={styles.errorEstado}>{errorEliminar}</Text>}
+            {errorEliminar && <Text style={styles.errorTexto}>{errorEliminar}</Text>}
 
             <TouchableOpacity
               style={styles.eliminarBoton}
@@ -196,13 +233,20 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
               disabled={cambiandoEstado || eliminando}
               activeOpacity={0.85}
             >
-              <Ionicons name="trash-outline" size={16} color={colors.error} />
+              <Ionicons name="trash-outline" size={16} color={colors.textPrimary} />
               <Text style={styles.eliminarBotonTexto}>{eliminando ? "Eliminando..." : "Eliminar turno"}</Text>
             </TouchableOpacity>
           </ScrollView>
 
-          <View style={styles.botonCerrar}>
-            <Button title="Cerrar" variant="secondary" onPress={onClose} disabled={eliminando} />
+          <View style={styles.botonesFijos}>
+            <Button
+              title={cambiandoEstado ? "Guardando..." : "Guardar cambios"}
+              onPress={handleGuardarCambios}
+              disabled={!hayCambioSinGuardar || cambiandoEstado || eliminando}
+            />
+            <View style={styles.botonCerrar}>
+              <Button title="Cerrar" variant="secondary" onPress={onClose} disabled={eliminando || cambiandoEstado} />
+            </View>
           </View>
         </View>
       </View>
@@ -243,67 +287,72 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 16,
   },
-  seccion: {
-    fontFamily: fonts.mono,
+  tarjetaSeccion: {
+    backgroundColor: colors.surface2,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    padding: 14,
+    marginBottom: 12,
+  },
+  tituloTarjeta: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginTop: 4,
     marginBottom: 10,
   },
-  tarjeta: {
-    backgroundColor: colors.surface2,
-    borderRadius: radii.button,
-    ...continuousCorner,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    padding: 14,
-    marginBottom: 12,
+  grilla: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 12,
   },
-  filaLabel: {
+  celda: {
+    width: "48%",
+  },
+  campoLabel: {
     fontFamily: fonts.mono,
     fontSize: 11,
     color: colors.textMuted,
-    marginTop: 8,
+    marginBottom: 2,
   },
-  filaValor: {
+  campoValor: {
     fontFamily: fonts.body,
     fontSize: 15,
     color: colors.textPrimary,
   },
+  observacionesContenedor: {
+    marginTop: 12,
+  },
   chips: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 4,
+    gap: 6,
   },
   chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
     borderRadius: 999,
-    paddingHorizontal: 14,
+    paddingHorizontal: 4,
     paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
   },
   chipTexto: {
     fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: "center",
   },
   chipTextoSeleccionado: {
     fontFamily: fonts.bodySemiBold,
     color: colors.bg,
   },
-  errorEstado: {
+  errorTexto: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.error,
-    marginTop: 6,
+    marginTop: 8,
   },
   cobroBoton: {
     flexDirection: "row",
@@ -329,16 +378,18 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: radii.button,
     ...continuousCorner,
-    borderWidth: 1,
-    borderColor: colors.error,
+    backgroundColor: colors.error,
     marginTop: 16,
   },
   eliminarBotonTexto: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
-    color: colors.error,
+    color: colors.textPrimary,
+  },
+  botonesFijos: {
+    marginTop: 16,
   },
   botonCerrar: {
-    marginTop: 16,
+    marginTop: 10,
   },
 });
