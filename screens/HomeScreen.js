@@ -15,15 +15,39 @@ import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
 import { useClientes } from "../data/ClienteContext";
 import { useTurnos } from "../data/TurnoContext";
+import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
+import { obtenerDiasHastaEntrega } from "../utils/entregas";
 import { colors, fonts, shadow } from "../theme";
 
 const ESTADOS_TERMINADOS = new Set(["Finalizado", "Entregado"]);
+
+// Orden de prioridad de la lista de Home: "En proceso" arriba de todo,
+// después "Finalizado" (a entregar), después "Pendiente" (sin comenzar), y
+// "Entregado" siempre al final sin importar nada más.
+const PRIORIDAD_ESTADO = {
+  "En proceso": 0,
+  Finalizado: 1,
+  Pendiente: 2,
+  Entregado: 3,
+};
+
+// Dentro de "En proceso", más urgente primero: entrega hoy o atrasada (mismo
+// "rojo" que TurnoCard.js), después mañana, después el resto — un turno sin
+// fecha calculable cae en "el resto" (no hay con qué priorizarlo).
+function obtenerRangoUrgencia(turno, getServicioById) {
+  const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
+  const diasHastaEntrega = obtenerDiasHastaEntrega(turno, servicio);
+  if (diasHastaEntrega === null || diasHastaEntrega > 1) return 2;
+  if (diasHastaEntrega === 1) return 1;
+  return 0; // hoy (0) o atrasado (negativo)
+}
 
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
   const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } =
     useTurnos();
+  const { getServicioById } = useServicios();
   const { misDatos } = useTaller();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
   // Cambia cada vez que Home gana/pierde foco: se usa como `key` del anillo
@@ -40,13 +64,21 @@ export default function HomeScreen({ navigation }) {
   const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
   const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
 
-  // Los no terminados (Pendiente/En proceso) van primero, ordenados por
-  // hora — así lo urgente queda arriba. Los terminados (Finalizado/
-  // Entregado) se "hunden" al final, también por hora dentro de ese grupo.
+  // "En proceso" primero (con sub-orden por urgencia de entrega), después
+  // Finalizado, después Pendiente, y Entregado siempre al final — dentro de
+  // cada grupo (y dentro de cada sub-grupo de urgencia en "En proceso"), por
+  // hora ascendente.
   const turnosOrdenados = [...turnos].sort((a, b) => {
-    const terminadoA = ESTADOS_TERMINADOS.has(a.estado);
-    const terminadoB = ESTADOS_TERMINADOS.has(b.estado);
-    if (terminadoA !== terminadoB) return terminadoA ? 1 : -1;
+    const prioridadA = PRIORIDAD_ESTADO[a.estado] ?? 4;
+    const prioridadB = PRIORIDAD_ESTADO[b.estado] ?? 4;
+    if (prioridadA !== prioridadB) return prioridadA - prioridadB;
+
+    if (a.estado === "En proceso") {
+      const urgenciaA = obtenerRangoUrgencia(a, getServicioById);
+      const urgenciaB = obtenerRangoUrgencia(b, getServicioById);
+      if (urgenciaA !== urgenciaB) return urgenciaA - urgenciaB;
+    }
+
     return a.hora.localeCompare(b.hora);
   });
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;

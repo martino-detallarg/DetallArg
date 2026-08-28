@@ -1,6 +1,7 @@
 // Cálculo de entrega estimada de un turno, compartido entre AlmanaqueModal.js
-// (Agenda) y TurnoCard.js (Home/Agenda) para no duplicar el criterio.
-import { sumarDias } from "./fecha";
+// (Agenda), TurnoCard.js (Home/Agenda) y el orden de HomeScreen.js, para no
+// duplicar el criterio.
+import { diferenciaEnDias, parsearFechaDDMMAAAA, sumarDias } from "./fecha";
 
 // Mismo set en toda la app (ver ESTADOS_TRABAJO en data/mockData.js): un
 // trabajo ya cerrado se considera entregado, no tiene sentido seguir
@@ -16,4 +17,15 @@ export function calcularFechaEntrega(fechaLlegada, servicio) {
     return sumarDias(fechaLlegada, servicio.duracionValor);
   }
   return fechaLlegada;
+}
+
+// Días de calendario que faltan para la entrega estimada de un turno (puede
+// dar negativo si ya venció). null si el turno no tiene una fecha de
+// llegada parseable, que es cuando no hay con qué calcular nada.
+export function obtenerDiasHastaEntrega(turno, servicio) {
+  const fechaLlegada = parsearFechaDDMMAAAA(turno.fecha);
+  if (!fechaLlegada) return null;
+
+  const fechaEntrega = calcularFechaEntrega(fechaLlegada, servicio);
+  return diferenciaEnDias(new Date(), fechaEntrega);
 }
