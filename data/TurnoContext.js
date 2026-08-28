@@ -43,7 +43,7 @@ const COLUMNAS_TURNO =
   "id, cliente_id, vehiculo_id, servicio_id, servicio_nombre, precio, fecha, hora, " +
   "tiempo_estimado, observaciones, estado, tipo_vehiculo, grupo_vehiculo, " +
   "subdivision_vehiculo, nivel_nafta, " +
-  "turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad, costo_estimado), " +
+  "turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad, costo_estimado, costo_unitario_snapshot), " +
   "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado), " +
   "turno_fotos_danio(storage_path)";
 
@@ -93,6 +93,7 @@ function filaATurno(fila) {
                   nombreInsumo: linea.nombre_insumo,
                   unidad: linea.unidad,
                   cantidad: linea.cantidad,
+                  costoUnitarioSnapshot: linea.costo_unitario_snapshot,
                 }
               : { libre: true, nombreInsumo: linea.nombre_insumo, costoEstimado: linea.costo_estimado }
           )
@@ -289,12 +290,20 @@ export function TurnoProvider({ children }) {
             };
           }
           const insumo = getInsumoById(linea.insumoId);
+          // null si el insumo fue borrado o no tiene precio_compra/capacidadTotal
+          // cargados: no hay con qué calcular el costo real, se deja sin dato en
+          // vez de inventar un valor (ver alter_turno_receta_costo_unitario_snapshot.sql).
+          const costoUnitarioSnapshot =
+            insumo?.precioCompra != null && insumo?.capacidadTotal > 0
+              ? insumo.precioCompra * (linea.cantidad / insumo.capacidadTotal)
+              : null;
           return {
             turno_id: id,
             insumo_id: linea.insumoId,
             nombre_insumo: insumo?.nombre ?? "Insumo eliminado",
             unidad: insumo?.capacidadUnidad ?? null,
             cantidad: linea.cantidad,
+            costo_unitario_snapshot: costoUnitarioSnapshot,
           };
         });
         const { error: errorReceta } = await supabase.from("turno_receta_aplicada").insert(filasReceta);
@@ -313,6 +322,7 @@ export function TurnoProvider({ children }) {
                 nombreInsumo: fila.nombre_insumo,
                 unidad: fila.unidad,
                 cantidad: fila.cantidad,
+                costoUnitarioSnapshot: fila.costo_unitario_snapshot,
               }
             : { libre: true, nombreInsumo: fila.nombre_insumo, costoEstimado: fila.costo_estimado }
         );
