@@ -368,6 +368,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar }) {
       });
     } catch (err) {
       setError("No se pudo agregar. Probá de nuevo.");
+    } finally {
       setGuardando(false);
     }
   }

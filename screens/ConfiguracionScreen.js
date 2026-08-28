@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +15,19 @@ const VERSION_APP = "1.0.0";
 export default function ConfiguracionScreen({ navigation }) {
   const { plan, misDatos, nombreTaller } = useTaller();
   const { user, signOut } = useAuth();
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
+  const [errorCierre, setErrorCierre] = useState(null);
+
+  async function handleCerrarSesion() {
+    setCerrandoSesion(true);
+    setErrorCierre(null);
+    try {
+      await signOut();
+    } catch (err) {
+      setErrorCierre("No se pudo cerrar sesión. Probá de nuevo.");
+      setCerrandoSesion(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.pantalla}>
@@ -86,9 +100,18 @@ export default function ConfiguracionScreen({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.cerrarSesion} onPress={signOut} activeOpacity={0.8}>
+        {errorCierre && <Text style={styles.error}>{errorCierre}</Text>}
+
+        <TouchableOpacity
+          style={styles.cerrarSesion}
+          onPress={handleCerrarSesion}
+          disabled={cerrandoSesion}
+          activeOpacity={0.8}
+        >
           <Ionicons name="log-out-outline" size={18} color={colors.error} />
-          <Text style={styles.cerrarSesionTexto}>Cerrar sesión</Text>
+          <Text style={styles.cerrarSesionTexto}>
+            {cerrandoSesion ? "Cerrando sesión..." : "Cerrar sesión"}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -163,6 +186,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
     color: colors.textPrimary,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
+    marginBottom: 10,
   },
   cerrarSesion: {
     flexDirection: "row",
