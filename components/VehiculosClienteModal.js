@@ -11,7 +11,7 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const VEHICULO_VACIO = { marca: "", modelo: "", anio: "", patente: "", color: "", sinPatente: false };
 
-function FilaVehiculo({ vehiculo, onEditar, onEliminar }) {
+function FilaVehiculo({ vehiculo, onEditar, onEliminar, eliminando }) {
   return (
     <TouchableOpacity style={styles.fila} onPress={onEditar} activeOpacity={0.8}>
       <View style={styles.filaIcono}>
@@ -28,6 +28,7 @@ function FilaVehiculo({ vehiculo, onEditar, onEliminar }) {
       <TouchableOpacity
         style={styles.quitarBoton}
         onPress={onEliminar}
+        disabled={eliminando}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         activeOpacity={0.8}
       >
@@ -46,6 +47,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
   const [vehiculoEditandoId, setVehiculoEditandoId] = useState(null);
   const [datosVehiculo, setDatosVehiculo] = useState(VEHICULO_VACIO);
   const [cargando, setCargando] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -103,11 +105,15 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
   }
 
   async function handleEliminarVehiculo(vehiculoId) {
+    if (eliminandoId) return;
+    setEliminandoId(vehiculoId);
     setError(null);
     try {
       await eliminarVehiculo(cliente.id, vehiculoId);
     } catch (err) {
       setError("No se pudo eliminar el vehículo. Probá de nuevo.");
+    } finally {
+      setEliminandoId(null);
     }
   }
 
@@ -170,6 +176,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                   vehiculo={vehiculo}
                   onEditar={() => handleEditar(vehiculo)}
                   onEliminar={() => handleEliminarVehiculo(vehiculo.id)}
+                  eliminando={eliminandoId === vehiculo.id}
                 />
               ))
             )}

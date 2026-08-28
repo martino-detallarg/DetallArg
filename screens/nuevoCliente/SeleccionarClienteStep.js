@@ -8,7 +8,7 @@ import { useClientes } from "../../data/ClienteContext";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 export default function SeleccionarClienteStep({ titulo, paso, totalPasos, onAtras, onSeleccionar }) {
-  const { clientes } = useClientes();
+  const { clientes, cargandoClientes } = useClientes();
   const [busqueda, setBusqueda] = useState("");
 
   const filtrados = clientes.filter((c) =>
@@ -55,7 +55,9 @@ export default function SeleccionarClienteStep({ titulo, paso, totalPasos, onAtr
             );
           }}
           ListEmptyComponent={
-            <Text style={styles.vacio}>No encontramos clientes con ese nombre.</Text>
+            cargandoClientes ? null : (
+              <Text style={styles.vacio}>No encontramos clientes con ese nombre.</Text>
+            )
           }
         />
       </SwipeVolver>

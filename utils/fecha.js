@@ -1,8 +1,13 @@
-// Helpers de fecha para la Agenda. El campo `fecha` de un turno se carga hoy
-// con el date picker nativo del wizard (ver DatosServicioStep.js), pero el
-// parseo sigue siendo best-effort por si llega un valor con otro formato: si
-// no matchea DD/MM/AAAA o el día no existe en ese mes/año, se trata como sin
-// fecha.
+// Helpers de fecha y hora compartidos por varias partes de la app: la
+// Agenda, el horario de atención de Mis Horarios (parsearHoraHHMM/
+// formatearHoraHHMM), el date/time picker del wizard de Trabajo Nuevo
+// (parsearFechaDDMMAAAA/formatearFechaDDMMAAAA, ver DatosServicioStep.js) y
+// la traducción DD/MM/AAAA <-> ISO contra la columna `date` de `turnos` en
+// Supabase (convertirFechaAISO/convertirFechaDesdeISO, ver TurnoContext.js).
+// El campo `fecha` de un turno se carga hoy con el date picker nativo, pero
+// el parseo sigue siendo best-effort por si llega un valor con otro formato:
+// si no matchea DD/MM/AAAA o el día no existe en ese mes/año, se trata como
+// sin fecha.
 
 const DIAS_SEMANA_CORTO = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const DIAS_SEMANA_LARGO = [
