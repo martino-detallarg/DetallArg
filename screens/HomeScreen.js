@@ -4,6 +4,7 @@ import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from
 import { useIsFocused } from "@react-navigation/native";
 import ScreenHeader from "../components/ScreenHeader";
 import StatCard from "../components/StatCard";
+import WidgetCalendarioHome from "../components/WidgetCalendarioHome";
 import TurnoCard from "../components/TurnoCard";
 import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
 import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
@@ -117,14 +118,18 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.saludo}>Hola{misDatos.nombrePersonal ? `, ${misDatos.nombrePersonal}` : ""} 👋</Text>
 
               <View style={styles.stats}>
-                <View style={styles.statUnico}>
+                <View style={styles.statAnillo}>
                   <StatCard
                     key={estaEnfocada}
-                    label="Turnos de hoy"
+                    label="Turnos hoy"
                     valor={turnosOrdenados.length}
                     progreso={progresoTurnosHoy}
+                    tamano={110}
                     onPress={() => navigation.navigate("Agenda")}
                   />
+                </View>
+                <View style={styles.statWidget}>
+                  <WidgetCalendarioHome onPress={() => navigation.navigate("Agenda")} />
                 </View>
               </View>
 
@@ -229,12 +234,17 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: "row",
-    justifyContent: "center",
+    alignItems: "center",
+    gap: 14,
     paddingHorizontal: 20,
     marginTop: 18,
   },
-  statUnico: {
-    width: "55%",
+  statAnillo: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statWidget: {
+    flex: 1,
   },
   seccionTitulo: {
     fontFamily: fonts.bodySemiBold,

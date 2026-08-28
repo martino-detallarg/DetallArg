@@ -8,13 +8,13 @@ import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 // de hoy ya finalizados sobre el total). Si no viene, se mantiene el
 // número simple de siempre. `onPress` es opcional y solo se usa en el modo
 // con anillo (ej. Home lo usa para navegar a Agenda al tocar el anillo).
-export default function StatCard({ label, valor, progreso, onPress }) {
+export default function StatCard({ label, valor, progreso, onPress, tamano = 130 }) {
   const tieneProgreso = typeof progreso === "number";
 
   if (tieneProgreso) {
     return (
       <TouchableOpacity style={styles.contenedorAnillo} onPress={onPress} activeOpacity={0.7}>
-        <CircularProgress progreso={progreso} tamano={130} grosor={6}>
+        <CircularProgress progreso={progreso} tamano={tamano} grosor={6}>
           <Text
             style={styles.valorAnillo}
             numberOfLines={1}
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   labelAnillo: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.body,
     fontSize: 10,
     color: colors.textMuted,
     textTransform: "uppercase",
