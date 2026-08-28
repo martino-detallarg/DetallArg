@@ -271,7 +271,8 @@ create table turno_danios (
   tipos       text[] not null default '{}'
                 check (tipos <@ array[
                   'rayon', 'abolladura', 'oxido', 'repintado',
-                  'trizadura', 'excremento_ave', 'laca_quemada', 'otro'
+                  'trizadura', 'excremento_ave', 'laca_quemada', 'otro',
+                  'rasgada', 'grasa', 'quemado', 'trizado'
                 ]::text[]),
   nota        text,
 
