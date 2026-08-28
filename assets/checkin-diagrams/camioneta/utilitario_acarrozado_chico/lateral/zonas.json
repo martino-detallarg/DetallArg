@@ -1,0 +1,149 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "utilitario_acarrozado_chico",
+  "view": "lateral",
+  "viewBox": "0 0 1218 515",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "panel_carga",
+      "label": "Panel de carga",
+      "points": [
+        [
+          30,
+          190
+        ],
+        [
+          60,
+          90
+        ],
+        [
+          130,
+          50
+        ],
+        [
+          300,
+          42
+        ],
+        [
+          555,
+          45
+        ],
+        [
+          555,
+          400
+        ],
+        [
+          70,
+          400
+        ],
+        [
+          30,
+          350
+        ]
+      ]
+    },
+    {
+      "id": "puerta_delantera",
+      "label": "Puerta delantera",
+      "points": [
+        [
+          555,
+          150
+        ],
+        [
+          570,
+          55
+        ],
+        [
+          790,
+          48
+        ],
+        [
+          800,
+          150
+        ],
+        [
+          940,
+          215
+        ],
+        [
+          940,
+          400
+        ],
+        [
+          555,
+          400
+        ]
+      ]
+    },
+    {
+      "id": "vidrio",
+      "label": "Vidrio (ventanilla)",
+      "points": [
+        [
+          568,
+          150
+        ],
+        [
+          578,
+          70
+        ],
+        [
+          650,
+          55
+        ],
+        [
+          790,
+          58
+        ],
+        [
+          800,
+          150
+        ],
+        [
+          795,
+          215
+        ],
+        [
+          568,
+          215
+        ]
+      ]
+    },
+    {
+      "id": "guardabarro_delantero",
+      "label": "Guardabarro delantero",
+      "points": [
+        [
+          940,
+          215
+        ],
+        [
+          1000,
+          150
+        ],
+        [
+          1090,
+          105
+        ],
+        [
+          1165,
+          120
+        ],
+        [
+          1210,
+          190
+        ],
+        [
+          1210,
+          400
+        ],
+        [
+          940,
+          400
+        ]
+      ]
+    }
+  ]
+}

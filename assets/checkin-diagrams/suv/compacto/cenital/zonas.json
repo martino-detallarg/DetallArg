@@ -1,0 +1,12 @@
+{
+  "vehicleType": "suv",
+  "subdivision": "compacto",
+  "view": "cenital",
+  "viewBox": "0 0 1234 580",
+  "imageFile": "diagrama.png",
+  "zones": [
+    { "id": "techo", "label": "Techo", "points": [[380,55],[1000,55],[1030,90],[1030,490],[1000,520],[380,520],[350,490],[350,90]] },
+    { "id": "parante_izq", "label": "Parante izquierdo", "points": [[280,55],[380,55],[380,520],[280,520],[255,300],[265,150]] },
+    { "id": "parante_der", "label": "Parante derecho", "points": [[1100,55],[1000,55],[1000,520],[1100,520],[1125,300],[1115,150]] }
+  ]
+}

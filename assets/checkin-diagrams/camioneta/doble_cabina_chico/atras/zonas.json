@@ -1,0 +1,147 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "doble_cabina_chico",
+  "view": "atras",
+  "viewBox": "0 0 655 498",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "vidrio",
+      "label": "Vidrio trasero",
+      "points": [
+        [
+          110,
+          140
+        ],
+        [
+          130,
+          70
+        ],
+        [
+          280,
+          45
+        ],
+        [
+          380,
+          45
+        ],
+        [
+          520,
+          70
+        ],
+        [
+          540,
+          140
+        ],
+        [
+          120,
+          145
+        ]
+      ]
+    },
+    {
+      "id": "luz_izquierda",
+      "label": "Luz izquierda",
+      "points": [
+        [
+          15,
+          180
+        ],
+        [
+          120,
+          175
+        ],
+        [
+          120,
+          240
+        ],
+        [
+          110,
+          275
+        ],
+        [
+          55,
+          285
+        ],
+        [
+          15,
+          250
+        ]
+      ]
+    },
+    {
+      "id": "luz_derecha",
+      "label": "Luz derecha",
+      "points": [
+        [
+          640,
+          180
+        ],
+        [
+          535,
+          175
+        ],
+        [
+          535,
+          240
+        ],
+        [
+          545,
+          275
+        ],
+        [
+          600,
+          285
+        ],
+        [
+          640,
+          250
+        ]
+      ]
+    },
+    {
+      "id": "compuerta",
+      "label": "Compuerta",
+      "points": [
+        [
+          120,
+          145
+        ],
+        [
+          535,
+          145
+        ],
+        [
+          535,
+          305
+        ],
+        [
+          120,
+          305
+        ]
+      ]
+    },
+    {
+      "id": "paragolpes_trasero",
+      "label": "Paragolpes trasero",
+      "points": [
+        [
+          45,
+          305
+        ],
+        [
+          610,
+          305
+        ],
+        [
+          590,
+          470
+        ],
+        [
+          65,
+          470
+        ]
+      ]
+    }
+  ]
+}

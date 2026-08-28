@@ -1,0 +1,159 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "doble_cabina_grande",
+  "view": "lateral",
+  "viewBox": "0 0 1269 475",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "guardabarro_delantero",
+      "label": "Guardabarro delantero",
+      "points": [
+        [
+          20,
+          195
+        ],
+        [
+          170,
+          135
+        ],
+        [
+          330,
+          110
+        ],
+        [
+          375,
+          155
+        ],
+        [
+          375,
+          335
+        ],
+        [
+          20,
+          335
+        ]
+      ]
+    },
+    {
+      "id": "puerta_delantera",
+      "label": "Puerta delantera",
+      "points": [
+        [
+          375,
+          155
+        ],
+        [
+          400,
+          130
+        ],
+        [
+          580,
+          120
+        ],
+        [
+          580,
+          335
+        ],
+        [
+          375,
+          335
+        ]
+      ]
+    },
+    {
+      "id": "puerta_trasera",
+      "label": "Puerta trasera",
+      "points": [
+        [
+          580,
+          120
+        ],
+        [
+          610,
+          105
+        ],
+        [
+          825,
+          100
+        ],
+        [
+          825,
+          335
+        ],
+        [
+          580,
+          335
+        ]
+      ]
+    },
+    {
+      "id": "vidrio",
+      "label": "Vidrio (ventanillas)",
+      "points": [
+        [
+          400,
+          155
+        ],
+        [
+          415,
+          75
+        ],
+        [
+          475,
+          55
+        ],
+        [
+          575,
+          52
+        ],
+        [
+          800,
+          55
+        ],
+        [
+          820,
+          85
+        ],
+        [
+          820,
+          120
+        ],
+        [
+          580,
+          120
+        ],
+        [
+          580,
+          155
+        ]
+      ]
+    },
+    {
+      "id": "caja",
+      "label": "Caja",
+      "points": [
+        [
+          825,
+          100
+        ],
+        [
+          1210,
+          90
+        ],
+        [
+          1245,
+          140
+        ],
+        [
+          1245,
+          335
+        ],
+        [
+          825,
+          335
+        ]
+      ]
+    }
+  ]
+}

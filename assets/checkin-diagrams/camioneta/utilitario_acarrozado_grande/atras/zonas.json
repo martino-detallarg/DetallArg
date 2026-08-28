@@ -1,0 +1,129 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "utilitario_acarrozado_grande",
+  "view": "atras",
+  "viewBox": "0 0 571 658",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "vidrio_izquierdo",
+      "label": "Vidrio puerta izquierda",
+      "points": [
+        [
+          90,
+          95
+        ],
+        [
+          100,
+          60
+        ],
+        [
+          220,
+          50
+        ],
+        [
+          290,
+          50
+        ],
+        [
+          290,
+          300
+        ],
+        [
+          90,
+          300
+        ]
+      ]
+    },
+    {
+      "id": "vidrio_derecho",
+      "label": "Vidrio puerta derecha",
+      "points": [
+        [
+          490,
+          95
+        ],
+        [
+          480,
+          60
+        ],
+        [
+          360,
+          50
+        ],
+        [
+          290,
+          50
+        ],
+        [
+          290,
+          300
+        ],
+        [
+          490,
+          300
+        ]
+      ]
+    },
+    {
+      "id": "puerta_izquierda",
+      "label": "Puerta trasera izquierda",
+      "points": [
+        [
+          60,
+          240
+        ],
+        [
+          90,
+          60
+        ],
+        [
+          220,
+          45
+        ],
+        [
+          290,
+          45
+        ],
+        [
+          290,
+          555
+        ],
+        [
+          60,
+          555
+        ]
+      ]
+    },
+    {
+      "id": "puerta_derecha",
+      "label": "Puerta trasera derecha",
+      "points": [
+        [
+          520,
+          240
+        ],
+        [
+          490,
+          60
+        ],
+        [
+          360,
+          45
+        ],
+        [
+          290,
+          45
+        ],
+        [
+          290,
+          555
+        ],
+        [
+          520,
+          555
+        ]
+      ]
+    }
+  ]
+}

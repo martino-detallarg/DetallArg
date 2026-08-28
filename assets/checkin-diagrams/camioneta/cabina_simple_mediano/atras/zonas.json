@@ -1,0 +1,147 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "cabina_simple_mediano",
+  "view": "atras",
+  "viewBox": "0 0 680 585",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "vidrio",
+      "label": "Vidrio trasero",
+      "points": [
+        [
+          140,
+          155
+        ],
+        [
+          155,
+          90
+        ],
+        [
+          290,
+          62
+        ],
+        [
+          400,
+          62
+        ],
+        [
+          525,
+          90
+        ],
+        [
+          540,
+          155
+        ],
+        [
+          150,
+          160
+        ]
+      ]
+    },
+    {
+      "id": "luz_izquierda",
+      "label": "Luz izquierda",
+      "points": [
+        [
+          15,
+          195
+        ],
+        [
+          120,
+          190
+        ],
+        [
+          120,
+          260
+        ],
+        [
+          115,
+          320
+        ],
+        [
+          55,
+          330
+        ],
+        [
+          15,
+          280
+        ]
+      ]
+    },
+    {
+      "id": "luz_derecha",
+      "label": "Luz derecha",
+      "points": [
+        [
+          665,
+          195
+        ],
+        [
+          560,
+          190
+        ],
+        [
+          560,
+          260
+        ],
+        [
+          565,
+          320
+        ],
+        [
+          625,
+          330
+        ],
+        [
+          665,
+          280
+        ]
+      ]
+    },
+    {
+      "id": "compuerta",
+      "label": "Compuerta",
+      "points": [
+        [
+          120,
+          160
+        ],
+        [
+          560,
+          160
+        ],
+        [
+          560,
+          355
+        ],
+        [
+          120,
+          355
+        ]
+      ]
+    },
+    {
+      "id": "paragolpes_trasero",
+      "label": "Paragolpes trasero",
+      "points": [
+        [
+          45,
+          355
+        ],
+        [
+          635,
+          355
+        ],
+        [
+          615,
+          455
+        ],
+        [
+          65,
+          455
+        ]
+      ]
+    }
+  ]
+}

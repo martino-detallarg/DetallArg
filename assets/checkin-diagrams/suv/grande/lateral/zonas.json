@@ -1,0 +1,14 @@
+{
+  "vehicleType": "suv",
+  "subdivision": "grande",
+  "view": "lateral",
+  "viewBox": "0 0 1252 493",
+  "imageFile": "diagrama.png",
+  "zones": [
+    { "id": "guardabarro_delantero", "label": "Guardabarro delantero", "points": [[0,200],[100,160],[200,130],[300,115],[390,150],[390,485],[0,485]] },
+    { "id": "puerta_delantera", "label": "Puerta delantera", "points": [[390,150],[400,80],[550,55],[655,60],[655,485],[390,485]] },
+    { "id": "puerta_trasera", "label": "Puerta trasera", "points": [[655,60],[930,65],[945,150],[945,485],[655,485]] },
+    { "id": "vidrio", "label": "Vidrio (ventanillas)", "points": [[400,80],[650,55],[945,65],[1010,100],[1005,160],[400,150]] },
+    { "id": "cola", "label": "Cola", "points": [[945,65],[1000,90],[1060,120],[1150,150],[1230,170],[1252,195],[1252,485],[945,485]] }
+  ]
+}

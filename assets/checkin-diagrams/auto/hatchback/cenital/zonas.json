@@ -1,0 +1,99 @@
+{
+  "vehicleType": "auto",
+  "subdivision": "hatchback",
+  "view": "cenital",
+  "viewBox": "0 0 1233 584",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "techo",
+      "label": "Techo / vidrios",
+      "points": [
+        [
+          335,
+          90
+        ],
+        [
+          1010,
+          90
+        ],
+        [
+          1010,
+          495
+        ],
+        [
+          335,
+          495
+        ]
+      ]
+    },
+    {
+      "id": "parante_izq",
+      "label": "Parante izquierdo",
+      "points": [
+        [
+          280,
+          45
+        ],
+        [
+          600,
+          30
+        ],
+        [
+          900,
+          35
+        ],
+        [
+          1010,
+          60
+        ],
+        [
+          1035,
+          90
+        ],
+        [
+          335,
+          90
+        ],
+        [
+          300,
+          68
+        ]
+      ]
+    },
+    {
+      "id": "parante_der",
+      "label": "Parante derecho",
+      "points": [
+        [
+          280,
+          540
+        ],
+        [
+          600,
+          555
+        ],
+        [
+          900,
+          550
+        ],
+        [
+          1010,
+          525
+        ],
+        [
+          1035,
+          495
+        ],
+        [
+          335,
+          495
+        ],
+        [
+          300,
+          517
+        ]
+      ]
+    }
+  ]
+}
