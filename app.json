@@ -27,7 +27,8 @@
           "photosPermission": "DetallArg necesita acceder a tus fotos para adjuntarlas al cliente o al vehículo."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-file-system"
     ]
   }
 }

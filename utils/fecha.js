@@ -86,6 +86,14 @@ export function formatearDiaSemanaCorto(fecha) {
   return DIAS_SEMANA_CORTO[fecha.getDay()];
 }
 
+// Nombres de mes abreviados "Ene".."Dic", para el eje de etiquetas del
+// gráfico de barras de ingresos/egresos (FinanzasScreen.js).
+const MESES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+export function formatearMesCorto(fecha) {
+  return MESES_CORTO[fecha.getMonth()];
+}
+
 export function obtenerDiaSemanaHorario(fecha) {
   return DIAS_SEMANA_HORARIO[fecha.getDay()];
 }

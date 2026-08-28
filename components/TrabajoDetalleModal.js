@@ -2,17 +2,24 @@ import { useEffect, useState } from "react";
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
+import RegistrarCobroModal from "./RegistrarCobroModal";
 import { ESTADOS_TRABAJO } from "../data/mockData";
+import { useFinanzas } from "../data/FinanzasContext";
+import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
+
+const ESTADOS_QUE_PERMITEN_COBRO = ["Finalizado", "Entregado"];
 
 // Detalle de solo lectura de un trabajo ya cargado (cliente, vehículo y
 // datos del servicio), con un selector de estado debajo para ir avanzando
 // (o volviendo) por las etapas del trabajo.
 export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onCambiarEstado, onEliminar, onClose }) {
+  const { cobros } = useFinanzas();
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
   const [errorEstado, setErrorEstado] = useState(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState(null);
+  const [modalCobroVisible, setModalCobroVisible] = useState(false);
 
   // Al pasar a "Finalizado", onCambiarEstado (TurnoContext.actualizarEstadoTrabajo)
   // ahora escribe de verdad en Supabase (descuenta insumos) y puede fallar —
@@ -27,6 +34,8 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   if (!turno || !cliente) return null;
 
   const vehiculosDelCliente = cliente.vehiculos;
+  const cobro = cobros.find((c) => c.turnoId === turno.id);
+  const puedeCobrar = ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado);
 
   async function handleCambiarEstado(estado) {
     setCambiandoEstado(true);
@@ -63,6 +72,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   }
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.fondo}>
         <View style={styles.contenedor}>
@@ -136,6 +146,27 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
               </>
             )}
 
+            {puedeCobrar && (
+              <>
+                <Text style={styles.seccion}>Cobro</Text>
+                {cobro ? (
+                  <View style={styles.tarjeta}>
+                    <Text style={styles.filaLabel}>Monto cobrado</Text>
+                    <Text style={styles.filaValor}>{formatearPesos(cobro.monto)}</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.cobroBoton}
+                    onPress={() => setModalCobroVisible(true)}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="cash-outline" size={16} color={colors.bg} />
+                    <Text style={styles.cobroBotonTexto}>Registrar cobro</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+
             <Text style={styles.seccion}>Estado del trabajo</Text>
             <View style={styles.chips}>
               {ESTADOS_TRABAJO.map((estado) => {
@@ -176,6 +207,9 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
         </View>
       </View>
     </Modal>
+
+    <RegistrarCobroModal visible={modalCobroVisible} turno={turno} onClose={() => setModalCobroVisible(false)} />
+    </>
   );
 }
 
@@ -270,6 +304,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.error,
     marginTop: 6,
+  },
+  cobroBoton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 48,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    backgroundColor: colors.accent,
+    marginBottom: 12,
+  },
+  cobroBotonTexto: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.bg,
   },
   eliminarBoton: {
     flexDirection: "row",

@@ -6,12 +6,14 @@ import ScreenHeader from "../components/ScreenHeader";
 import ServicioModal from "../components/ServicioModal";
 import EstadoCarga from "../components/EstadoCarga";
 import { useServicios } from "../data/ServicioContext";
+import { useCatalogo } from "../data/CatalogoContext";
 import { CATEGORIAS_SERVICIOS } from "../data/mockServicios";
 import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 export default function MisServiciosScreen({ navigation }) {
   const { servicios, cargandoServicios, errorCargaServicios, recargarServicios, eliminarServicio } = useServicios();
+  const { estaEnCatalogo, agregarAlCatalogo, quitarDelCatalogo } = useCatalogo();
   const [modalVisible, setModalVisible] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
   const [error, setError] = useState(null);
@@ -24,6 +26,14 @@ export default function MisServiciosScreen({ navigation }) {
   function handleEditar(item) {
     setItemEditando(item);
     setModalVisible(true);
+  }
+
+  function handleToggleCatalogo(id) {
+    if (estaEnCatalogo(id)) {
+      quitarDelCatalogo(id);
+    } else {
+      agregarAlCatalogo(id);
+    }
   }
 
   async function handleEliminar(id) {
@@ -67,6 +77,18 @@ export default function MisServiciosScreen({ navigation }) {
                     </Text>
                     <Text style={styles.filaPrecio}>{formatearPesos(item.precio)}</Text>
                   </View>
+                  <TouchableOpacity
+                    style={styles.quitarBoton}
+                    onPress={() => handleToggleCatalogo(item.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={estaEnCatalogo(item.id) ? "albums" : "albums-outline"}
+                      size={16}
+                      color={estaEnCatalogo(item.id) ? colors.accentLight : colors.textMuted}
+                    />
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.quitarBoton}
                     onPress={() => handleEliminar(item.id)}

@@ -32,6 +32,8 @@ import { ClienteProvider } from "./data/ClienteContext";
 import { TurnoProvider } from "./data/TurnoContext";
 import { ServicioProvider } from "./data/ServicioContext";
 import { EquipoProvider } from "./data/EquipoContext";
+import { CatalogoProvider } from "./data/CatalogoContext";
+import { FinanzasProvider } from "./data/FinanzasContext";
 import { colors } from "./theme";
 
 SplashScreenNativo.preventAutoHideAsync();
@@ -151,9 +153,13 @@ function FlujoApp() {
                 <TallerProvider>
                   <PedidoProvider>
                     <EquipoProvider>
-                      <NavigationContainer>
-                        <DashboardNavigator />
-                      </NavigationContainer>
+                      <CatalogoProvider>
+                        <FinanzasProvider>
+                          <NavigationContainer>
+                            <DashboardNavigator />
+                          </NavigationContainer>
+                        </FinanzasProvider>
+                      </CatalogoProvider>
                     </EquipoProvider>
                   </PedidoProvider>
                 </TallerProvider>

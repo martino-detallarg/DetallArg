@@ -4,6 +4,7 @@ import { colors, fonts } from "../theme";
 
 const ALTO = 170;
 const ESPACIO = 14;
+const ESPACIO_INTERNO = 4;
 const RADIO_BARRA = 6;
 const LINEAS_GRILLA = [0.25, 0.5, 0.75, 1];
 
@@ -11,9 +12,18 @@ const LINEAS_GRILLA = [0.25, 0.5, 0.75, 1];
 // FuelGauge) para no sumar una librería de gráficos nueva. Es ilustrativo:
 // pensado para mostrarse prolijo con los tokens del theme, no para ser un
 // componente de gráficos genérico.
-export default function GraficoBarras({ datos, ancho }) {
-  const maximo = Math.max(...datos.map((d) => d.valor)) * 1.15;
-  const anchoBarra = (ancho - ESPACIO * (datos.length - 1)) / datos.length;
+//
+// Si algún item de `datos` trae `valorSecundario`, dibuja dos barras más
+// angostas por grupo (ej. ingresos vs. egresos, ver FinanzasScreen.js) en
+// vez de una sola columna — sin ese campo se comporta exactamente igual que
+// antes (una barra por item, con su valorTexto arriba).
+export default function GraficoBarras({ datos, ancho, colorSecundario = colors.error }) {
+  const tieneSecundario = datos.some((d) => d.valorSecundario !== undefined);
+  // El `|| 1` evita dividir por cero cuando todavía no hay ningún cobro/gasto
+  // cargado (todos los valores en 0) — sin esto, `alturaBarra` da NaN.
+  const maximo = Math.max(...datos.flatMap((d) => [d.valor, d.valorSecundario ?? 0]), 0) * 1.15 || 1;
+  const anchoGrupo = (ancho - ESPACIO * (datos.length - 1)) / datos.length;
+  const anchoBarra = tieneSecundario ? (anchoGrupo - ESPACIO_INTERNO) / 2 : anchoGrupo;
 
   return (
     <View>
@@ -30,29 +40,46 @@ export default function GraficoBarras({ datos, ancho }) {
           />
         ))}
         {datos.map((item, indice) => {
-          const alturaBarra = (item.valor / maximo) * ALTO;
-          const x = indice * (anchoBarra + ESPACIO);
-          const y = ALTO - alturaBarra;
+          const xGrupo = indice * (anchoGrupo + ESPACIO);
+          const alturaPrimaria = (item.valor / maximo) * ALTO;
           return (
             <Rect
-              key={item.etiqueta}
-              x={x}
-              y={y}
+              key={`${item.etiqueta}-primaria`}
+              x={xGrupo}
+              y={ALTO - alturaPrimaria}
               width={anchoBarra}
-              height={alturaBarra}
+              height={alturaPrimaria}
               rx={RADIO_BARRA}
               fill={colors.accent}
             />
           );
         })}
+        {tieneSecundario &&
+          datos.map((item, indice) => {
+            const xGrupo = indice * (anchoGrupo + ESPACIO);
+            const alturaSecundaria = ((item.valorSecundario ?? 0) / maximo) * ALTO;
+            return (
+              <Rect
+                key={`${item.etiqueta}-secundaria`}
+                x={xGrupo + anchoBarra + ESPACIO_INTERNO}
+                y={ALTO - alturaSecundaria}
+                width={anchoBarra}
+                height={alturaSecundaria}
+                rx={RADIO_BARRA}
+                fill={colorSecundario}
+              />
+            );
+          })}
       </Svg>
 
       <View style={[styles.filaEtiquetas, { width: ancho }]}>
         {datos.map((item) => (
-          <View key={item.etiqueta} style={{ width: anchoBarra, alignItems: "center" }}>
-            <Text style={styles.valor} numberOfLines={1}>
-              {item.valorTexto}
-            </Text>
+          <View key={item.etiqueta} style={{ width: anchoGrupo, alignItems: "center" }}>
+            {!tieneSecundario && (
+              <Text style={styles.valor} numberOfLines={1}>
+                {item.valorTexto}
+              </Text>
+            )}
             <Text style={styles.etiqueta}>{item.etiqueta}</Text>
           </View>
         ))}

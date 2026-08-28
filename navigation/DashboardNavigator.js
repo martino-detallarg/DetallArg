@@ -7,6 +7,7 @@ import MiTallerScreen from "../screens/MiTallerScreen";
 import MisDatosScreen from "../screens/MisDatosScreen";
 import MisInsumosScreen from "../screens/MisInsumosScreen";
 import MisServiciosScreen from "../screens/MisServiciosScreen";
+import CatalogoScreen from "../screens/CatalogoScreen";
 import MiEquipoScreen from "../screens/MiEquipoScreen";
 import FinanzasScreen from "../screens/FinanzasScreen";
 import CostosFijosScreen from "../screens/CostosFijosScreen";
@@ -47,6 +48,7 @@ function MiTallerStackNavigator() {
       <MiTallerStack.Screen name="MisInsumos" component={MisInsumosScreen} />
       <MiTallerStack.Screen name="MisHorarios" component={MisHorariosScreen} />
       <MiTallerStack.Screen name="MisServicios" component={MisServiciosScreen} />
+      <MiTallerStack.Screen name="Catalogo" component={CatalogoScreen} />
     </MiTallerStack.Navigator>
   );
 }

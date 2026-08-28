@@ -311,4 +311,41 @@ create table turno_receta_aplicada (
 comment on table turno_receta_aplicada is
   'Snapshot inmutable: se inserta una sola vez por turno (mismo guard que hoy tiene TurnoContext.actualizarEstadoTrabajo: solo si el turno todavía no tiene ninguna fila acá). Nunca se actualiza ni se borra por una edición posterior de servicio_receta_items.';
 
+-- ----------------------------------------------------------------------------
+-- 7. FINANZAS (FinanzasContext) — Fase A: cobros de trabajos y gastos
+-- variables. Sin cambios a insumos/servicios/turnos — son dos tablas nuevas,
+-- pensadas para no pisar la migración de Nico.
+-- ----------------------------------------------------------------------------
+
+-- Cobro de un trabajo ya realizado. Un turno = un cobro en v1 (sin pagos
+-- parciales): la UI (TrabajoDetalleModal) no deja registrar un segundo cobro
+-- si el turno ya tiene uno asociado.
+create table cobros (
+  id           uuid primary key default gen_random_uuid(),
+  taller_id    uuid not null references talleres (id) on delete cascade,
+
+  -- SET NULL (no CASCADE): si se borra el turno, el ingreso histórico se
+  -- conserva — mismo criterio que turno_receta_aplicada.insumo_id.
+  turno_id     uuid references turnos (id) on delete set null,
+
+  monto        numeric(12, 2) not null check (monto > 0),
+  fecha        date not null,
+  forma_pago   text check (forma_pago in ('efectivo', 'transferencia', 'tarjeta', 'otro')),
+  created_at   timestamptz not null default now()
+);
+
+-- Gastos variables cargados a mano (comisiones, imprevistos — todo lo que no
+-- sea costo fijo mensual ni compra de insumos). El costo de insumos NO entra
+-- acá: ya se cuenta una vez al comprar el insumo (insumos.precio_compra) —
+-- sumarlo de nuevo acá sería doble conteo (ver FinanzasScreen.js).
+create table gastos_variables (
+  id           uuid primary key default gen_random_uuid(),
+  taller_id    uuid not null references talleres (id) on delete cascade,
+  monto        numeric(12, 2) not null check (monto > 0),
+  categoria    text not null check (categoria in ('personal_comisiones', 'otro')),
+  fecha        date not null,
+  descripcion  text,
+  created_at   timestamptz not null default now()
+);
+
 commit;

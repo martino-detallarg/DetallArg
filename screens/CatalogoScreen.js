@@ -1,0 +1,391 @@
+import { useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
+import ScreenHeader from "../components/ScreenHeader";
+import Input from "../components/Input";
+import Button from "../components/Button";
+import EstadoCarga from "../components/EstadoCarga";
+import { useCatalogo } from "../data/CatalogoContext";
+import { useServicios } from "../data/ServicioContext";
+import { useTaller } from "../data/TallerContext";
+import { PLANTILLAS_CATALOGO } from "../data/plantillasCatalogo";
+import { construirHtmlCatalogoCompleto, construirHtmlFicha, formatearDuracion, generarYCompartirPdf } from "../utils/catalogoPdf";
+import { formatearPesos } from "../utils/formato";
+import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
+
+const CLAVES_PLANTILLAS = Object.keys(PLANTILLAS_CATALOGO);
+
+// Confirmación envuelta en Promise para poder "esperar" a que el usuario
+// toque "Elegir foto" antes de abrir la galería, mismo criterio que un
+// window.confirm pero con el Alert nativo de RN.
+function confirmarConAlert(titulo, mensaje) {
+  return new Promise((resolve) => {
+    Alert.alert(titulo, mensaje, [
+      { text: "Cancelar", style: "cancel", onPress: () => resolve(false) },
+      { text: "Elegir foto", onPress: () => resolve(true) },
+    ]);
+  });
+}
+
+function SelectorPlantilla({ claveSeleccionada, onSeleccionar }) {
+  return (
+    <View style={styles.plantillasFila}>
+      {CLAVES_PLANTILLAS.map((clave) => {
+        const plantilla = PLANTILLAS_CATALOGO[clave];
+        const activo = claveSeleccionada === clave;
+        return (
+          <TouchableOpacity
+            key={clave}
+            style={[styles.plantillaChip, activo && styles.plantillaChipSeleccionado]}
+            onPress={() => onSeleccionar(clave)}
+            activeOpacity={0.85}
+          >
+            <View style={[styles.swatch, { backgroundColor: plantilla.colorAcento }]} />
+            <Text style={[styles.plantillaTexto, activo && styles.plantillaTextoSeleccionado]}>
+              {plantilla.nombre}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+function ItemCatalogoCard({ item, servicio, onQuitar, onCambiarPlantilla, onAgregarFotos, onGenerarFicha, generando }) {
+  return (
+    <View style={styles.itemCard}>
+      <View style={styles.itemHeader}>
+        <View style={styles.itemHeaderTexto}>
+          <Text style={styles.itemNombre} numberOfLines={1}>
+            {servicio.nombre}
+          </Text>
+          <Text style={styles.itemPrecio}>
+            {formatearPesos(servicio.precio)} · {formatearDuracion(servicio)}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.quitarBoton}
+          onPress={onQuitar}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="trash-outline" size={16} color={colors.error} />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.itemLabel}>Plantilla de esta ficha</Text>
+      <SelectorPlantilla claveSeleccionada={item.plantilla} onSeleccionar={onCambiarPlantilla} />
+
+      {item.fotos.length > 0 && (
+        <Text style={styles.fotosContador}>
+          {item.fotos.length} {item.fotos.length === 1 ? "par de fotos cargado" : "pares de fotos cargados"}
+        </Text>
+      )}
+
+      <View style={styles.itemBotones}>
+        <TouchableOpacity style={styles.fotosBoton} onPress={onAgregarFotos} activeOpacity={0.85}>
+          <Ionicons name="images-outline" size={16} color={colors.textPrimary} />
+          <Text style={styles.fotosBotonTexto}>Agregar fotos antes/después</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.itemBotonGenerar}>
+        <Button
+          title="Generar ficha individual"
+          variant="secondary"
+          onPress={onGenerarFicha}
+          loading={generando}
+        />
+      </View>
+    </View>
+  );
+}
+
+export default function CatalogoScreen({ navigation }) {
+  const {
+    itemsCatalogo,
+    tallerFormaTrabajo,
+    tallerMonedaCobro,
+    plantillaCatalogoGeneral,
+    quitarDelCatalogo,
+    actualizarItemCatalogo,
+    actualizarDatosOperativos,
+    actualizarPlantillaGeneral,
+  } = useCatalogo();
+  const { servicios, cargandoServicios, errorCargaServicios, recargarServicios, getServicioById } = useServicios();
+  const { nombreTaller, logoTaller, misDatos } = useTaller();
+
+  // "completo" mientras se genera el catálogo entero, o el servicioId de la
+  // ficha individual que se está generando — así cada botón muestra su
+  // propio loading sin bloquear el resto de la pantalla.
+  const [generando, setGenerando] = useState(null);
+
+  const taller = { nombreTaller, logoTaller, misDatos };
+  const datosOperativos = { formaTrabajo: tallerFormaTrabajo, monedaCobro: tallerMonedaCobro };
+
+  async function handleAgregarFotos(servicioId) {
+    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) return;
+
+    const quiereAntes = await confirmarConAlert("Foto de ANTES", "Elegí la foto que muestra el estado ANTES del servicio.");
+    if (!quiereAntes) return;
+    const resultadoAntes = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.6 });
+    if (resultadoAntes.canceled) return;
+
+    const quiereDespues = await confirmarConAlert("Foto de DESPUÉS", "Ahora elegí la foto del estado DESPUÉS del servicio.");
+    if (!quiereDespues) return;
+    const resultadoDespues = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.6 });
+    if (resultadoDespues.canceled) return;
+
+    const item = itemsCatalogo.find((i) => i.servicioId === servicioId);
+    const fotos = [
+      ...(item?.fotos ?? []),
+      { antes: resultadoAntes.assets[0].uri, despues: resultadoDespues.assets[0].uri },
+    ];
+    actualizarItemCatalogo(servicioId, { fotos });
+  }
+
+  async function handleGenerarFicha(item, servicio) {
+    setGenerando(servicio.id);
+    try {
+      const html = construirHtmlFicha(servicio, taller, datosOperativos, PLANTILLAS_CATALOGO[item.plantilla], item.fotos);
+      await generarYCompartirPdf(html, `${servicio.nombre} - Ficha.pdf`);
+    } catch (err) {
+      Alert.alert("No se pudo generar el PDF", "Probá de nuevo en unos segundos.");
+    } finally {
+      setGenerando(null);
+    }
+  }
+
+  async function handleGenerarCatalogoCompleto() {
+    setGenerando("completo");
+    try {
+      const html = construirHtmlCatalogoCompleto(
+        itemsCatalogo,
+        servicios,
+        taller,
+        datosOperativos,
+        PLANTILLAS_CATALOGO[plantillaCatalogoGeneral]
+      );
+      await generarYCompartirPdf(html, `${nombreTaller} - Catálogo.pdf`);
+    } catch (err) {
+      Alert.alert("No se pudo generar el PDF", "Probá de nuevo en unos segundos.");
+    } finally {
+      setGenerando(null);
+    }
+  }
+
+  const itemsConServicio = itemsCatalogo
+    .map((item) => ({ item, servicio: getServicioById(item.servicioId) }))
+    .filter(({ servicio }) => !!servicio);
+
+  return (
+    <SafeAreaView style={styles.pantalla}>
+      <StatusBar style="light" />
+      <ScreenHeader onVolver={() => navigation.navigate("MiTaller")} />
+
+      <EstadoCarga cargando={cargandoServicios} error={errorCargaServicios} onReintentar={recargarServicios}>
+        <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+          <Text style={styles.titulo}>Catálogo</Text>
+
+          <View style={styles.miniForm}>
+            <Input
+              label="Forma de trabajo"
+              value={tallerFormaTrabajo}
+              onChangeText={(v) => actualizarDatosOperativos({ formaTrabajo: v })}
+              placeholder="Ej: A domicilio y en el local"
+            />
+            <Input
+              label="Moneda de cobro"
+              value={tallerMonedaCobro}
+              onChangeText={(v) => actualizarDatosOperativos({ monedaCobro: v })}
+              placeholder="Ej: ARS $"
+              autoCapitalize="characters"
+            />
+          </View>
+
+          <Text style={styles.label}>Plantilla del catálogo completo</Text>
+          <SelectorPlantilla claveSeleccionada={plantillaCatalogoGeneral} onSeleccionar={actualizarPlantillaGeneral} />
+
+          <View style={styles.botonCompleto}>
+            <Button
+              title="Generar catálogo completo"
+              onPress={handleGenerarCatalogoCompleto}
+              disabled={itemsCatalogo.length === 0}
+              loading={generando === "completo"}
+            />
+          </View>
+
+          <View style={styles.separador} />
+
+          {itemsConServicio.length === 0 ? (
+            <Text style={styles.vacio}>Todavía no exportaste ningún servicio desde Mis Servicios.</Text>
+          ) : (
+            itemsConServicio.map(({ item, servicio }) => (
+              <ItemCatalogoCard
+                key={item.servicioId}
+                item={item}
+                servicio={servicio}
+                onQuitar={() => quitarDelCatalogo(item.servicioId)}
+                onCambiarPlantilla={(clave) => actualizarItemCatalogo(item.servicioId, { plantilla: clave })}
+                onAgregarFotos={() => handleAgregarFotos(item.servicioId)}
+                onGenerarFicha={() => handleGenerarFicha(item, servicio)}
+                generando={generando === servicio.id}
+              />
+            ))
+          )}
+        </ScrollView>
+      </EstadoCarga>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  pantalla: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  contenido: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  titulo: {
+    fontFamily: fonts.heading,
+    fontSize: 22,
+    color: colors.textPrimary,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  miniForm: {
+    marginBottom: 4,
+  },
+  label: {
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  plantillasFila: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  plantillaChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface2,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  plantillaChipSeleccionado: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  swatch: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  plantillaTexto: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  plantillaTextoSeleccionado: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.bg,
+  },
+  botonCompleto: {
+    marginBottom: 8,
+  },
+  separador: {
+    height: 1,
+    backgroundColor: colors.borderSubtle,
+    marginVertical: 24,
+  },
+  vacio: {
+    fontFamily: fonts.body,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: 20,
+  },
+  itemCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 14,
+    marginBottom: 14,
+    ...shadow,
+  },
+  itemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  itemHeaderTexto: {
+    flex: 1,
+  },
+  itemNombre: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  itemPrecio: {
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  quitarBoton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.surface2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  itemLabel: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  fotosContador: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.accentLight,
+    marginBottom: 10,
+  },
+  itemBotones: {
+    marginBottom: 12,
+  },
+  fotosBoton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 44,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderAccent,
+  },
+  fotosBotonTexto: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  itemBotonGenerar: {},
+});

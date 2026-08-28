@@ -464,4 +464,45 @@ create policy "turno_receta_aplicada_insert_propio"
     )
   );
 
+-- ----------------------------------------------------------------------------
+-- cobros — taller_id directo. SOLO SELECT/INSERT: registrarCobro es la única
+-- función hoy (v1 no tiene editar/eliminar un cobro ya registrado) — mínimo
+-- privilegio, no se agrega de más.
+-- ----------------------------------------------------------------------------
+
+alter table public.cobros enable row level security;
+
+drop policy if exists "cobros_select_propio" on public.cobros;
+create policy "cobros_select_propio"
+  on public.cobros for select to authenticated
+  using (auth.uid() = taller_id);
+
+drop policy if exists "cobros_insert_propio" on public.cobros;
+create policy "cobros_insert_propio"
+  on public.cobros for insert to authenticated
+  with check (auth.uid() = taller_id);
+
+-- ----------------------------------------------------------------------------
+-- gastos_variables — taller_id directo. SELECT/INSERT/DELETE
+-- (agregarGastoVariable/eliminarGastoVariable). SIN UPDATE: no existe una
+-- función para editar un gasto ya cargado — mínimo privilegio.
+-- ----------------------------------------------------------------------------
+
+alter table public.gastos_variables enable row level security;
+
+drop policy if exists "gastos_variables_select_propio" on public.gastos_variables;
+create policy "gastos_variables_select_propio"
+  on public.gastos_variables for select to authenticated
+  using (auth.uid() = taller_id);
+
+drop policy if exists "gastos_variables_insert_propio" on public.gastos_variables;
+create policy "gastos_variables_insert_propio"
+  on public.gastos_variables for insert to authenticated
+  with check (auth.uid() = taller_id);
+
+drop policy if exists "gastos_variables_delete_propio" on public.gastos_variables;
+create policy "gastos_variables_delete_propio"
+  on public.gastos_variables for delete to authenticated
+  using (auth.uid() = taller_id);
+
 commit;
