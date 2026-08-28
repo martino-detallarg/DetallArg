@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
+  ActivityIndicator,
   Alert,
   SafeAreaView,
   ScrollView,
@@ -40,7 +41,7 @@ const COSTOS_VARIABLES_EJEMPLO = 95000;
 
 export default function FinanzasScreen({ navigation }) {
   const { width } = useWindowDimensions();
-  const { costosFijos } = useData();
+  const { costosFijos, cargandoCostosFijos, errorCargaCostosFijos } = useData();
   const [paginaActiva, setPaginaActiva] = useState(0);
   const anchoGrafico = width - PADDING_PANTALLA * 2 - 32;
 
@@ -114,6 +115,20 @@ export default function FinanzasScreen({ navigation }) {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Mientras cargandoCostosFijos, costosFijos vale [] y la dona
+            mostraría un "Total mensual" y un "Fijos: $0" falsos (el total
+            real todavía no llegó) — este overlay tapa la card hasta que se
+            sepa el dato real. */}
+            {(cargandoCostosFijos || errorCargaCostosFijos) && (
+              <View style={styles.tarjetaOverlay}>
+                {cargandoCostosFijos ? (
+                  <ActivityIndicator color={colors.accent} size="large" />
+                ) : (
+                  <Text style={styles.tarjetaOverlayError}>{errorCargaCostosFijos}</Text>
+                )}
+              </View>
+            )}
           </View>
 
           <Text style={styles.nota}>
@@ -175,6 +190,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: 16,
+  },
+  tarjetaOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // rgba de colors.surface (#0E1315) — mismo criterio que el fondo
+    // semitransparente de los modals (rgba de colors.bg).
+    backgroundColor: "rgba(14, 19, 21, 0.85)",
+    borderRadius: radii.card,
+    ...continuousCorner,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  tarjetaOverlayError: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
+    textAlign: "center",
   },
   tarjetaHeaderFila: {
     flexDirection: "row",
