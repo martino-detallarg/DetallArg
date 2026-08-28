@@ -268,6 +268,14 @@ export default function AgendaScreen({ navigation }) {
               {turnosSinFechaFiltrados.map(renderTurno)}
             </>
           )}
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate("HistorialClientes")}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            style={styles.linkHistorialWrap}
+          >
+            <Text style={styles.linkHistorial}>Ver historial de clientes</Text>
+          </TouchableOpacity>
         </ScrollView>
       </EstadoCarga>
 
@@ -466,5 +474,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: colors.textMuted,
     marginTop: 24,
+  },
+  linkHistorialWrap: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  linkHistorial: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    textDecorationLine: "underline",
   },
 });
