@@ -1,0 +1,121 @@
+{
+  "vehicleType": "camioneta",
+  "subdivision": "doble_cabina_mediano",
+  "view": "cenital",
+  "viewBox": "0 0 1258 602",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "techo",
+      "label": "Techo",
+      "points": [
+        [
+          340,
+          80
+        ],
+        [
+          865,
+          75
+        ],
+        [
+          865,
+          520
+        ],
+        [
+          340,
+          515
+        ]
+      ]
+    },
+    {
+      "id": "parante_izq",
+      "label": "Parante izquierdo",
+      "points": [
+        [
+          290,
+          45
+        ],
+        [
+          480,
+          25
+        ],
+        [
+          650,
+          20
+        ],
+        [
+          680,
+          45
+        ],
+        [
+          700,
+          75
+        ],
+        [
+          340,
+          80
+        ],
+        [
+          310,
+          60
+        ]
+      ]
+    },
+    {
+      "id": "parante_der",
+      "label": "Parante derecho",
+      "points": [
+        [
+          290,
+          555
+        ],
+        [
+          480,
+          575
+        ],
+        [
+          650,
+          580
+        ],
+        [
+          680,
+          555
+        ],
+        [
+          700,
+          525
+        ],
+        [
+          340,
+          515
+        ],
+        [
+          310,
+          540
+        ]
+      ]
+    },
+    {
+      "id": "caja",
+      "label": "Caja",
+      "points": [
+        [
+          895,
+          90
+        ],
+        [
+          1220,
+          80
+        ],
+        [
+          1220,
+          515
+        ],
+        [
+          895,
+          505
+        ]
+      ]
+    }
+  ]
+}

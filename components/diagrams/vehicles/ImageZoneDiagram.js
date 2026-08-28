@@ -21,9 +21,16 @@ function pointsToStr(pts) {
 // espera DiagramaDanios.
 export default function ImageZoneDiagram({ imageSource, zones, viewBox, danios, onPanelPress, width = "100%" }) {
   const [, , viewW, viewH] = viewBox.split(" ").map(Number);
+  // aspectRatio (CSS) puede no recalcular bien la altura cuando el width
+  // viene encadenado desde useWindowDimensions (InspeccionVisualStep ->
+  // DiagramaDanios -> acá) — se calcula la altura a mano en JS en su lugar.
+  const alto = typeof width === "number" ? width * (viewH / viewW) : undefined;
 
   return (
-    <View style={[styles.contenedor, { width, aspectRatio: viewW / viewH }]}>
+    <View
+      style={[styles.contenedor, styles.debugBorde, { width, height: alto }]}
+      onLayout={(e) => console.log("[ImageZoneDiagram] tamaño real", e.nativeEvent.layout, "esperado", { width, alto })}
+    >
       <Image source={imageSource} style={StyleSheet.absoluteFill} resizeMode="contain" />
       <Svg style={StyleSheet.absoluteFill} viewBox={viewBox}>
         {zones.map((zone) => {
@@ -49,6 +56,12 @@ export default function ImageZoneDiagram({ imageSource, zones, viewBox, danios, 
 
 const styles = StyleSheet.create({
   contenedor: {},
+  // DEBUG temporal — sacar junto con el onLayout de arriba una vez
+  // confirmado que el contenedor mide lo esperado.
+  debugBorde: {
+    borderWidth: 2,
+    borderColor: "red",
+  },
 });
 
 // Arma { Componente, panelIds, panelLabels } a partir de un diagrama.png +

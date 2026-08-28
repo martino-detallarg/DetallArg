@@ -1,0 +1,99 @@
+{
+  "vehicleType": "auto",
+  "subdivision": "familiar",
+  "view": "cenital",
+  "viewBox": "0 0 1260 590",
+  "imageFile": "diagrama.png",
+  "zones": [
+    {
+      "id": "techo",
+      "label": "Techo / vidrios",
+      "points": [
+        [
+          420,
+          95
+        ],
+        [
+          1180,
+          95
+        ],
+        [
+          1180,
+          495
+        ],
+        [
+          420,
+          495
+        ]
+      ]
+    },
+    {
+      "id": "parante_izq",
+      "label": "Parante izquierdo",
+      "points": [
+        [
+          340,
+          55
+        ],
+        [
+          700,
+          38
+        ],
+        [
+          1050,
+          42
+        ],
+        [
+          1180,
+          60
+        ],
+        [
+          1210,
+          95
+        ],
+        [
+          420,
+          95
+        ],
+        [
+          360,
+          72
+        ]
+      ]
+    },
+    {
+      "id": "parante_der",
+      "label": "Parante derecho",
+      "points": [
+        [
+          340,
+          535
+        ],
+        [
+          700,
+          552
+        ],
+        [
+          1050,
+          548
+        ],
+        [
+          1180,
+          530
+        ],
+        [
+          1210,
+          495
+        ],
+        [
+          420,
+          495
+        ],
+        [
+          360,
+          518
+        ]
+      ]
+    }
+  ]
+}
