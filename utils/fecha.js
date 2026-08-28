@@ -79,6 +79,17 @@ export function sumarDias(fecha, cantidad) {
   return nueva;
 }
 
+// Diferencia en días de calendario entre dos fechas (hasta - desde),
+// normalizando cada una a medianoche UTC antes de restar — así no arrastra
+// horas/minutos de `desde` (por ejemplo, si es `new Date()` con la hora
+// actual) ni se ve afectada por cambios de horario de verano, que sí pueden
+// distorsionar una resta directa de milisegundos entre fechas locales.
+export function diferenciaEnDias(desde, hasta) {
+  const utcDesde = Date.UTC(desde.getFullYear(), desde.getMonth(), desde.getDate());
+  const utcHasta = Date.UTC(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+  return Math.round((utcHasta - utcDesde) / 86400000);
+}
+
 // Los 7 días (lunes a domingo) de la semana que contiene `fechaBase`.
 export function obtenerDiasDeLaSemana(fechaBase) {
   const diaSemana = fechaBase.getDay(); // 0 = domingo ... 6 = sábado

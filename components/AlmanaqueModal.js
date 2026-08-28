@@ -3,20 +3,11 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTurnos } from "../data/TurnoContext";
 import { useServicios } from "../data/ServicioContext";
-import {
-  esMismoDia,
-  formatearFechaDDMMAAAA,
-  formatearMesAnio,
-  parsearFechaDDMMAAAA,
-  sumarDias,
-} from "../utils/fecha";
+import { esMismoDia, formatearFechaDDMMAAAA, formatearMesAnio, parsearFechaDDMMAAAA } from "../utils/fecha";
+import { calcularFechaEntrega, ESTADOS_CERRADOS } from "../utils/entregas";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const INICIALES_DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
-
-// Mismo criterio que HomeScreen.js: un trabajo ya cerrado no necesita
-// marcarse como "pendiente de entrega" en el almanaque.
-const ESTADOS_TERMINADOS = new Set(["Finalizado", "Entregado"]);
 
 // Alto de una fila de la grilla (círculo del día de 34 + el padding vertical
 // de la celda). Se usa para fijar la altura total de la grilla siempre en 6
@@ -70,11 +61,11 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
       if (!fechaLlegada) continue;
       conTurno.add(formatearFechaDDMMAAAA(fechaLlegada));
 
-      if (ESTADOS_TERMINADOS.has(turno.estado)) continue;
+      if (ESTADOS_CERRADOS.has(turno.estado)) continue;
 
       const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
-      if (servicio?.duracionUnidad === "dias" && servicio.duracionValor) {
-        const fechaEntrega = sumarDias(fechaLlegada, servicio.duracionValor);
+      const fechaEntrega = calcularFechaEntrega(fechaLlegada, servicio);
+      if (fechaEntrega.getTime() !== fechaLlegada.getTime()) {
         conEntrega.add(formatearFechaDDMMAAAA(fechaEntrega));
       }
     }
