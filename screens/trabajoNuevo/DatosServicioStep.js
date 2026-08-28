@@ -6,6 +6,7 @@ import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
+import ChipGroup from "../../components/ChipGroup";
 import SelectorFechaModal from "../../components/wizard/SelectorFechaModal";
 import SelectorHoraModal from "../../components/SelectorHoraModal";
 import {
@@ -111,22 +112,15 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
             Todavía no cargaste servicios en Mis Servicios. Cargalos desde Mi Taller para poder elegirlos acá.
           </Text>
         ) : (
-          <View style={styles.chips}>
-            {servicios.map((s) => {
-              const activo = datos.servicioId === s.id;
-              return (
-                <TouchableOpacity
-                  key={s.id}
-                  style={[styles.chip, activo && styles.chipSeleccionado]}
-                  onPress={() => seleccionarServicio(s)}
-                >
-                  <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                    {s.nombre} · {formatearPesos(s.precio)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <ChipGroup
+            options={servicios.map((s) => ({
+              value: s.id,
+              label: `${s.nombre} · ${formatearPesos(s.precio)}`,
+              selected: datos.servicioId === s.id,
+            }))}
+            onPress={(id) => seleccionarServicio(servicios.find((s) => s.id === id))}
+            style={styles.chips}
+          />
         )}
         {errores.tipo && <Text style={styles.error}>{errores.tipo}</Text>}
 
@@ -142,24 +136,15 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
           empleadosActivos.length > 0 && (
             <View style={styles.empleadosContenedor}>
               <Text style={styles.label}>Empleados asignados</Text>
-              <View style={styles.chips}>
-                {empleadosActivos.map((empleado) => {
-                  const asignado = (datos.empleadosAsignados ?? []).some(
-                    (e) => e.empleadoId === empleado.id
-                  );
-                  return (
-                    <TouchableOpacity
-                      key={empleado.id}
-                      style={[styles.chip, asignado && styles.chipSeleccionado]}
-                      onPress={() => toggleEmpleado(empleado)}
-                    >
-                      <Text style={[styles.chipTexto, asignado && styles.chipTextoSeleccionado]}>
-                        {empleado.nombre}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <ChipGroup
+                options={empleadosActivos.map((empleado) => ({
+                  value: empleado.id,
+                  label: empleado.nombre,
+                  selected: (datos.empleadosAsignados ?? []).some((e) => e.empleadoId === empleado.id),
+                }))}
+                onPress={(id) => toggleEmpleado(empleadosActivos.find((e) => e.id === id))}
+                style={styles.chips}
+              />
             </View>
           )
         )}
@@ -291,31 +276,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
     marginBottom: 4,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  chipTexto: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  chipTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
   },
   error: {
     fontFamily: fonts.body,

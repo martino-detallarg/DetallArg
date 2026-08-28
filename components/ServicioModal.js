@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
+import ChipGroup from "./ChipGroup";
 import RecetaServicioStep from "./servicio/RecetaServicioStep";
 import { useServicios } from "../data/ServicioContext";
 import { colors, continuousCorner, fonts, radii } from "../theme";
@@ -165,22 +166,15 @@ export default function ServicioModal({ visible, item, onClose }) {
                   <View style={styles.duracionInput}>
                     <Input value={duracionValor} onChangeText={setDuracionValor} placeholder="Ej: 2" keyboardType="numeric" />
                   </View>
-                  <View style={styles.chips}>
-                    {UNIDADES_DURACION.map(({ clave, etiqueta }) => {
-                      const activo = duracionUnidad === clave;
-                      return (
-                        <TouchableOpacity
-                          key={clave}
-                          style={[styles.chip, activo && styles.chipSeleccionado]}
-                          onPress={() => setDuracionUnidad(clave)}
-                        >
-                          <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                            {etiqueta}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+                  <ChipGroup
+                    options={UNIDADES_DURACION.map(({ clave, etiqueta }) => ({
+                      value: clave,
+                      label: etiqueta,
+                      selected: duracionUnidad === clave,
+                    }))}
+                    onPress={setDuracionUnidad}
+                    style={styles.chips}
+                  />
                 </View>
 
                 <View style={styles.boton}>
@@ -256,31 +250,7 @@ const styles = StyleSheet.create({
     width: 100,
   },
   chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
     marginBottom: 16,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  chipTexto: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  chipTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
   },
   boton: {
     marginTop: 12,

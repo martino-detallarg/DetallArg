@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Button from "../../components/Button";
+import ChipGroup from "../../components/ChipGroup";
 import FuelGauge from "../../components/wizard/FuelGauge";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
@@ -93,22 +94,14 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
               {tipoInfo.grupos.map((g) => (
                 <View key={g.grupo ?? "unico"} style={styles.grupo}>
                   {g.grupo && <Text style={styles.grupoTitulo}>{g.grupo}</Text>}
-                  <View style={styles.chips}>
-                    {g.opciones.map((opcion) => {
-                      const activo = datos.grupo === g.grupo && datos.subdivision === opcion;
-                      return (
-                        <TouchableOpacity
-                          key={opcion}
-                          style={[styles.chip, activo && styles.chipSeleccionado]}
-                          onPress={() => elegirSubdivision(g.grupo, opcion)}
-                        >
-                          <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                            {opcion}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+                  <ChipGroup
+                    options={g.opciones.map((opcion) => ({
+                      value: opcion,
+                      label: opcion,
+                      selected: datos.grupo === g.grupo && datos.subdivision === opcion,
+                    }))}
+                    onPress={(opcion) => elegirSubdivision(g.grupo, opcion)}
+                  />
                 </View>
               ))}
 
@@ -199,32 +192,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
-  },
-  chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  chipTexto: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  chipTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
   },
   notaPlaceholder: {
     fontFamily: fonts.body,

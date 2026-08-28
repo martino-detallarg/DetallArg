@@ -1,4 +1,5 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import ChipGroup from "./ChipGroup";
 import { useTaller } from "../data/TallerContext";
 import { ORDEN_PLANES, PLANES } from "../data/mockTaller";
 import { colors, continuousCorner, fonts, radii } from "../theme";
@@ -15,22 +16,15 @@ export default function PanelPruebasPlan() {
     <View style={styles.panel}>
       <Text style={styles.titulo}>⚠ Panel de pruebas</Text>
       <Text style={styles.subtitulo}>Simulá el plan del taller (todavía no hay pagos reales)</Text>
-      <View style={styles.chips}>
-        {ORDEN_PLANES.map((clave) => {
-          const activo = plan === clave;
-          return (
-            <TouchableOpacity
-              key={clave}
-              style={[styles.chip, activo && styles.chipSeleccionado]}
-              onPress={() => cambiarPlan(clave)}
-            >
-              <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                {PLANES[clave].etiqueta} · {PLANES[clave].limiteEmpleados}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <ChipGroup
+        options={ORDEN_PLANES.map((clave) => ({
+          value: clave,
+          label: `${PLANES[clave].etiqueta} · ${PLANES[clave].limiteEmpleados}`,
+          selected: plan === clave,
+        }))}
+        onPress={cambiarPlan}
+        selectedColor={colors.error}
+      />
     </View>
   );
 }
@@ -58,31 +52,5 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
     marginBottom: 10,
-  },
-  chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.error,
-    borderColor: colors.error,
-  },
-  chipTexto: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  chipTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
   },
 });
