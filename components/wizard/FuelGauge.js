@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PanResponder, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { colors, fonts } from "../../theme";
@@ -29,12 +29,40 @@ export default function FuelGauge({ nivel, onCambiar }) {
   const contenedorRef = useRef(null);
   const origenPantalla = useRef({ x: 0, y: 0 });
 
+  // Estado propio mientras se arrastra: `onCambiar` (que sube hasta el
+  // estado raíz del wizard, TrabajoNuevoWizard) recién se llama una vez, al
+  // soltar — no en cada pixel de movimiento. Antes cada onPanResponderMove
+  // disparaba un re-render de TODO TipoVehiculoStep (grilla de tipos, chips
+  // de subdivisión, etc.), no solo del gauge, y se sentía como que "toda la
+  // pantalla se movía" al arrastrar.
+  const [nivelInterno, setNivelInterno] = useState(nivel);
+  // Refleja `nivelInterno` para que el handler de soltar (armado una sola
+  // vez más abajo, ver comentario de `responder`) siempre lea el valor más
+  // reciente en vez de quedar atado al que existía cuando se creó.
+  const nivelArrastreRef = useRef(nivel);
+  // Mismo motivo para `onCambiar`: puede ser una función nueva en cada
+  // render del padre, y el handler de soltar necesita siempre la más nueva.
+  const onCambiarRef = useRef(onCambiar);
+  onCambiarRef.current = onCambiar;
+
+  // Si `nivel` cambia desde afuera (ej. se reabre el wizard con otro valor),
+  // resincroniza el estado local — sin esto, el gauge quedaría pegado al
+  // último valor arrastrado en vez de reflejar el dato real.
+  useEffect(() => {
+    setNivelInterno(nivel);
+    nivelArrastreRef.current = nivel;
+  }, [nivel]);
+
   function medirOrigen() {
     contenedorRef.current?.measure((_x, _y, _w, _h, pageX, pageY) => {
       origenPantalla.current = { x: pageX, y: pageY };
     });
   }
 
+  // Armado una sola vez (useRef solo se queda con el valor de la primera
+  // evaluación): por eso `manejarToque`/`manejarSoltar` no pueden confiar en
+  // sus propios closures para leer el `nivel`/`onCambiar` más recientes —
+  // usan los refs de arriba en su lugar.
   const responder = useRef(
     PanResponder.create({
       // onStart/onMoveShouldSetPanResponderCapture (true) hace que este
@@ -47,6 +75,12 @@ export default function FuelGauge({ nivel, onCambiar }) {
       onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: manejarToque,
       onPanResponderMove: manejarToque,
+      // Release cubre soltar el dedo normalmente; Terminate cubre que el
+      // sistema interrumpa el gesto a la fuerza (una llamada entrante, un
+      // permiso) — sin este último, un arrastre interrumpido así perdería
+      // el valor en silencio en vez de confirmarlo.
+      onPanResponderRelease: manejarSoltar,
+      onPanResponderTerminate: manejarSoltar,
       onPanResponderTerminationRequest: () => false,
     })
   ).current;
@@ -66,10 +100,15 @@ export default function FuelGauge({ nivel, onCambiar }) {
     }
 
     const nuevoPorcentaje = Math.max(0, Math.min(100, Math.round((grados / 180) * 100)));
-    onCambiar(nuevoPorcentaje);
+    nivelArrastreRef.current = nuevoPorcentaje;
+    setNivelInterno(nuevoPorcentaje);
   }
 
-  const anguloActual = (nivel / 100) * 180;
+  function manejarSoltar() {
+    onCambiarRef.current(nivelArrastreRef.current);
+  }
+
+  const anguloActual = (nivelInterno / 100) * 180;
   const indicador = puntoEnAngulo(anguloActual);
 
   return (
@@ -106,7 +145,7 @@ export default function FuelGauge({ nivel, onCambiar }) {
         </Svg>
       </View>
 
-      <Text style={styles.valorActual}>{nivel}%</Text>
+      <Text style={styles.valorActual}>{nivelInterno}%</Text>
 
       <View style={styles.etiquetas}>
         <Text style={styles.etiqueta}>Vacío</Text>
