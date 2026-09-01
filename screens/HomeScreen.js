@@ -71,9 +71,25 @@ export default function HomeScreen({ navigation }) {
   // null) tampoco entra, mismo criterio que turnosSinFecha en
   // AgendaScreen.js (ahí se lista aparte; acá Home no tiene esa sección, así
   // que directamente no cuenta para el anillo ni aparece en la lista).
+  //
+  // Además de los que LLEGAN hoy, también entran los "En proceso" cuya
+  // ENTREGA estimada es hoy o ya venció (obtenerDiasHastaEntrega <= 0),
+  // sin importar qué día llegaron — son los trabajos que hoy necesitan
+  // atención aunque hayan entrado otro día. Mismo cálculo que ya usa
+  // obtenerRangoUrgencia más abajo para ordenarlos, así que si un turno
+  // entra por esta segunda condición, siempre cae en el rango de máxima
+  // urgencia (0) al ordenar.
   const turnosDeHoy = turnos.filter((t) => {
     const fecha = parsearFechaDDMMAAAA(t.fecha);
-    return fecha !== null && esMismoDia(fecha, new Date());
+    if (fecha !== null && esMismoDia(fecha, new Date())) return true;
+
+    if (t.estado === "En proceso") {
+      const servicio = t.servicioId ? getServicioById(t.servicioId) : null;
+      const diasHastaEntrega = obtenerDiasHastaEntrega(t, servicio);
+      if (diasHastaEntrega !== null && diasHastaEntrega <= 0) return true;
+    }
+
+    return false;
   });
 
   // "En proceso" primero (con sub-orden por urgencia de entrega), después
