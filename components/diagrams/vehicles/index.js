@@ -13,6 +13,7 @@ import { CAMIONETA_CSM_VISTAS, VEHICLE_TYPE as CAMIONETA_CSM } from "./camioneta
 import { CAMIONETA_DCC_VISTAS, VEHICLE_TYPE as CAMIONETA_DCC } from "./camionetaDobleCabinaChico";
 import { CAMIONETA_DCM_VISTAS, VEHICLE_TYPE as CAMIONETA_DCM } from "./camionetaDobleCabinaMediano";
 import { CAMIONETA_DCG_VISTAS, VEHICLE_TYPE as CAMIONETA_DCG } from "./camionetaDobleCabinaGrande";
+import { UTILITARIO_CHICO_VISTAS, VEHICLE_TYPE as UTILITARIO_CHICO } from "./camionetaUtilitarioChico";
 import { UTILITARIO_MEDIANO_VISTAS, VEHICLE_TYPE as UTILITARIO_MEDIANO } from "./camionetaUtilitarioMediano";
 import { UTILITARIO_GRANDE_VISTAS, VEHICLE_TYPE as UTILITARIO_GRANDE } from "./camionetaUtilitarioGrande";
 import { SUV_COMPACTO_VISTAS, VEHICLE_TYPE as SUV_COMPACTO } from "./suvCompacto";
@@ -84,6 +85,9 @@ export const DIAGRAMAS_POR_TIPO_VEHICULO = {
   [CAMIONETA_DCG]: {
     vistas: CAMIONETA_DCG_VISTAS,
   },
+  [UTILITARIO_CHICO]: {
+    vistas: UTILITARIO_CHICO_VISTAS,
+  },
   [UTILITARIO_MEDIANO]: {
     vistas: UTILITARIO_MEDIANO_VISTAS,
   },
@@ -139,13 +143,14 @@ export function obtenerClaveDiagrama({ tipoVehiculo, grupo, subdivision }) {
   if (tipoVehiculo === "camioneta" && grupo === "Doble cabina" && subdivision === "Grande") {
     return CAMIONETA_DCG;
   }
-  // Camioneta / Utilitario acarrozado / Mediano y Grande ya tienen
+  // Camioneta / Utilitario acarrozado / Chico, Mediano y Grande ya tienen
   // diagrama real propio — primera familia de Camioneta con carrocería
   // cerrada (sin caja abierta), ver notas de criterio de zonas en
-  // camionetaUtilitarioMediano.js / camionetaUtilitarioGrande.js. "Chico"
-  // (furgón más chico que el de referencia de Mediano) todavía no tiene
-  // diagrama propio, así que cae en el fallback genérico de
-  // InspeccionVisualStep (return null más abajo).
+  // camionetaUtilitarioChico.js / camionetaUtilitarioMediano.js /
+  // camionetaUtilitarioGrande.js.
+  if (tipoVehiculo === "camioneta" && grupo === "Utilitario acarrozado" && subdivision === "Chico") {
+    return UTILITARIO_CHICO;
+  }
   if (tipoVehiculo === "camioneta" && grupo === "Utilitario acarrozado" && subdivision === "Mediano") {
     return UTILITARIO_MEDIANO;
   }
