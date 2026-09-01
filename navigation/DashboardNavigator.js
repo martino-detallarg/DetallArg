@@ -138,7 +138,17 @@ function DrawerNavigator() {
 // pantalla real desde la que se entró.
 export default function DashboardNavigator() {
   return (
-    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+    <RootStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        // El Drawer en sí (GestureHandlerRootView de react-native-drawer-layout)
+        // no pinta fondo propio: sin este contentStyle en la pantalla "Dashboard"
+        // que lo contiene, durante la animación de apertura asoma el blanco por
+        // defecto del native-stack (mismo bug que el del swipe-back, pero acá en
+        // el Stack raíz en vez de en los Stacks anidados).
+        contentStyle: { backgroundColor: colors.bg },
+      }}
+    >
       <RootStack.Screen name="Dashboard" component={DrawerNavigator} />
       <RootStack.Screen name="HistorialClientes" component={HistorialClientesScreen} />
     </RootStack.Navigator>
