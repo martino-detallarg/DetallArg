@@ -18,6 +18,7 @@ import { useTurnos } from "../data/TurnoContext";
 import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
 import { obtenerDiasHastaEntrega } from "../utils/entregas";
+import { esMismoDia, parsearFechaDDMMAAAA } from "../utils/fecha";
 import { colors, fonts, shadow } from "../theme";
 
 const ESTADOS_TERMINADOS = new Set(["Finalizado", "Entregado"]);
@@ -64,11 +65,22 @@ export default function HomeScreen({ navigation }) {
   const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
   const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
 
+  // Esta sección es "Turnos de HOY": a diferencia de Agenda (que filtra por
+  // fechaSeleccionada), acá el día es siempre el de hoy, sin selector — un
+  // turno con fecha inválida/sin cargar (parsearFechaDDMMAAAA devuelve
+  // null) tampoco entra, mismo criterio que turnosSinFecha en
+  // AgendaScreen.js (ahí se lista aparte; acá Home no tiene esa sección, así
+  // que directamente no cuenta para el anillo ni aparece en la lista).
+  const turnosDeHoy = turnos.filter((t) => {
+    const fecha = parsearFechaDDMMAAAA(t.fecha);
+    return fecha !== null && esMismoDia(fecha, new Date());
+  });
+
   // "En proceso" primero (con sub-orden por urgencia de entrega), después
   // Finalizado, después Pendiente, y Entregado siempre al final — dentro de
   // cada grupo (y dentro de cada sub-grupo de urgencia en "En proceso"), por
   // hora ascendente.
-  const turnosOrdenados = [...turnos].sort((a, b) => {
+  const turnosOrdenados = [...turnosDeHoy].sort((a, b) => {
     const prioridadA = PRIORIDAD_ESTADO[a.estado] ?? 4;
     const prioridadB = PRIORIDAD_ESTADO[b.estado] ?? 4;
     if (prioridadA !== prioridadB) return prioridadA - prioridadB;
