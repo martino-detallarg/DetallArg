@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { ScrollView, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import ScreenHeader from "../components/ScreenHeader";
 import TurnoCard from "../components/TurnoCard";
 import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
@@ -12,15 +13,27 @@ import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
 import { useEquipo } from "../data/EquipoContext";
 import {
+  diferenciaEnDias,
   esMismoDia,
   formatearDiaSemanaCorto,
   formatearFechaLarga,
   formatearMesAnio,
-  obtenerDiasDeLaSemana,
   parsearFechaDDMMAAAA,
   sumarDias,
 } from "../utils/fecha";
 import { colors, continuousCorner, fonts, radii } from "../theme";
+
+// Ancho fijo de cada día de la rueda (incluye separación) y rango total de
+// la tira continua (±1 año desde que se abre la pantalla, no hace falta
+// más para una agenda de turnos de taller) — ver el mecanismo completo más
+// abajo, en AgendaScreen.
+const ANCHO_ITEM_DIA = 56;
+const ANCHO_MARCO = 48;
+const RANGO_DIAS_RUEDA = 365;
+
+function obtenerLayoutItemDia(data, index) {
+  return { length: ANCHO_ITEM_DIA, offset: ANCHO_ITEM_DIA * index, index };
+}
 
 export default function AgendaScreen({ navigation }) {
   const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, actualizarEstadoTrabajo, eliminarTurno } =
@@ -35,21 +48,69 @@ export default function AgendaScreen({ navigation }) {
   const [busqueda, setBusqueda] = useState("");
   const [empleadoFiltroId, setEmpleadoFiltroId] = useState(null);
   const [filtroEmpleadoVisible, setFiltroEmpleadoVisible] = useState(false);
-  // Ancho medido de la tira de días (entre las dos flechas), para armar el
-  // carrusel de 3 páginas (semana anterior/actual/siguiente) que permite
-  // deslizar con el dedo — ver handleScrollEndTira.
+  // Ancho medido del viewport de la rueda de días (entre las dos flechas):
+  // centra el marco fijo y define el padding lateral que deja llegar al
+  // centro incluso al primer/último día de la rueda.
   const [anchoTira, setAnchoTira] = useState(0);
-  const scrollTiraRef = useRef(null);
+  const ruedaRef = useRef(null);
+  // Fecha ancla FIJA (no se recalcula en cada render): sobre ella se arma
+  // el rango de la rueda una sola vez, en el primer render.
+  const hoyBaseRef = useRef(new Date());
+  // Estado del gesto para el feedback háptico (ver handleScrollRueda): en
+  // refs, no en state, porque no deben disparar re-render — solo importan
+  // como lectura/escritura imperativa mientras se procesan eventos de
+  // scroll.
+  const arrastrandoRuedaRef = useRef(false);
 
-  const diasSemana = useMemo(() => obtenerDiasDeLaSemana(fechaSeleccionada), [fechaSeleccionada]);
-  const diasSemanaAnterior = useMemo(
-    () => obtenerDiasDeLaSemana(sumarDias(fechaSeleccionada, -7)),
-    [fechaSeleccionada]
-  );
-  const diasSemanaSiguiente = useMemo(
-    () => obtenerDiasDeLaSemana(sumarDias(fechaSeleccionada, 7)),
-    [fechaSeleccionada]
-  );
+  const diasRueda = useMemo(() => {
+    const base = hoyBaseRef.current;
+    return Array.from({ length: RANGO_DIAS_RUEDA * 2 + 1 }, (_, i) => sumarDias(base, i - RANGO_DIAS_RUEDA));
+  }, []);
+
+  // Convierte una fecha en su índice dentro de diasRueda, recortado a los
+  // bordes del rango — si viene una fecha muy lejana (ej. elegida a mano
+  // desde AlmanaqueModal, que no tiene límite de meses), la rueda se
+  // posiciona en el extremo más cercano en vez de romper; el día
+  // seleccionado en sí (fechaSeleccionada) no se recorta, solo dónde cae la
+  // rueda visualmente.
+  function indiceDeFecha(fecha) {
+    const indice = diferenciaEnDias(hoyBaseRef.current, fecha) + RANGO_DIAS_RUEDA;
+    return Math.min(Math.max(indice, 0), diasRueda.length - 1);
+  }
+
+  // Solo importa el valor del primer render: initialScrollIndex de
+  // FlatList no reacciona a cambios posteriores.
+  const [indiceInicialRueda] = useState(() => indiceDeFecha(fechaSeleccionada));
+  // Último índice para el que ya sonó un "click" háptico — arranca
+  // sincronizado con la posición inicial para no vibrar de más en el
+  // primer gesto.
+  const indiceHapticoRef = useRef(indiceInicialRueda);
+
+  function irAFecha(fecha, animado = true) {
+    const indice = indiceDeFecha(fecha);
+    setFechaSeleccionada(fecha);
+    // Los saltos programáticos (Hoy/Almanaque/flechas/tap) no deben vibrar
+    // — solo el arrastre real, ver handleScrollRueda — pero sí hay que
+    // sincronizar la referencia para que el próximo arrastre arranque
+    // desde la posición correcta.
+    indiceHapticoRef.current = indice;
+    ruedaRef.current?.scrollToOffset({ offset: indice * ANCHO_ITEM_DIA, animated: animado });
+  }
+
+  // Vibración táctil (haptics) al pasar de un día a otro mientras se
+  // arrastra: solo entre onScrollBeginDrag y onMomentumScrollEnd (gesto
+  // real del usuario), y solo cuando cambia el índice centrado — no en
+  // cada frame de scroll, si no vibraría todo el tiempo mientras el dedo
+  // sigue dentro del mismo día.
+  function handleScrollRueda(evento) {
+    if (!arrastrandoRuedaRef.current) return;
+    const x = evento.nativeEvent.contentOffset.x;
+    const indice = Math.min(Math.max(Math.round(x / ANCHO_ITEM_DIA), 0), diasRueda.length - 1);
+    if (indice !== indiceHapticoRef.current) {
+      indiceHapticoRef.current = indice;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }
 
   const { turnosDelDia, turnosSinFecha } = useMemo(() => {
     const conFecha = [];
@@ -89,54 +150,34 @@ export default function AgendaScreen({ navigation }) {
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
   const esHoy = esMismoDia(fechaSeleccionada, new Date());
 
-  // La tira de días queda siempre "parqueada" en la página del medio cuando
-  // no se está arrastrando: al terminar un swipe que aterriza en la página
-  // izquierda/derecha, se avanza/retrocede la semana Y se reacomoda el
-  // scroll de vuelta al medio en el mismo gesto, para que el próximo swipe
-  // siga funcionando igual.
-  function handleScrollEndTira(evento) {
-    if (!anchoTira) return;
+  // Al asentarse el scroll de la rueda (fin de inercia, o fin de un
+  // arrastre sin inercia) el día que quedó bajo el marco fijo pasa a ser el
+  // seleccionado. A propósito NO se actualiza en cada frame de arrastre:
+  // fechaSeleccionada dispara el recálculo de turnosDelDia de abajo (ver
+  // más abajo), y no tiene sentido recalcularlo mientras el usuario todavía
+  // está deslizando — mismo criterio que ya usaba el carrusel semanal
+  // anterior.
+  function handleFinDeScrollRueda(evento) {
     const x = evento.nativeEvent.contentOffset.x;
-    const pagina = Math.round(x / anchoTira);
-    if (pagina === 1) return;
-
-    scrollTiraRef.current?.scrollTo({ x: anchoTira, animated: false });
-    if (pagina === 0) {
-      setFechaSeleccionada((f) => sumarDias(f, -7));
-    } else if (pagina === 2) {
-      setFechaSeleccionada((f) => sumarDias(f, 7));
+    const indice = Math.min(Math.max(Math.round(x / ANCHO_ITEM_DIA), 0), diasRueda.length - 1);
+    const fecha = diasRueda[indice];
+    indiceHapticoRef.current = indice;
+    if (!esMismoDia(fecha, fechaSeleccionada)) {
+      setFechaSeleccionada(fecha);
     }
   }
 
-  function renderDiasFila(dias) {
+  // La selección no se pinta por ítem (ni fondo ni color de texto propio):
+  // el marco fijo de encima ya comunica solo con la posición cuál es el día
+  // elegido, como en un selector de fecha tipo "rueda". Lo único que sigue
+  // siendo una marca por ítem es "hoy", que no depende del scroll.
+  function renderDiaRueda({ item: dia }) {
+    const esHoyEsteDia = esMismoDia(dia, new Date());
     return (
-      <View style={[styles.diasFila, { width: anchoTira }]}>
-        {dias.map((dia) => {
-          const seleccionado = esMismoDia(dia, fechaSeleccionada);
-          const esHoyEsteDia = esMismoDia(dia, new Date());
-          return (
-            <TouchableOpacity
-              key={dia.toISOString()}
-              style={[styles.diaChip, seleccionado && styles.diaChipSeleccionado]}
-              onPress={() => setFechaSeleccionada(dia)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.diaLabel, seleccionado && styles.diaTextoSeleccionado]}>
-                {formatearDiaSemanaCorto(dia)}
-              </Text>
-              <Text
-                style={[
-                  styles.diaNumero,
-                  esHoyEsteDia && !seleccionado && styles.diaNumeroHoy,
-                  seleccionado && styles.diaTextoSeleccionado,
-                ]}
-              >
-                {dia.getDate()}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <TouchableOpacity style={styles.diaItem} onPress={() => irAFecha(dia)} activeOpacity={0.7}>
+        <Text style={styles.diaLabel}>{formatearDiaSemanaCorto(dia)}</Text>
+        <Text style={[styles.diaNumero, esHoyEsteDia && styles.diaNumeroHoy]}>{dia.getDate()}</Text>
+      </TouchableOpacity>
     );
   }
 
@@ -160,17 +201,17 @@ export default function AgendaScreen({ navigation }) {
       <View style={styles.encabezadoFila}>
         <Text style={styles.tituloAgenda}>Agenda</Text>
         {!esHoy && (
-          <TouchableOpacity style={styles.botonHoyChip} onPress={() => setFechaSeleccionada(new Date())} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.botonHoyChip} onPress={() => irAFecha(new Date())} activeOpacity={0.85}>
             <Text style={styles.botonHoyChipTexto}>Hoy</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      <Text style={styles.mesAnio}>{formatearMesAnio(diasSemana[0])}</Text>
+      <Text style={styles.mesAnio}>{formatearMesAnio(fechaSeleccionada)}</Text>
 
       <View style={styles.selectorSemana}>
         <TouchableOpacity
-          onPress={() => setFechaSeleccionada((f) => sumarDias(f, -7))}
+          onPress={() => irAFecha(sumarDias(fechaSeleccionada, -7))}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
@@ -181,23 +222,43 @@ export default function AgendaScreen({ navigation }) {
           onLayout={(evento) => setAnchoTira(evento.nativeEvent.layout.width)}
         >
           {anchoTira > 0 && (
-            <ScrollView
-              ref={scrollTiraRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={handleScrollEndTira}
-              contentOffset={{ x: anchoTira, y: 0 }}
-            >
-              {renderDiasFila(diasSemanaAnterior)}
-              {renderDiasFila(diasSemana)}
-              {renderDiasFila(diasSemanaSiguiente)}
-            </ScrollView>
+            <>
+              {/* Marco fijo: no se mueve nunca, solo marca visualmente el
+              centro. Se pinta ANTES que la FlatList (queda detrás) y es un
+              contorno + fondo tenue, no un bloque sólido, para que el
+              número que cae adentro se siga leyendo con claridad. La
+              selección real la resuelve handleFinDeScrollRueda, no este
+              overlay (por eso pointerEvents="none"). */}
+              <View style={styles.marco} pointerEvents="none" />
+              <FlatList
+                ref={ruedaRef}
+                data={diasRueda}
+                keyExtractor={(dia) => dia.toISOString()}
+                renderItem={renderDiaRueda}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={ANCHO_ITEM_DIA}
+                decelerationRate="fast"
+                getItemLayout={obtenerLayoutItemDia}
+                initialScrollIndex={indiceInicialRueda}
+                contentContainerStyle={{ paddingHorizontal: Math.max(0, (anchoTira - ANCHO_ITEM_DIA) / 2) }}
+                onScrollBeginDrag={() => {
+                  arrastrandoRuedaRef.current = true;
+                }}
+                onScroll={handleScrollRueda}
+                scrollEventThrottle={16}
+                onMomentumScrollEnd={(evento) => {
+                  arrastrandoRuedaRef.current = false;
+                  handleFinDeScrollRueda(evento);
+                }}
+                onScrollEndDrag={handleFinDeScrollRueda}
+              />
+            </>
           )}
         </View>
 
         <TouchableOpacity
-          onPress={() => setFechaSeleccionada((f) => sumarDias(f, 7))}
+          onPress={() => irAFecha(sumarDias(fechaSeleccionada, 7))}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
@@ -296,7 +357,7 @@ export default function AgendaScreen({ navigation }) {
         visible={almanaqueVisible}
         fechaInicial={fechaSeleccionada}
         onSeleccionarDia={(dia) => {
-          setFechaSeleccionada(dia);
+          irAFecha(dia);
           setAlmanaqueVisible(false);
         }}
         onClose={() => setAlmanaqueVisible(false)}
@@ -413,23 +474,10 @@ const styles = StyleSheet.create({
   filtroEmpleadoTextoActivo: {
     color: colors.bg,
   },
-  diasFila: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 4,
-  },
-  diaChip: {
-    width: 40,
+  diaItem: {
+    width: ANCHO_ITEM_DIA,
     paddingVertical: 8,
-    borderRadius: radii.button,
-    ...continuousCorner,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  diaChipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
   },
   diaLabel: {
     fontFamily: fonts.mono,
@@ -446,8 +494,18 @@ const styles = StyleSheet.create({
   diaNumeroHoy: {
     color: colors.accentLight,
   },
-  diaTextoSeleccionado: {
-    color: colors.bg,
+  marco: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: "50%",
+    width: ANCHO_MARCO,
+    marginLeft: -ANCHO_MARCO / 2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1.5,
+    borderColor: colors.borderAccent,
+    backgroundColor: colors.accentTint,
   },
   contenido: {
     paddingBottom: 100,

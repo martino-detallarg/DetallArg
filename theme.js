@@ -18,6 +18,9 @@ export const colors = {
   // fondo de la tarjeta/modal detrás.
   successTint: "rgba(93, 202, 165, 0.18)",
   amberTint: "rgba(217, 164, 65, 0.18)",
+  // Mismo criterio (18% opacidad) para el marco fijo del selector de días
+  // de Agenda: fondo tenue que no tape el número que cae adentro.
+  accentTint: "rgba(82, 156, 193, 0.18)",
 };
 
 export const radii = {
