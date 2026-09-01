@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Modal, StyleSheet } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Dimensions, Modal, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import DatosClienteStep from "./DatosClienteStep";
@@ -9,6 +9,8 @@ import { separarMarcaModelo } from "../../data/mockData";
 import { useClientes } from "../../data/ClienteContext";
 import { formatearPatente } from "../../utils/patente";
 import { colors } from "../../theme";
+
+const { width: ANCHO_PANTALLA } = Dimensions.get("window");
 
 const CLIENTE_VACIO = { nombre: "", telefono: "" };
 const VEHICULO_VACIO = { patente: "", marcaModelo: "", anio: "", color: "", sinPatente: false };
@@ -26,7 +28,12 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
   const [datosVehiculo, setDatosVehiculo] = useState(VEHICULO_VACIO);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const desplazamiento = useRef(new Animated.Value(ANCHO_PANTALLA)).current;
 
+  // Entra deslizándose desde la derecha (en vez del "slide" vertical nativo
+  // del Modal) para que se lea como continuación del mismo movimiento con el
+  // que se cierra OpcionesNuevoModal/ClienteNuevoSubmenu, no como un rebote
+  // subir/bajar (ver el mismo patrón en ClienteNuevoSubmenu.js).
   useEffect(() => {
     if (visible) {
       setPaso(modo === "vehiculo" ? "elegirCliente" : "cliente");
@@ -34,6 +41,12 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
       setDatosCliente(CLIENTE_VACIO);
       setDatosVehiculo(VEHICULO_VACIO);
       setError(null);
+      desplazamiento.setValue(ANCHO_PANTALLA);
+      Animated.timing(desplazamiento, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }).start();
     }
   }, [visible, modo]);
 
@@ -79,14 +92,15 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
   const pasoNumero = paso === "vehiculo" ? 2 : 1;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={cerrar}>
+    <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={cerrar}>
       {/* react-native-gesture-handler no llega adentro de un <Modal> nativo a
       través del GestureHandlerRootView de App.js (el modal abre su propia
       jerarquía nativa) — hace falta este wrapper propio para que el swipe
       de "volver" de los pasos funcione. */}
       <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaProvider>
-        <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
+        <Animated.View style={[styles.pantalla, { transform: [{ translateX: desplazamiento }] }]}>
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           {paso === "elegirCliente" && (
             <SeleccionarClienteStep
               titulo="Elegir Cliente"
@@ -119,6 +133,7 @@ export default function NuevoClienteWizard({ visible, onClose, modo, onListo }) 
             />
           )}
         </SafeAreaView>
+        </Animated.View>
       </SafeAreaProvider>
       </GestureHandlerRootView>
     </Modal>
@@ -132,5 +147,8 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  safeArea: {
+    flex: 1,
   },
 });

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Modal, StyleSheet } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Dimensions, Modal, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import SeleccionarClienteStep from "../nuevoCliente/SeleccionarClienteStep";
@@ -10,6 +10,8 @@ import InspeccionVisualStep from "./InspeccionVisualStep";
 import ConfirmacionTrabajoStep from "./ConfirmacionTrabajoStep";
 import { useClientes } from "../../data/ClienteContext";
 import { colors } from "../../theme";
+
+const { width: ANCHO_PANTALLA } = Dimensions.get("window");
 
 function datosVacios(clienteId, autoId) {
   return {
@@ -57,13 +59,24 @@ export default function TrabajoNuevoWizard({
   const [clienteTemporal, setClienteTemporal] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [errorGuardado, setErrorGuardado] = useState(null);
+  const desplazamiento = useRef(new Animated.Value(ANCHO_PANTALLA)).current;
 
+  // Entra deslizándose desde la derecha (en vez del "slide" vertical nativo
+  // del Modal) para que se lea como continuación del mismo movimiento con el
+  // que se cierra OpcionesNuevoModal, no como un rebote subir/bajar (ver el
+  // mismo patrón en ClienteNuevoSubmenu.js).
   useEffect(() => {
     if (visible) {
       setDatos(datosVacios(clienteIdInicial, autoIdInicial));
       setFase(clienteIdInicial && autoIdInicial ? "servicio" : "elegirCliente");
       setClienteTemporal(null);
       setErrorGuardado(null);
+      desplazamiento.setValue(ANCHO_PANTALLA);
+      Animated.timing(desplazamiento, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }).start();
     }
   }, [visible, clienteIdInicial, autoIdInicial]);
 
@@ -131,14 +144,15 @@ export default function TrabajoNuevoWizard({
   const clienteSeleccionado = datos.clienteId ? getClienteById(datos.clienteId) : null;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={cerrar}>
+    <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={cerrar}>
       {/* react-native-gesture-handler no llega adentro de un <Modal> nativo a
       través del GestureHandlerRootView de App.js (el modal abre su propia
       jerarquía nativa) — hace falta este wrapper propio para que el swipe
       de "volver" de los pasos funcione. */}
       <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaProvider>
-        <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
+        <Animated.View style={[styles.pantalla, { transform: [{ translateX: desplazamiento }] }]}>
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           {fase === "elegirCliente" && (
             <SeleccionarClienteStep
               titulo="Elegir Cliente"
@@ -197,6 +211,7 @@ export default function TrabajoNuevoWizard({
             />
           )}
         </SafeAreaView>
+        </Animated.View>
       </SafeAreaProvider>
       </GestureHandlerRootView>
     </Modal>
@@ -210,5 +225,8 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  safeArea: {
+    flex: 1,
   },
 });
