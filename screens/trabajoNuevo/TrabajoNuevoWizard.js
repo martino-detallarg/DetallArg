@@ -9,6 +9,7 @@ import TipoVehiculoStep from "./TipoVehiculoStep";
 import InspeccionVisualStep from "./InspeccionVisualStep";
 import ConfirmacionTrabajoStep from "./ConfirmacionTrabajoStep";
 import { useClientes } from "../../data/ClienteContext";
+import { formatearFechaDDMMAAAA } from "../../utils/fecha";
 import { colors } from "../../theme";
 
 const { width: ANCHO_PANTALLA } = Dimensions.get("window");
@@ -21,7 +22,10 @@ function datosVacios(clienteId, autoId) {
       tipo: "",
       servicioId: null,
       precio: null,
-      fecha: "",
+      // Arranca en HOY por defecto (el caso más común: la mayoría de los
+      // trabajos se cargan el mismo día que llega el vehículo) — el picker
+      // nativo sigue totalmente editable, esto es solo el valor inicial.
+      fecha: formatearFechaDDMMAAAA(new Date()),
       hora: "",
       tiempoEstimado: "",
       observaciones: "",
