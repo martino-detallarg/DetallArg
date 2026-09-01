@@ -152,8 +152,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radii.card,
     ...continuousCorner,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     ...shadow,
   },
   punto: {

@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
   numeroDia: {
     fontFamily: fonts.heading,
-    fontSize: 34,
+    fontSize: 32,
     color: colors.textPrimary,
     marginTop: 2,
     marginBottom: 6,

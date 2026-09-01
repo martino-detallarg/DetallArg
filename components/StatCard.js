@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   valorAnillo: {
-    fontFamily: fonts.bodyBold,
+    fontFamily: fonts.heading,
     fontSize: 32,
     color: colors.textPrimary,
   },
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     color: colors.textMuted,
-    textTransform: "uppercase",
     letterSpacing: 0.5,
     marginTop: 2,
   },
