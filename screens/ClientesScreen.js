@@ -132,6 +132,7 @@ export default function ClientesScreen({ navigation }) {
           setClienteEditandoId(clienteDetalleId);
           setModalVisible(true);
         }}
+        navigation={navigation}
       />
     </SafeAreaView>
   );

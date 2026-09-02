@@ -6,6 +6,8 @@ import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
+import ChipGroup from "../../components/ChipGroup";
+import SelectorServicio from "../../components/wizard/SelectorServicio";
 import SelectorFechaModal from "../../components/wizard/SelectorFechaModal";
 import SelectorHoraModal from "../../components/SelectorHoraModal";
 import {
@@ -18,7 +20,7 @@ import {
 import { useServicios } from "../../data/ServicioContext";
 import { useTaller } from "../../data/TallerContext";
 import { useEquipo } from "../../data/EquipoContext";
-import { formatearPesos } from "../../utils/formato";
+import { formatearDuracion } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
 export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
@@ -81,6 +83,14 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     onCambiar({ tipo: servicio.nombre, servicioId: servicio.id, precio: servicio.precio });
   }
 
+  // Duración estimada DEL SERVICIO elegido (catálogo de Mis Servicios), no
+  // un dato que cargue el usuario acá — si el servicio no tiene duración
+  // cargada, no se muestra nada (nada de texto genérico inventado).
+  const servicioSeleccionado = servicios.find((s) => s.id === datos.servicioId);
+  const mensajeDuracion = servicioSeleccionado?.duracionValor
+    ? `Se entrega en aprox. ${formatearDuracion(servicioSeleccionado.duracionValor, servicioSeleccionado.duracionUnidad)}`
+    : null;
+
   function toggleEmpleado(empleado) {
     const asignadosActuales = datos.empleadosAsignados ?? [];
     const yaAsignado = asignadosActuales.some((e) => e.empleadoId === empleado.id);
@@ -111,23 +121,14 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
             Todavía no cargaste servicios en Mis Servicios. Cargalos desde Mi Taller para poder elegirlos acá.
           </Text>
         ) : (
-          <View style={styles.chips}>
-            {servicios.map((s) => {
-              const activo = datos.servicioId === s.id;
-              return (
-                <TouchableOpacity
-                  key={s.id}
-                  style={[styles.chip, activo && styles.chipSeleccionado]}
-                  onPress={() => seleccionarServicio(s)}
-                >
-                  <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                    {s.nombre} · {formatearPesos(s.precio)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <SelectorServicio
+            servicios={servicios}
+            servicioId={datos.servicioId}
+            onSeleccionar={seleccionarServicio}
+            error={errores.tipo}
+          />
         )}
+        {mensajeDuracion && <Text style={styles.duracionServicio}>{mensajeDuracion}</Text>}
         {errores.tipo && <Text style={styles.error}>{errores.tipo}</Text>}
 
         {limiteEmpleados === 0 ? (
@@ -142,24 +143,15 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
           empleadosActivos.length > 0 && (
             <View style={styles.empleadosContenedor}>
               <Text style={styles.label}>Empleados asignados</Text>
-              <View style={styles.chips}>
-                {empleadosActivos.map((empleado) => {
-                  const asignado = (datos.empleadosAsignados ?? []).some(
-                    (e) => e.empleadoId === empleado.id
-                  );
-                  return (
-                    <TouchableOpacity
-                      key={empleado.id}
-                      style={[styles.chip, asignado && styles.chipSeleccionado]}
-                      onPress={() => toggleEmpleado(empleado)}
-                    >
-                      <Text style={[styles.chipTexto, asignado && styles.chipTextoSeleccionado]}>
-                        {empleado.nombre}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <ChipGroup
+                options={empleadosActivos.map((empleado) => ({
+                  value: empleado.id,
+                  label: empleado.nombre,
+                  selected: (datos.empleadosAsignados ?? []).some((e) => e.empleadoId === empleado.id),
+                }))}
+                onPress={(id) => toggleEmpleado(empleadosActivos.find((e) => e.id === id))}
+                style={styles.chips}
+              />
             </View>
           )
         )}
@@ -250,12 +242,6 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
         )}
 
         <Input
-          label="Tiempo estimado de trabajo (opcional)"
-          value={datos.tiempoEstimado}
-          onChangeText={(v) => onCambiar({ tiempoEstimado: v })}
-          placeholder="Ej: 2 horas"
-        />
-        <Input
           label="Observaciones (opcional)"
           value={datos.observaciones}
           onChangeText={(v) => onCambiar({ observaciones: v })}
@@ -291,31 +277,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
     marginBottom: 4,
   },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  chipTexto: {
+  duracionServicio: {
     fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  chipTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginBottom: 4,
   },
   error: {
     fontFamily: fonts.body,

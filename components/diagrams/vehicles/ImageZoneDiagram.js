@@ -27,10 +27,7 @@ export default function ImageZoneDiagram({ imageSource, zones, viewBox, danios, 
   const alto = typeof width === "number" ? width * (viewH / viewW) : undefined;
 
   return (
-    <View
-      style={[styles.contenedor, styles.debugBorde, { width, height: alto }]}
-      onLayout={(e) => console.log("[ImageZoneDiagram] tamaño real", e.nativeEvent.layout, "esperado", { width, alto })}
-    >
+    <View style={[styles.contenedor, { width, height: alto }]}>
       <Image source={imageSource} style={StyleSheet.absoluteFill} resizeMode="contain" />
       <Svg style={StyleSheet.absoluteFill} viewBox={viewBox}>
         {zones.map((zone) => {
@@ -56,12 +53,6 @@ export default function ImageZoneDiagram({ imageSource, zones, viewBox, danios, 
 
 const styles = StyleSheet.create({
   contenedor: {},
-  // DEBUG temporal — sacar junto con el onLayout de arriba una vez
-  // confirmado que el contenedor mide lo esperado.
-  debugBorde: {
-    borderWidth: 2,
-    borderColor: "red",
-  },
 });
 
 // Arma { Componente, panelIds, panelLabels } a partir de un diagrama.png +

@@ -4,7 +4,7 @@ import DamageDiagram, { PANEL_IDS as ZONAS_IDS, PANEL_LABELS as ZONAS_LABELS } f
 import Input from "../Input";
 import Button from "../Button";
 import { DIAGRAMAS_POR_TIPO_VEHICULO } from "../diagrams/vehicles";
-import { TIPOS_DANIO } from "../../data/tiposDanio";
+import { TIPOS_DANIO, TIPOS_DANIO_MOTO } from "../../data/tiposDanio";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 // Envuelve al diagrama de check-in visual que corresponda según
@@ -19,8 +19,15 @@ import { colors, continuousCorner, fonts, radii } from "../../theme";
 // `danios` es un mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada
 // zona puede tener varios tipos de daño a la vez (por eso `tipos` es un
 // array), y `nota` solo se usa cuando "otro" está entre los tipos elegidos.
-export default function DiagramaDanios({ claveVehiculo, vista, danios, onCambiarZona, ancho = 220 }) {
+export default function DiagramaDanios({ claveVehiculo, vista, danios, onCambiarZona, ancho = 220, tipoVehiculo }) {
   const [zonaActiva, setZonaActiva] = useState(null);
+
+  // Moto tiene su propio set de tipos de daño, más chico y específico
+  // (ver data/tiposDanio.js) — el resto de las familias sigue con el de
+  // siempre. `tipoVehiculo` es el mismo string que ya elige TipoVehiculoStep
+  // ("auto"/"camioneta"/"suv"/"moto"), no `claveVehiculo` (que es la clave
+  // interna del diagrama, ej. "moto_enduro_calle").
+  const tiposDanio = tipoVehiculo === "moto" ? TIPOS_DANIO_MOTO : TIPOS_DANIO;
 
   const diagramaVehiculo = DIAGRAMAS_POR_TIPO_VEHICULO[claveVehiculo];
   const diagramaVista = diagramaVehiculo?.vistas?.[vista];
@@ -60,7 +67,7 @@ export default function DiagramaDanios({ claveVehiculo, vista, danios, onCambiar
         <View style={styles.selector}>
           <Text style={styles.selectorTitulo}>{panelLabels[zonaActiva]} · marcá los daños</Text>
           <View style={styles.chips}>
-            {Object.entries(TIPOS_DANIO).map(([id, tipo]) => {
+            {Object.entries(tiposDanio).map(([id, tipo]) => {
               const activo = zonaDatos.tipos.includes(id);
               return (
                 <TouchableOpacity
@@ -99,7 +106,7 @@ export default function DiagramaDanios({ claveVehiculo, vista, danios, onCambiar
             <View key={id} style={styles.resumenZona}>
               <Text style={styles.resumenZonaTitulo}>{panelLabels[id]}</Text>
               {danios[id].tipos.map((tipoId) => {
-                const tipo = TIPOS_DANIO[tipoId];
+                const tipo = tiposDanio[tipoId];
                 return (
                   <View key={tipoId} style={styles.resumenFila}>
                     <View style={[styles.resumenPunto, { backgroundColor: tipo.color }]} />

@@ -5,13 +5,14 @@ import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
+import TelefonoConAcciones from "./TelefonoConAcciones";
 import { useClientes } from "../data/ClienteContext";
 import { esPatenteValida, formatearPatente, normalizarPatente } from "../utils/patente";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const VEHICULO_VACIO = { marca: "", modelo: "", anio: "", patente: "", color: "", sinPatente: false };
 
-function FilaVehiculo({ vehiculo, onEditar, onEliminar }) {
+function FilaVehiculo({ vehiculo, onEditar, onEliminar, eliminando }) {
   return (
     <TouchableOpacity style={styles.fila} onPress={onEditar} activeOpacity={0.8}>
       <View style={styles.filaIcono}>
@@ -28,6 +29,7 @@ function FilaVehiculo({ vehiculo, onEditar, onEliminar }) {
       <TouchableOpacity
         style={styles.quitarBoton}
         onPress={onEliminar}
+        disabled={eliminando}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         activeOpacity={0.8}
       >
@@ -40,12 +42,13 @@ function FilaVehiculo({ vehiculo, onEditar, onEliminar }) {
 // Vista de detalle de un cliente: sus datos y la lista de sus vehículos, con
 // alta/edición/borrado de vehículos en un formulario simple que se despliega
 // dentro del mismo modal (sin agregar otra pantalla).
-export default function VehiculosClienteModal({ visible, cliente, onClose, onEditarCliente }) {
+export default function VehiculosClienteModal({ visible, cliente, onClose, onEditarCliente, navigation }) {
   const { agregarVehiculo, editarVehiculo, eliminarVehiculo } = useClientes();
   const [formularioVisible, setFormularioVisible] = useState(false);
   const [vehiculoEditandoId, setVehiculoEditandoId] = useState(null);
   const [datosVehiculo, setDatosVehiculo] = useState(VEHICULO_VACIO);
   const [cargando, setCargando] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -103,11 +106,15 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
   }
 
   async function handleEliminarVehiculo(vehiculoId) {
+    if (eliminandoId) return;
+    setEliminandoId(vehiculoId);
     setError(null);
     try {
       await eliminarVehiculo(cliente.id, vehiculoId);
     } catch (err) {
       setError("No se pudo eliminar el vehículo. Probá de nuevo.");
+    } finally {
+      setEliminandoId(null);
     }
   }
 
@@ -127,7 +134,11 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
 
           <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
             <View style={styles.encabezadoCliente}>
-              <Text style={styles.telefono}>{cliente.telefono}</Text>
+              {cliente.telefono ? (
+                <TelefonoConAcciones telefono={cliente.telefono} textStyle={styles.telefono} />
+              ) : (
+                <Text style={styles.telefono}>Sin teléfono</Text>
+              )}
               <TouchableOpacity
                 onPress={onEditarCliente}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -136,6 +147,17 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                 <Ionicons name="pencil-outline" size={16} color={colors.accentLight} />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                onClose();
+                navigation.navigate("HistorialClientes", { clienteIdInicial: cliente.id });
+              }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={styles.verHistorialBoton}
+            >
+              <Text style={styles.verHistorialTexto}>Ver historial</Text>
+            </TouchableOpacity>
 
             {error && <Text style={styles.error}>{error}</Text>}
 
@@ -159,6 +181,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                   vehiculo={vehiculo}
                   onEditar={() => handleEditar(vehiculo)}
                   onEliminar={() => handleEliminarVehiculo(vehiculo.id)}
+                  eliminando={eliminandoId === vehiculo.id}
                 />
               ))
             )}
@@ -273,6 +296,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
     alignItems: "center",
     justifyContent: "center",
+  },
+  verHistorialBoton: {
+    alignSelf: "flex-start",
+    marginBottom: 16,
+  },
+  verHistorialTexto: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.accentLight,
+    textDecorationLine: "underline",
   },
   error: {
     fontFamily: fonts.body,

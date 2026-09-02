@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import WizardHeader from "../components/wizard/WizardHeader";
 import Input from "../components/Input";
 import Button from "../components/Button";
+import ChipGroup from "../components/ChipGroup";
 import EstadoCarga from "../components/EstadoCarga";
 import { useTaller } from "../data/TallerContext";
 import { SITUACIONES_FISCALES } from "../data/mockTaller";
@@ -101,20 +102,15 @@ export default function MisDatosScreen({ navigation }) {
             />
 
             <Text style={styles.label}>Situación fiscal (opcional)</Text>
-            <View style={styles.chips}>
-              {SITUACIONES_FISCALES.map((opcion) => {
-                const activo = datos.situacionFiscal === opcion;
-                return (
-                  <TouchableOpacity
-                    key={opcion}
-                    style={[styles.chip, activo && styles.chipSeleccionado]}
-                    onPress={() => elegirSituacionFiscal(opcion)}
-                  >
-                    <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>{opcion}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <ChipGroup
+              options={SITUACIONES_FISCALES.map((opcion) => ({
+                value: opcion,
+                label: opcion,
+                selected: datos.situacionFiscal === opcion,
+              }))}
+              onPress={elegirSituacionFiscal}
+              style={styles.chips}
+            />
 
             {error && <Text style={styles.error}>{error}</Text>}
 
@@ -149,31 +145,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
     marginBottom: 16,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  chipTexto: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  chipTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
   },
   error: {
     fontFamily: fonts.body,

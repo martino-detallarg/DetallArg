@@ -14,12 +14,14 @@ import CostosFijosScreen from "../screens/CostosFijosScreen";
 import NotificacionesScreen from "../screens/NotificacionesScreen";
 import SoporteScreen from "../screens/SoporteScreen";
 import MisHorariosScreen from "../screens/MisHorariosScreen";
+import HistorialClientesScreen from "../screens/HistorialClientesScreen";
 import ConfiguracionScreen from "../screens/ConfiguracionScreen";
 import DocumentoLegalScreen from "../screens/DocumentoLegalScreen";
 import DrawerContent from "../components/DrawerContent";
 import { colors } from "../theme";
 
 const Drawer = createDrawerNavigator();
+const RootStack = createNativeStackNavigator();
 const MiTallerStack = createNativeStackNavigator();
 const FinanzasStack = createNativeStackNavigator();
 const ConfiguracionStack = createNativeStackNavigator();
@@ -78,7 +80,7 @@ function ConfiguracionStackNavigator() {
   );
 }
 
-export default function DashboardNavigator() {
+function DrawerNavigator() {
   return (
     <Drawer.Navigator
       screenOptions={{
@@ -121,5 +123,36 @@ export default function DashboardNavigator() {
         options={{ unmountOnBlur: true }}
       />
     </Drawer.Navigator>
+  );
+}
+
+// HistorialClientes vive acá, por ENCIMA de todo el Drawer (no anidada
+// dentro de MiTallerStack), porque se llega a ella desde tres lugares que
+// no comparten ningún Stack entre sí (Home, la ficha de un cliente dentro
+// de Clientes, y el menú de Mi Taller): si viviera dentro de un Stack de
+// una sola rama, "volver" solo sabría resolver hacia la raíz de ESE Stack,
+// sin importar el origen real (ver el bug que esto arreglaba). Al vivir acá
+// arriba, cualquier pantalla puede pedir navigation.navigate("HistorialClientes",
+// params) sin indicar navigator — React Navigation hace bubbling de la
+// acción hacia arriba hasta encontrarla — y el Drawer de abajo nunca se
+// resetea ni se desmonta mientras tanto, así que un simple
+// navigation.goBack() en HistorialClientesScreen siempre vuelve a la
+// pantalla real desde la que se entró.
+export default function DashboardNavigator() {
+  return (
+    <RootStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        // El Drawer en sí (GestureHandlerRootView de react-native-drawer-layout)
+        // no pinta fondo propio: sin este contentStyle en la pantalla "Dashboard"
+        // que lo contiene, durante la animación de apertura asoma el blanco por
+        // defecto del native-stack (mismo bug que el del swipe-back, pero acá en
+        // el Stack raíz en vez de en los Stacks anidados).
+        contentStyle: { backgroundColor: colors.bg },
+      }}
+    >
+      <RootStack.Screen name="Dashboard" component={DrawerNavigator} />
+      <RootStack.Screen name="HistorialClientes" component={HistorialClientesScreen} />
+    </RootStack.Navigator>
   );
 }

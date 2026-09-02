@@ -6,7 +6,6 @@ import ScreenHeader from "../components/ScreenHeader";
 import CostoFijoModal from "../components/CostoFijoModal";
 import EstadoCarga from "../components/EstadoCarga";
 import { useData } from "../data/DataContext";
-import { CATEGORIAS_COSTOS_FIJOS } from "../data/mockFinanzas";
 import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
@@ -54,7 +53,6 @@ export default function CostosFijosScreen({ navigation }) {
             <Text style={styles.vacio}>Todavía no cargaste costos fijos.</Text>
           ) : (
             costosFijos.map((item) => {
-              const categoria = CATEGORIAS_COSTOS_FIJOS[item.categoria];
               return (
                 <TouchableOpacity
                   key={item.id}
@@ -63,10 +61,10 @@ export default function CostosFijosScreen({ navigation }) {
                   activeOpacity={0.8}
                 >
                   <View style={styles.filaIcono}>
-                    <Ionicons name={categoria?.icono ?? "cash-outline"} size={20} color={colors.accentLight} />
+                    <Ionicons name="cash-outline" size={20} color={colors.accentLight} />
                   </View>
                   <View style={styles.filaTexto}>
-                    <Text style={styles.filaCategoria}>{categoria?.etiqueta ?? "Otro"}</Text>
+                    <Text style={styles.filaNombre}>{item.nombre}</Text>
                     <Text style={styles.filaMonto}>{formatearPesos(item.monto)} / mes</Text>
                   </View>
                   <TouchableOpacity
@@ -163,7 +161,7 @@ const styles = StyleSheet.create({
   filaTexto: {
     flex: 1,
   },
-  filaCategoria: {
+  filaNombre: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
     color: colors.textPrimary,

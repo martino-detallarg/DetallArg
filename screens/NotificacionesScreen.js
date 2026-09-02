@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
+  ActivityIndicator,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -22,7 +23,7 @@ const CANTIDAD_PAGINAS = 2;
 
 export default function NotificacionesScreen({ navigation }) {
   const { width } = useWindowDimensions();
-  const { misInsumos } = useData();
+  const { misInsumos, cargandoInsumos, errorCargaInsumos } = useData();
   const { pedido } = usePedido();
   const [modalVisible, setModalVisible] = useState(false);
   const [paginaActiva, setPaginaActiva] = useState(0);
@@ -53,7 +54,13 @@ export default function NotificacionesScreen({ navigation }) {
           contentContainerStyle={styles.contenido}
           showsVerticalScrollIndicator={false}
         >
-          {insumosStockBajo.length === 0 ? (
+          {cargandoInsumos ? (
+            <View style={styles.centroCarga}>
+              <ActivityIndicator color={colors.accent} size="large" />
+            </View>
+          ) : errorCargaInsumos ? (
+            <Text style={styles.errorTexto}>{errorCargaInsumos}</Text>
+          ) : insumosStockBajo.length === 0 ? (
             <Text style={styles.vacio}>Por ahora no hay alertas de stock.</Text>
           ) : (
             insumosStockBajo.map((insumo) => (
@@ -118,6 +125,17 @@ const styles = StyleSheet.create({
   vacio: {
     fontFamily: fonts.body,
     color: colors.textMuted,
+    textAlign: "center",
+    marginTop: 40,
+  },
+  centroCarga: {
+    alignItems: "center",
+    marginTop: 40,
+  },
+  errorTexto: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.error,
     textAlign: "center",
     marginTop: 40,
   },

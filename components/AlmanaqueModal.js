@@ -2,22 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTurnos } from "../data/TurnoContext";
-import {
-  esMismoDia,
-  formatearFechaDDMMAAAA,
-  formatearMesAnio,
-  parsearFechaDDMMAAAA,
-} from "../utils/fecha";
+import { useServicios } from "../data/ServicioContext";
+import { esMismoDia, formatearFechaDDMMAAAA, formatearMesAnio, parsearFechaDDMMAAAA } from "../utils/fecha";
+import { calcularFechaEntrega, ESTADOS_CERRADOS } from "../utils/entregas";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const INICIALES_DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 
-// Alto de una fila de la grilla (círculo del día de 34 + el espacio del
-// punto de "con turnos" + el padding vertical de la celda). Se usa para fijar
-// la altura total de la grilla siempre en 6 filas, el máximo posible en un
-// calendario mensual (hay meses que solo necesitan 5), así el header y todo
-// lo que va debajo de la grilla no saltan de posición según el mes visible.
-const ALTO_FILA = 52;
+// Alto de una fila de la grilla (círculo del día de 34 + el padding vertical
+// de la celda). Se usa para fijar la altura total de la grilla siempre en 6
+// filas, el máximo posible en un calendario mensual (hay meses que solo
+// necesitan 5), así el header y todo lo que va debajo de la grilla no saltan
+// de posición según el mes visible.
+const ALTO_FILA = 42;
 const FILAS_MAXIMAS_MES = 6;
 
 // Todas las celdas del mes de `mesVisible`, con `null` antes del día 1 para
@@ -41,6 +38,7 @@ function obtenerCeldasDelMes(mesVisible) {
 // semanal) y cierra el modal — lo resuelve el padre vía onSeleccionarDia.
 export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia, onClose }) {
   const { turnos } = useTurnos();
+  const { getServicioById } = useServicios();
   const [mesVisible, setMesVisible] = useState(fechaInicial ?? new Date());
 
   // Cada apertura arranca mostrando el mes de la fecha vigente de la
@@ -49,14 +47,30 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
     if (visible) setMesVisible(fechaInicial ?? new Date());
   }, [visible, fechaInicial]);
 
-  const diasConTurno = useMemo(() => {
-    const set = new Set();
+  // "Con turnos": todo día con al menos una llegada agendada, sin importar
+  // el estado. "Con entrega estimada": fecha de llegada + duración del
+  // servicio, SOLO cuando la duración está cargada en días (si es en horas,
+  // o no hay servicio/duración, la entrega es el mismo día de la llegada —
+  // no amerita marca aparte, ya la cubre "con turnos") y el trabajo todavía
+  // no se cerró (Finalizado/Entregado ya se entregó, no queda "pendiente").
+  const { diasConTurno, diasConEntrega } = useMemo(() => {
+    const conTurno = new Set();
+    const conEntrega = new Set();
     for (const turno of turnos) {
-      const fechaParseada = parsearFechaDDMMAAAA(turno.fecha);
-      if (fechaParseada) set.add(formatearFechaDDMMAAAA(fechaParseada));
+      const fechaLlegada = parsearFechaDDMMAAAA(turno.fecha);
+      if (!fechaLlegada) continue;
+      conTurno.add(formatearFechaDDMMAAAA(fechaLlegada));
+
+      if (ESTADOS_CERRADOS.has(turno.estado)) continue;
+
+      const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
+      const fechaEntrega = calcularFechaEntrega(fechaLlegada, servicio);
+      if (fechaEntrega.getTime() !== fechaLlegada.getTime()) {
+        conEntrega.add(formatearFechaDDMMAAAA(fechaEntrega));
+      }
     }
-    return set;
-  }, [turnos]);
+    return { diasConTurno: conTurno, diasConEntrega: conEntrega };
+  }, [turnos, getServicioById]);
 
   const celdas = useMemo(() => obtenerCeldasDelMes(mesVisible), [mesVisible]);
 
@@ -101,7 +115,9 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
               if (!dia) return <View key={`vacia-${indice}`} style={styles.celda} />;
 
               const esHoy = esMismoDia(dia, new Date());
-              const tieneTurno = diasConTurno.has(formatearFechaDDMMAAAA(dia));
+              const clave = formatearFechaDDMMAAAA(dia);
+              const tieneTurno = diasConTurno.has(clave);
+              const tieneEntrega = diasConEntrega.has(clave);
 
               return (
                 <TouchableOpacity
@@ -110,10 +126,20 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
                   onPress={() => onSeleccionarDia(dia)}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.circuloDia, esHoy && styles.circuloDiaHoy]}>
+                  <View
+                    style={[
+                      styles.circuloDia,
+                      // El estilo de "hoy" (fondo sólido) tiene prioridad
+                      // visual: si coincide con turno/entrega, no se dibuja
+                      // ningún anillo encima.
+                      !esHoy && tieneTurno && styles.circuloDiaConTurno,
+                      !esHoy && !tieneTurno && tieneEntrega && styles.circuloDiaConEntrega,
+                      esHoy && styles.circuloDiaHoy,
+                    ]}
+                  >
                     <Text style={[styles.numeroDia, esHoy && styles.numeroDiaHoy]}>{dia.getDate()}</Text>
+                    {!esHoy && tieneTurno && tieneEntrega && <View style={styles.puntoEntregaEsquina} />}
                   </View>
-                  <View style={styles.puntoWrap}>{tieneTurno && <View style={styles.puntoTurno} />}</View>
                 </TouchableOpacity>
               );
             })}
@@ -127,6 +153,10 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
             <View style={styles.referenciaItem}>
               <View style={[styles.referenciaPunto, { backgroundColor: colors.success }]} />
               <Text style={styles.referenciaTexto}>Con turnos</Text>
+            </View>
+            <View style={styles.referenciaItem}>
+              <View style={[styles.referenciaPunto, { backgroundColor: colors.amber }]} />
+              <Text style={styles.referenciaTexto}>Entrega estimada</Text>
             </View>
           </View>
         </View>
@@ -202,6 +232,20 @@ const styles = StyleSheet.create({
   circuloDiaHoy: {
     backgroundColor: colors.accent,
   },
+  // Anillo (borde + fondo tenue) para "con turnos" y "con entrega
+  // estimada" — se aplican al mismo círculo del día en vez del punto chico
+  // de abajo que había antes, así conviven con el número sin ensanchar la
+  // celda.
+  circuloDiaConTurno: {
+    borderWidth: 1.5,
+    borderColor: colors.success,
+    backgroundColor: colors.successTint,
+  },
+  circuloDiaConEntrega: {
+    borderWidth: 1.5,
+    borderColor: colors.amber,
+    backgroundColor: colors.amberTint,
+  },
   numeroDia: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
@@ -210,22 +254,27 @@ const styles = StyleSheet.create({
   numeroDiaHoy: {
     color: colors.bg,
   },
-  puntoWrap: {
-    height: 8,
-    marginTop: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  puntoTurno: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: colors.success,
+  // Punto superpuesto en la esquina del anillo verde para el caso "también
+  // hay una entrega ese día" — el borde en colors.surface lo separa del
+  // anillo de abajo para que se lea como una marca aparte, no como un
+  // recorte del círculo.
+  puntoEntregaEsquina: {
+    position: "absolute",
+    top: -1,
+    right: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.amber,
+    borderWidth: 1.5,
+    borderColor: colors.surface,
   },
   referencia: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
-    gap: 20,
+    gap: 14,
+    rowGap: 8,
     marginTop: 16,
   },
   referenciaItem: {

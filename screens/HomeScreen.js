@@ -4,6 +4,7 @@ import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from
 import { useIsFocused } from "@react-navigation/native";
 import ScreenHeader from "../components/ScreenHeader";
 import StatCard from "../components/StatCard";
+import WidgetCalendarioHome from "../components/WidgetCalendarioHome";
 import TurnoCard from "../components/TurnoCard";
 import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
 import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
@@ -14,15 +15,40 @@ import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
 import { useClientes } from "../data/ClienteContext";
 import { useTurnos } from "../data/TurnoContext";
+import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
+import { obtenerDiasHastaEntrega } from "../utils/entregas";
+import { esMismoDia, parsearFechaDDMMAAAA } from "../utils/fecha";
 import { colors, fonts, shadow } from "../theme";
 
 const ESTADOS_TERMINADOS = new Set(["Finalizado", "Entregado"]);
+
+// Orden de prioridad de la lista de Home: "En proceso" arriba de todo,
+// después "Finalizado" (a entregar), después "Pendiente" (sin comenzar), y
+// "Entregado" siempre al final sin importar nada más.
+const PRIORIDAD_ESTADO = {
+  "En proceso": 0,
+  Finalizado: 1,
+  Pendiente: 2,
+  Entregado: 3,
+};
+
+// Dentro de "En proceso", más urgente primero: entrega hoy o atrasada (mismo
+// "rojo" que TurnoCard.js), después mañana, después el resto — un turno sin
+// fecha calculable cae en "el resto" (no hay con qué priorizarlo).
+function obtenerRangoUrgencia(turno, getServicioById) {
+  const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
+  const diasHastaEntrega = obtenerDiasHastaEntrega(turno, servicio);
+  if (diasHastaEntrega === null || diasHastaEntrega > 1) return 2;
+  if (diasHastaEntrega === 1) return 1;
+  return 0; // hoy (0) o atrasado (negativo)
+}
 
 export default function HomeScreen({ navigation }) {
   const { getClienteById, getVehiculoById } = useClientes();
   const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } =
     useTurnos();
+  const { getServicioById } = useServicios();
   const { misDatos } = useTaller();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
   // Cambia cada vez que Home gana/pierde foco: se usa como `key` del anillo
@@ -39,13 +65,48 @@ export default function HomeScreen({ navigation }) {
   const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
   const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
 
-  // Los no terminados (Pendiente/En proceso) van primero, ordenados por
-  // hora — así lo urgente queda arriba. Los terminados (Finalizado/
-  // Entregado) se "hunden" al final, también por hora dentro de ese grupo.
-  const turnosOrdenados = [...turnos].sort((a, b) => {
-    const terminadoA = ESTADOS_TERMINADOS.has(a.estado);
-    const terminadoB = ESTADOS_TERMINADOS.has(b.estado);
-    if (terminadoA !== terminadoB) return terminadoA ? 1 : -1;
+  // Esta sección es "Turnos de HOY": a diferencia de Agenda (que filtra por
+  // fechaSeleccionada), acá el día es siempre el de hoy, sin selector — un
+  // turno con fecha inválida/sin cargar (parsearFechaDDMMAAAA devuelve
+  // null) tampoco entra, mismo criterio que turnosSinFecha en
+  // AgendaScreen.js (ahí se lista aparte; acá Home no tiene esa sección, así
+  // que directamente no cuenta para el anillo ni aparece en la lista).
+  //
+  // Además de los que LLEGAN hoy, también entran los "En proceso" cuya
+  // ENTREGA estimada es hoy o ya venció (obtenerDiasHastaEntrega <= 0),
+  // sin importar qué día llegaron — son los trabajos que hoy necesitan
+  // atención aunque hayan entrado otro día. Mismo cálculo que ya usa
+  // obtenerRangoUrgencia más abajo para ordenarlos, así que si un turno
+  // entra por esta segunda condición, siempre cae en el rango de máxima
+  // urgencia (0) al ordenar.
+  const turnosDeHoy = turnos.filter((t) => {
+    const fecha = parsearFechaDDMMAAAA(t.fecha);
+    if (fecha !== null && esMismoDia(fecha, new Date())) return true;
+
+    if (t.estado === "En proceso") {
+      const servicio = t.servicioId ? getServicioById(t.servicioId) : null;
+      const diasHastaEntrega = obtenerDiasHastaEntrega(t, servicio);
+      if (diasHastaEntrega !== null && diasHastaEntrega <= 0) return true;
+    }
+
+    return false;
+  });
+
+  // "En proceso" primero (con sub-orden por urgencia de entrega), después
+  // Finalizado, después Pendiente, y Entregado siempre al final — dentro de
+  // cada grupo (y dentro de cada sub-grupo de urgencia en "En proceso"), por
+  // hora ascendente.
+  const turnosOrdenados = [...turnosDeHoy].sort((a, b) => {
+    const prioridadA = PRIORIDAD_ESTADO[a.estado] ?? 4;
+    const prioridadB = PRIORIDAD_ESTADO[b.estado] ?? 4;
+    if (prioridadA !== prioridadB) return prioridadA - prioridadB;
+
+    if (a.estado === "En proceso") {
+      const urgenciaA = obtenerRangoUrgencia(a, getServicioById);
+      const urgenciaB = obtenerRangoUrgencia(b, getServicioById);
+      if (urgenciaA !== urgenciaB) return urgenciaA - urgenciaB;
+    }
+
     return a.hora.localeCompare(b.hora);
   });
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
@@ -117,14 +178,18 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.saludo}>Hola{misDatos.nombrePersonal ? `, ${misDatos.nombrePersonal}` : ""} 👋</Text>
 
               <View style={styles.stats}>
-                <View style={styles.statUnico}>
+                <View style={styles.statAnillo}>
                   <StatCard
                     key={estaEnfocada}
-                    label="Turnos de hoy"
+                    label="Turnos hoy"
                     valor={turnosOrdenados.length}
                     progreso={progresoTurnosHoy}
+                    tamano={110}
                     onPress={() => navigation.navigate("Agenda")}
                   />
+                </View>
+                <View style={styles.statWidget}>
+                  <WidgetCalendarioHome onPress={() => navigation.navigate("Agenda")} />
                 </View>
               </View>
 
@@ -141,6 +206,15 @@ export default function HomeScreen({ navigation }) {
           )}
           ListEmptyComponent={
             <Text style={styles.vacio}>Todavía no hay turnos cargados para hoy.</Text>
+          }
+          ListFooterComponent={
+            <TouchableOpacity
+              onPress={() => navigation.navigate("HistorialClientes")}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={styles.linkHistorialWrap}
+            >
+              <Text style={styles.linkHistorial}>Ver historial de clientes</Text>
+            </TouchableOpacity>
           }
         />
       </EstadoCarga>
@@ -220,12 +294,17 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: "row",
-    justifyContent: "center",
+    alignItems: "center",
+    gap: 14,
     paddingHorizontal: 20,
     marginTop: 18,
   },
-  statUnico: {
-    width: "55%",
+  statAnillo: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statWidget: {
+    flex: 1,
   },
   seccionTitulo: {
     fontFamily: fonts.bodySemiBold,
@@ -234,6 +313,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 24,
     marginBottom: 4,
+  },
+  linkHistorialWrap: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  linkHistorial: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    textDecorationLine: "underline",
   },
   vacio: {
     fontFamily: fonts.body,

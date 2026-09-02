@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Modal, StyleSheet } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Dimensions, Modal, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import SeleccionarClienteStep from "../nuevoCliente/SeleccionarClienteStep";
@@ -9,7 +9,10 @@ import TipoVehiculoStep from "./TipoVehiculoStep";
 import InspeccionVisualStep from "./InspeccionVisualStep";
 import ConfirmacionTrabajoStep from "./ConfirmacionTrabajoStep";
 import { useClientes } from "../../data/ClienteContext";
+import { formatearFechaDDMMAAAA } from "../../utils/fecha";
 import { colors } from "../../theme";
+
+const { width: ANCHO_PANTALLA } = Dimensions.get("window");
 
 function datosVacios(clienteId, autoId) {
   return {
@@ -19,9 +22,11 @@ function datosVacios(clienteId, autoId) {
       tipo: "",
       servicioId: null,
       precio: null,
-      fecha: "",
+      // Arranca en HOY por defecto (el caso más común: la mayoría de los
+      // trabajos se cargan el mismo día que llega el vehículo) — el picker
+      // nativo sigue totalmente editable, esto es solo el valor inicial.
+      fecha: formatearFechaDDMMAAAA(new Date()),
       hora: "",
-      tiempoEstimado: "",
       observaciones: "",
       empleadosAsignados: [],
     },
@@ -29,6 +34,7 @@ function datosVacios(clienteId, autoId) {
       tipoVehiculo: null,
       grupo: null,
       subdivision: null,
+      kilometraje: "",
       nivelNafta: 50,
       // Mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada zona
       // puede tener varios tipos de daño previo a la vez, no uno solo.
@@ -57,13 +63,24 @@ export default function TrabajoNuevoWizard({
   const [clienteTemporal, setClienteTemporal] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [errorGuardado, setErrorGuardado] = useState(null);
+  const desplazamiento = useRef(new Animated.Value(ANCHO_PANTALLA)).current;
 
+  // Entra deslizándose desde la derecha (en vez del "slide" vertical nativo
+  // del Modal) para que se lea como continuación del mismo movimiento con el
+  // que se cierra OpcionesNuevoModal, no como un rebote subir/bajar (ver el
+  // mismo patrón en ClienteNuevoSubmenu.js).
   useEffect(() => {
     if (visible) {
       setDatos(datosVacios(clienteIdInicial, autoIdInicial));
       setFase(clienteIdInicial && autoIdInicial ? "servicio" : "elegirCliente");
       setClienteTemporal(null);
       setErrorGuardado(null);
+      desplazamiento.setValue(ANCHO_PANTALLA);
+      Animated.timing(desplazamiento, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }).start();
     }
   }, [visible, clienteIdInicial, autoIdInicial]);
 
@@ -101,12 +118,12 @@ export default function TrabajoNuevoWizard({
         precio: datos.servicio.precio,
         fecha: datos.servicio.fecha,
         hora: datos.servicio.hora,
-        tiempoEstimado: datos.servicio.tiempoEstimado,
         observaciones: datos.servicio.observaciones,
         empleadosAsignados: datos.servicio.empleadosAsignados,
         tipoVehiculo: datos.inspeccion.tipoVehiculo,
         grupoVehiculo: datos.inspeccion.grupo,
         subdivisionVehiculo: datos.inspeccion.subdivision,
+        kilometraje: datos.inspeccion.kilometraje ? Number(datos.inspeccion.kilometraje) : null,
         nivelNafta: datos.inspeccion.nivelNafta,
         danios: datos.inspeccion.danios,
         fotosDano: datos.inspeccion.fotosDano,
@@ -131,14 +148,15 @@ export default function TrabajoNuevoWizard({
   const clienteSeleccionado = datos.clienteId ? getClienteById(datos.clienteId) : null;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={cerrar}>
+    <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={cerrar}>
       {/* react-native-gesture-handler no llega adentro de un <Modal> nativo a
       través del GestureHandlerRootView de App.js (el modal abre su propia
       jerarquía nativa) — hace falta este wrapper propio para que el swipe
       de "volver" de los pasos funcione. */}
       <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaProvider>
-        <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
+        <Animated.View style={[styles.pantalla, { transform: [{ translateX: desplazamiento }] }]}>
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           {fase === "elegirCliente" && (
             <SeleccionarClienteStep
               titulo="Elegir Cliente"
@@ -197,6 +215,7 @@ export default function TrabajoNuevoWizard({
             />
           )}
         </SafeAreaView>
+        </Animated.View>
       </SafeAreaProvider>
       </GestureHandlerRootView>
     </Modal>
@@ -210,5 +229,8 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  safeArea: {
+    flex: 1,
   },
 });
