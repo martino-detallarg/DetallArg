@@ -27,10 +27,7 @@ const MAPEO_CAMPOS_TURNO = {
   tipoVehiculo: "tipo_vehiculo",
   grupoVehiculo: "grupo_vehiculo",
   subdivisionVehiculo: "subdivision_vehiculo",
-  // kilometraje: TODO — descomentar cuando se corra
-  // supabase/alter_turnos_kilometraje.sql en la base real (la columna
-  // todavía no existe, ver esa migración). Hasta entonces, sumarlo acá
-  // rompe tanto el SELECT de cargarTurnos como el INSERT de agregarTurno.
+  kilometraje: "kilometraje",
   nivelNafta: "nivel_nafta",
 };
 
@@ -46,7 +43,7 @@ function turnoACamposDb(datos) {
 const COLUMNAS_TURNO =
   "id, cliente_id, vehiculo_id, servicio_id, servicio_nombre, precio, fecha, hora, " +
   "tiempo_estimado, observaciones, estado, tipo_vehiculo, grupo_vehiculo, " +
-  "subdivision_vehiculo, nivel_nafta, " +
+  "subdivision_vehiculo, kilometraje, nivel_nafta, " +
   "turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad, costo_estimado, costo_unitario_snapshot), " +
   "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado), " +
   "turno_fotos_danio(storage_path)";
@@ -73,6 +70,7 @@ function filaATurno(fila) {
     tipoVehiculo: fila.tipo_vehiculo,
     grupoVehiculo: fila.grupo_vehiculo,
     subdivisionVehiculo: fila.subdivision_vehiculo,
+    kilometraje: fila.kilometraje,
     nivelNafta: fila.nivel_nafta,
     empleadosAsignados: fila.turno_empleados.map((e) => ({
       empleadoId: e.empleado_id,
