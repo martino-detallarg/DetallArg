@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { PanResponder, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
 import { colors, fonts, shadowSubtle } from "../../theme";
 
 const ALTO_BARRA = 14;
@@ -22,8 +24,6 @@ function posicionMasCercana(valorCrudo) {
 }
 
 export default function FuelGauge({ nivel, onCambiar }) {
-  const contenedorRef = useRef(null);
-  const origenPantalla = useRef({ x: 0, y: 0 });
   // Ancho medido del track en píxeles: hace falta para traducir la
   // posición X del toque a un porcentaje (el relleno/thumb en sí se
   // posicionan con "%", no necesitan este valor para renderizar).
@@ -31,14 +31,18 @@ export default function FuelGauge({ nivel, onCambiar }) {
 
   // Estado propio mientras se arrastra: `onCambiar` (que sube hasta el
   // estado raíz del wizard, TrabajoNuevoWizard) recién se llama una vez, al
-  // soltar — no en cada pixel de movimiento. Antes cada onPanResponderMove
-  // disparaba un re-render de TODO TipoVehiculoStep (grilla de tipos, chips
-  // de subdivisión, etc.), no solo del gauge, y se sentía como que "toda la
-  // pantalla se movía" al arrastrar.
+  // soltar — no en cada pixel de movimiento. Llamarlo en cada movimiento
+  // dispararía un re-render de TODO TipoVehiculoStep (grilla de tipos,
+  // chips de subdivisión, etc.), no solo del gauge, y se sentiría como que
+  // "toda la pantalla se mueve" al arrastrar.
   const [nivelInterno, setNivelInterno] = useState(nivel);
-  // Refleja `nivelInterno` para que el handler de soltar (armado una sola
-  // vez más abajo, ver comentario de `responder`) siempre lea el valor más
-  // reciente en vez de quedar atado al que existía cuando se creó.
+  // Refleja `nivelInterno`, pero por ref: `manejarSoltar` (dentro de
+  // onFinalize) necesita el valor más reciente en el momento exacto de
+  // soltar el dedo, y confiar en el closure de `nivelInterno` corre el
+  // riesgo de leer un valor de un render anterior si React todavía no
+  // terminó de procesar el último `setNivelInterno` cuando el gesto
+  // termina — la ref, en cambio, se actualiza en el momento (sin esperar
+  // un re-render).
   const nivelArrastreRef = useRef(nivel);
   // Mismo motivo para `onCambiar`: puede ser una función nueva en cada
   // render del padre, y el handler de soltar necesita siempre la más nueva.
@@ -53,47 +57,14 @@ export default function FuelGauge({ nivel, onCambiar }) {
     nivelArrastreRef.current = nivel;
   }, [nivel]);
 
-  function medirOrigen() {
-    contenedorRef.current?.measure((_x, _y, w, _h, pageX, pageY) => {
-      origenPantalla.current = { x: pageX, y: pageY };
-      anchoBarraRef.current = w;
-    });
-  }
-
-  // Armado una sola vez (useRef solo se queda con el valor de la primera
-  // evaluación): por eso `manejarToque`/`manejarSoltar` no pueden confiar en
-  // sus propios closures para leer el `nivel`/`onCambiar` más recientes —
-  // usan los refs de arriba en su lugar.
-  const responder = useRef(
-    PanResponder.create({
-      // onStart/onMoveShouldSetPanResponderCapture (true) hace que este
-      // componente capture el toque ANTES de que el ScrollView padre lo
-      // interprete como un gesto de scroll, y onPanResponderTerminationRequest
-      // (false) evita que el ScrollView se lo robe a mitad del arrastre.
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
-      onPanResponderGrant: manejarToque,
-      onPanResponderMove: manejarToque,
-      // Release cubre soltar el dedo normalmente; Terminate cubre que el
-      // sistema interrumpa el gesto a la fuerza (una llamada entrante, un
-      // permiso) — sin este último, un arrastre interrumpido así perdería
-      // el valor en silencio en vez de confirmarlo.
-      onPanResponderRelease: manejarSoltar,
-      onPanResponderTerminate: manejarSoltar,
-      onPanResponderTerminationRequest: () => false,
-    })
-  ).current;
-
   // Encastra en la posición fija más cercana ya en vivo (mientras se
   // arrastra), no solo al soltar — se siente más parecido a un selector de
   // "click-stops" real que esperar a la suelta para recién ahí saltar.
-  function manejarToque(_evt, gestureState) {
-    const touchX = gestureState.moveX || gestureState.x0;
-    const x = touchX - origenPantalla.current.x;
+  // Recibe `x` ya relativo al track (lo da directo el evento de
+  // react-native-gesture-handler, a diferencia de PanResponder que solo
+  // daba coordenadas absolutas de pantalla).
+  function manejarToque(x) {
     const ancho = anchoBarraRef.current || 1;
-
     const crudo = Math.max(0, Math.min(100, (x / ancho) * 100));
     const nuevoPorcentaje = posicionMasCercana(crudo);
     nivelArrastreRef.current = nuevoPorcentaje;
@@ -104,12 +75,36 @@ export default function FuelGauge({ nivel, onCambiar }) {
     onCambiarRef.current(nivelArrastreRef.current);
   }
 
+  // PanResponder (el que tenía este componente antes) no logra ganarle de
+  // forma confiable al gesto nativo de scroll del ScrollView padre — es una
+  // limitación conocida de React Native, no algo que se arregle con más
+  // banderas de PanResponder. react-native-gesture-handler sí lo resuelve
+  // (mismo criterio que SwipeVolver.js, que convive con este mismo
+  // ScrollView un poco más arriba en el árbol): activeOffsetX reclama el
+  // gesto apenas hay movimiento horizontal real, failOffsetY lo libera si
+  // el dedo se mueve claramente en vertical, para que el ScrollView pueda
+  // scrollear con normalidad si el toque arrancó sobre la barra mismo pero
+  // el usuario en realidad quería scrollear.
+  const gestoNafta = Gesture.Pan()
+    .activeOffsetX([-5, 5])
+    .failOffsetY([-15, 15])
+    .onBegin((evento) => runOnJS(manejarToque)(evento.x))
+    .onUpdate((evento) => runOnJS(manejarToque)(evento.x))
+    .onFinalize(() => runOnJS(manejarSoltar)());
+
   return (
     <View style={styles.contenedor}>
-      <View ref={contenedorRef} onLayout={medirOrigen} style={styles.barraTrack} {...responder.panHandlers}>
-        <View style={[styles.barraRelleno, { width: `${nivelInterno}%` }]} />
-        <View style={[styles.thumb, { left: `${nivelInterno}%`, marginLeft: -DIAMETRO_THUMB / 2 }]} />
-      </View>
+      <GestureDetector gesture={gestoNafta}>
+        <View
+          onLayout={(evento) => {
+            anchoBarraRef.current = evento.nativeEvent.layout.width;
+          }}
+          style={styles.barraTrack}
+        >
+          <View style={[styles.barraRelleno, { width: `${nivelInterno}%` }]} />
+          <View style={[styles.thumb, { left: `${nivelInterno}%`, marginLeft: -DIAMETRO_THUMB / 2 }]} />
+        </View>
+      </GestureDetector>
 
       <View style={styles.posiciones}>
         {POSICIONES_NAFTA.map((p) => {

@@ -110,11 +110,13 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
                   onPress={() => elegirTipo(t.id)}
                   activeOpacity={0.8}
                 >
-                  <MaterialCommunityIcons
-                    name={t.icono}
-                    size={32}
-                    color={seleccionado ? colors.bg : colors.textSecondary}
-                  />
+                  <View style={styles.tarjetaIcono}>
+                    <MaterialCommunityIcons
+                      name={t.icono}
+                      size={32}
+                      color={seleccionado ? colors.bg : colors.textSecondary}
+                    />
+                  </View>
                   <Text style={[styles.tarjetaTexto, seleccionado && styles.tarjetaTextoSeleccionado]}>
                     {t.etiqueta}
                   </Text>
@@ -235,14 +237,27 @@ const styles = StyleSheet.create({
   tarjetaTipoSeleccionada: {
     backgroundColor: colors.accent,
   },
+  // Caja fija cuadrada para el ícono: sin esto, cada glyph de
+  // MaterialCommunityIcons centra distinto dentro de su propio tamaño de
+  // fuente (algunos son más anchos que altos, ej. "car-outline" vs
+  // "motorbike") y el conjunto se ve descentrado card a card aunque el
+  // contenedor ya esté centrado.
+  tarjetaIcono: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   tarjetaTexto: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textPrimary,
+    opacity: 0.7,
   },
   tarjetaTextoSeleccionado: {
     fontFamily: fonts.bodyBold,
-    color: colors.bg,
+    color: colors.textPrimary,
+    opacity: 1,
   },
   subdivisiones: {
     marginTop: 4,
