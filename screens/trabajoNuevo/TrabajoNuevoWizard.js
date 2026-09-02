@@ -35,7 +35,9 @@ function datosVacios(clienteId, autoId) {
       grupo: null,
       subdivision: null,
       kilometraje: "",
-      nivelNafta: 50,
+      // null = todavía no tocó la barra (distinto de 0, que es "Reserva"
+      // elegido a propósito) — ver TipoVehiculoStep.js y FuelGauge.js.
+      nivelNafta: null,
       // Mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada zona
       // puede tener varios tipos de daño previo a la vez, no uno solo.
       danios: {},

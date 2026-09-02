@@ -64,13 +64,16 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
   }
 
   const tipoInfo = datos.tipoVehiculo ? TIPOS_VEHICULO[datos.tipoVehiculo] : null;
-  const puedeContinuar = !!datos.subdivision && !!datos.kilometraje?.trim();
+  // datos.nivelNafta empieza en null (ver TrabajoNuevoWizard.datosVacios) y
+  // 0 ("Reserva") es un valor real y válido — por eso se compara contra
+  // null explícito en vez de con !!, que trataría 0 como "falta elegir".
+  const puedeContinuar = !!datos.subdivision && !!datos.kilometraje?.trim() && datos.nivelNafta !== null;
   const onLayoutBoton = useScrollAlHabilitar(scrollRef, puedeContinuar);
   const claveDiagrama = obtenerClaveDiagrama(datos);
   const tieneDiagramaEspecifico = !!DIAGRAMAS_POR_TIPO_VEHICULO[claveDiagrama];
 
   // Mismo patrón que DatosServicioStep: el botón ya queda deshabilitado sin
-  // kilometraje (puedeContinuar de arriba), pero además se valida al
+  // kilometraje/nafta (puedeContinuar de arriba), pero además se valida al
   // intentar avanzar para mostrar el error inline, no solo un botón
   // apagado sin explicación.
   function validar() {
@@ -84,6 +87,7 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
       nuevosErrores.subdivision = "Elegí la subdivisión";
     }
     if (!datos.kilometraje?.trim()) nuevosErrores.kilometraje = "Ingresá el kilometraje";
+    if (datos.nivelNafta === null) nuevosErrores.nivelNafta = "Elegí el nivel de nafta";
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   }
@@ -125,16 +129,6 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
             })}
           </View>
           {errores.tipoVehiculo && <Text style={styles.error}>{errores.tipoVehiculo}</Text>}
-
-          <Input
-            label="Kilometraje"
-            value={datos.kilometraje ?? ""}
-            onChangeText={(v) => onCambiar({ kilometraje: v.replace(/[^0-9]/g, "") })}
-            placeholder="0"
-            keyboardType="numeric"
-            sufijo="km"
-            error={errores.kilometraje}
-          />
 
           {tipoInfo && (
             <View style={styles.subdivisiones}>
@@ -185,10 +179,21 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
             </View>
           )}
 
+          <Input
+            label="Kilometraje"
+            value={datos.kilometraje ?? ""}
+            onChangeText={(v) => onCambiar({ kilometraje: v.replace(/[^0-9]/g, "") })}
+            placeholder="0"
+            keyboardType="numeric"
+            sufijo="km"
+            error={errores.kilometraje}
+          />
+
           {datos.subdivision && (
             <>
               <Text style={styles.texto}>Nivel de nafta</Text>
               <FuelGauge nivel={datos.nivelNafta} onCambiar={(n) => onCambiar({ nivelNafta: n })} />
+              {errores.nivelNafta && <Text style={styles.error}>{errores.nivelNafta}</Text>}
             </>
           )}
 

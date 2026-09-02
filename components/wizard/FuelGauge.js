@@ -101,8 +101,20 @@ export default function FuelGauge({ nivel, onCambiar }) {
           }}
           style={styles.barraTrack}
         >
-          <View style={[styles.barraRelleno, { width: `${nivelInterno}%` }]} />
-          <View style={[styles.thumb, { left: `${nivelInterno}%`, marginLeft: -DIAMETRO_THUMB / 2 }]} />
+          {nivelInterno === null ? (
+            // Todavía no se tocó la barra: nada de relleno ni thumb en una
+            // posición puntual (mostrar el thumb en 0% se confundiría con
+            // "eligió Reserva a propósito", que es justo la ambigüedad que
+            // se busca evitar). El texto ocupa el mismo lugar central que
+            // después toma el thumb, así que uno "se reemplaza" por el otro
+            // apenas se toca la barra.
+            <Text style={styles.placeholderTexto}>Tocá para elegir</Text>
+          ) : (
+            <>
+              <View style={[styles.barraRelleno, { width: `${nivelInterno}%` }]} />
+              <View style={[styles.thumb, { left: `${nivelInterno}%`, marginLeft: -DIAMETRO_THUMB / 2 }]} />
+            </>
+          )}
         </View>
       </GestureDetector>
 
@@ -138,6 +150,17 @@ const styles = StyleSheet.create({
     // pero el padding horizontal de 20px de la pantalla del wizard ya le
     // da lugar de sobra, no hace falta reservar margen acá.
     overflow: "visible",
+    // Centra placeholderTexto (que no es position:"absolute", a diferencia
+    // de barraRelleno/thumb) tanto vertical como horizontalmente sobre el
+    // track, aunque el texto sea más alto que los 14px del track — el
+    // overflow:"visible" de arriba deja que sobresalga sin recortarse.
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  placeholderTexto: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.textMuted,
   },
   barraRelleno: {
     position: "absolute",
