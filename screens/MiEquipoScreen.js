@@ -51,7 +51,7 @@ export default function MiEquipoScreen({ navigation }) {
       <View style={styles.encabezadoFijo}>
         <Text style={styles.titulo}>Mi Equipo</Text>
 
-        <PanelPruebasPlan />
+        {__DEV__ && <PanelPruebasPlan />}
 
         {alLimite && (
           <View style={styles.limiteAviso}>
