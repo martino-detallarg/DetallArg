@@ -7,6 +7,7 @@ import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import ChipGroup from "../../components/ChipGroup";
+import SelectorServicio from "../../components/wizard/SelectorServicio";
 import SelectorFechaModal from "../../components/wizard/SelectorFechaModal";
 import SelectorHoraModal from "../../components/SelectorHoraModal";
 import {
@@ -19,7 +20,7 @@ import {
 import { useServicios } from "../../data/ServicioContext";
 import { useTaller } from "../../data/TallerContext";
 import { useEquipo } from "../../data/EquipoContext";
-import { formatearPesos } from "../../utils/formato";
+import { formatearDuracion } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
 export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
@@ -82,6 +83,14 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     onCambiar({ tipo: servicio.nombre, servicioId: servicio.id, precio: servicio.precio });
   }
 
+  // Duración estimada DEL SERVICIO elegido (catálogo de Mis Servicios), no
+  // un dato que cargue el usuario acá — si el servicio no tiene duración
+  // cargada, no se muestra nada (nada de texto genérico inventado).
+  const servicioSeleccionado = servicios.find((s) => s.id === datos.servicioId);
+  const mensajeDuracion = servicioSeleccionado?.duracionValor
+    ? `Se entrega en aprox. ${formatearDuracion(servicioSeleccionado.duracionValor, servicioSeleccionado.duracionUnidad)}`
+    : null;
+
   function toggleEmpleado(empleado) {
     const asignadosActuales = datos.empleadosAsignados ?? [];
     const yaAsignado = asignadosActuales.some((e) => e.empleadoId === empleado.id);
@@ -112,16 +121,14 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
             Todavía no cargaste servicios en Mis Servicios. Cargalos desde Mi Taller para poder elegirlos acá.
           </Text>
         ) : (
-          <ChipGroup
-            options={servicios.map((s) => ({
-              value: s.id,
-              label: `${s.nombre} · ${formatearPesos(s.precio)}`,
-              selected: datos.servicioId === s.id,
-            }))}
-            onPress={(id) => seleccionarServicio(servicios.find((s) => s.id === id))}
-            style={styles.chips}
+          <SelectorServicio
+            servicios={servicios}
+            servicioId={datos.servicioId}
+            onSeleccionar={seleccionarServicio}
+            error={errores.tipo}
           />
         )}
+        {mensajeDuracion && <Text style={styles.duracionServicio}>{mensajeDuracion}</Text>}
         {errores.tipo && <Text style={styles.error}>{errores.tipo}</Text>}
 
         {limiteEmpleados === 0 ? (
@@ -235,12 +242,6 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
         )}
 
         <Input
-          label="Tiempo estimado de trabajo (opcional)"
-          value={datos.tiempoEstimado}
-          onChangeText={(v) => onCambiar({ tiempoEstimado: v })}
-          placeholder="Ej: 2 horas"
-        />
-        <Input
           label="Observaciones (opcional)"
           value={datos.observaciones}
           onChangeText={(v) => onCambiar({ observaciones: v })}
@@ -276,6 +277,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   chips: {
+    marginBottom: 4,
+  },
+  duracionServicio: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
     marginBottom: 4,
   },
   error: {

@@ -27,7 +27,6 @@ function datosVacios(clienteId, autoId) {
       // nativo sigue totalmente editable, esto es solo el valor inicial.
       fecha: formatearFechaDDMMAAAA(new Date()),
       hora: "",
-      tiempoEstimado: "",
       observaciones: "",
       empleadosAsignados: [],
     },
@@ -119,7 +118,6 @@ export default function TrabajoNuevoWizard({
         precio: datos.servicio.precio,
         fecha: datos.servicio.fecha,
         hora: datos.servicio.hora,
-        tiempoEstimado: datos.servicio.tiempoEstimado,
         observaciones: datos.servicio.observaciones,
         empleadosAsignados: datos.servicio.empleadosAsignados,
         tipoVehiculo: datos.inspeccion.tipoVehiculo,
