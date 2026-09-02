@@ -72,6 +72,14 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
   // apagado sin explicación.
   function validar() {
     const nuevosErrores = {};
+    // Mismo criterio que puedeContinuar de arriba (que ya bloquea el
+    // botón sin subdivisión) — acá solo se hace visible CUÁL de las dos
+    // reglas ya existentes es la que falta, no se agrega ninguna nueva.
+    if (!datos.tipoVehiculo) {
+      nuevosErrores.tipoVehiculo = "Elegí el tipo de vehículo";
+    } else if (!datos.subdivision) {
+      nuevosErrores.subdivision = "Elegí la subdivisión";
+    }
     if (!datos.kilometraje?.trim()) nuevosErrores.kilometraje = "Ingresá el kilometraje";
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -111,6 +119,7 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
               );
             })}
           </View>
+          {errores.tipoVehiculo && <Text style={styles.error}>{errores.tipoVehiculo}</Text>}
 
           <Input
             label="Kilometraje"
@@ -152,6 +161,7 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
                   </View>
                 </View>
               ))}
+              {errores.subdivision && <Text style={styles.error}>{errores.subdivision}</Text>}
 
               {tieneDiagramaEspecifico ? (
                 <View style={styles.bannerConfirmacion}>
@@ -244,6 +254,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
+  },
+  error: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.error,
+    marginTop: 6,
   },
   // Mismo criterio visual que tarjetaTipo/tarjetaTipoSeleccionada de arriba
   // (fondo sólido colors.accent si está elegida, surface2 si no, radii.card,
