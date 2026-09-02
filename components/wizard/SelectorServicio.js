@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Input from "../Input";
+import ServicioModal from "../ServicioModal";
 import { useTurnos } from "../../data/TurnoContext";
 import { formatearDuracion, formatearPesos } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
@@ -16,6 +17,10 @@ export default function SelectorServicio({ servicios, servicioId, onSeleccionar,
   const { turnos } = useTurnos();
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  // null = modal en modo alta ("+ Crear nuevo servicio"); objeto = modo
+  // edición (ícono de lápiz de una fila puntual).
+  const [itemEditando, setItemEditando] = useState(null);
 
   const servicioSeleccionado = servicios.find((s) => s.id === servicioId);
 
@@ -54,6 +59,30 @@ export default function SelectorServicio({ servicios, servicioId, onSeleccionar,
     setBusqueda("");
   }
 
+  function abrirCrear() {
+    setItemEditando(null);
+    setModalVisible(true);
+  }
+
+  function abrirEditar(servicio) {
+    setItemEditando(servicio);
+    setModalVisible(true);
+  }
+
+  // Alta: el servicio recién creado es justo lo que el usuario quería usar
+  // ahora mismo, así que se selecciona y se cierra el desplegable (mismo
+  // efecto que elegirlo a mano). Edición: el usuario sigue eligiendo, así
+  // que el desplegable queda abierto con la lista ya actualizada — no se
+  // cambia la selección actual.
+  function handleGuardadoServicio(servicio) {
+    if (itemEditando === null) handleSeleccionar(servicio);
+  }
+
+  function handleCerrarModal() {
+    setModalVisible(false);
+    setItemEditando(null);
+  }
+
   return (
     <View>
       <TouchableOpacity
@@ -84,7 +113,9 @@ export default function SelectorServicio({ servicios, servicioId, onSeleccionar,
           ) : (
             serviciosFiltrados.map((s) => {
               const seleccionado = s.id === servicioId;
-              const duracion = s.duracionValor ? formatearDuracion(s.duracionValor, s.duracionUnidad) : null;
+              const duracion = s.duracionValor
+                ? `${formatearDuracion(s.duracionValor, s.duracionUnidad)} de duración`
+                : null;
               return (
                 <TouchableOpacity
                   key={s.id}
@@ -107,13 +138,36 @@ export default function SelectorServicio({ servicios, servicioId, onSeleccionar,
                       {duracion ? ` · ${duracion}` : ""}
                     </Text>
                   </View>
+                  <TouchableOpacity
+                    onPress={() => abrirEditar(s)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.itemEditar}
+                  >
+                    <Ionicons
+                      name="create-outline"
+                      size={18}
+                      color={seleccionado ? colors.bg : colors.textMuted}
+                    />
+                  </TouchableOpacity>
                   {seleccionado && <Ionicons name="checkmark" size={18} color={colors.bg} />}
                 </TouchableOpacity>
               );
             })
           )}
+
+          <TouchableOpacity style={styles.itemCrear} onPress={abrirCrear} activeOpacity={0.8}>
+            <Ionicons name="add-circle-outline" size={18} color={colors.accent} />
+            <Text style={styles.itemCrearTexto}>Crear nuevo servicio</Text>
+          </TouchableOpacity>
         </View>
       )}
+
+      <ServicioModal
+        visible={modalVisible}
+        item={itemEditando}
+        onClose={handleCerrarModal}
+        onGuardado={handleGuardadoServicio}
+      />
     </View>
   );
 }
@@ -193,5 +247,26 @@ const styles = StyleSheet.create({
   },
   itemTextoSeleccionado: {
     color: colors.bg,
+  },
+  itemEditar: {
+    marginLeft: 4,
+  },
+  itemCrear: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.accent,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 6,
+  },
+  itemCrearTexto: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.accent,
   },
 });

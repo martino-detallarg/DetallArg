@@ -16,7 +16,7 @@ const UNIDADES_DURACION = [
   { clave: "dias", etiqueta: "Días" },
 ];
 
-export default function ServicioModal({ visible, item, onClose }) {
+export default function ServicioModal({ visible, item, onClose, onGuardado }) {
   const { agregarServicio, editarServicio, eliminarServicio } = useServicios();
   const [fase, setFase] = useState("datos");
   const [nombre, setNombre] = useState("");
@@ -93,11 +93,18 @@ export default function ServicioModal({ visible, item, onClose }) {
     setCargando(true);
     setError(null);
     try {
+      let servicioGuardado;
       if (editando) {
         await editarServicio(item.id, datos);
+        // editarServicio no devuelve el servicio actualizado (a diferencia
+        // de agregarServicio) — se arma acá con los mismos `datos` que se
+        // acaban de confirmar contra Supabase, mismo shape que arma
+        // ServicioContext.
+        servicioGuardado = { ...item, ...datos };
       } else {
-        await agregarServicio(datos);
+        servicioGuardado = await agregarServicio(datos);
       }
+      onGuardado?.(servicioGuardado);
       handleCerrar();
     } catch (err) {
       setError("No se pudo guardar el servicio. Probá de nuevo.");
