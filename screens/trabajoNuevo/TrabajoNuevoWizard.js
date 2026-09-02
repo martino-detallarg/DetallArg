@@ -35,6 +35,7 @@ function datosVacios(clienteId, autoId) {
       tipoVehiculo: null,
       grupo: null,
       subdivision: null,
+      kilometraje: "",
       nivelNafta: 50,
       // Mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada zona
       // puede tener varios tipos de daño previo a la vez, no uno solo.
@@ -124,6 +125,7 @@ export default function TrabajoNuevoWizard({
         tipoVehiculo: datos.inspeccion.tipoVehiculo,
         grupoVehiculo: datos.inspeccion.grupo,
         subdivisionVehiculo: datos.inspeccion.subdivision,
+        kilometraje: datos.inspeccion.kilometraje ? Number(datos.inspeccion.kilometraje) : null,
         nivelNafta: datos.inspeccion.nivelNafta,
         danios: datos.inspeccion.danios,
         fotosDano: datos.inspeccion.fotosDano,

@@ -1,13 +1,20 @@
+import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Button from "../../components/Button";
-import ChipGroup from "../../components/ChipGroup";
+import Input from "../../components/Input";
 import FuelGauge from "../../components/wizard/FuelGauge";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
+// Íconos outline/finos de MaterialCommunityIcons — mismo criterio "trazo
+// fino, minimalista" que las siluetas de Mi Equipo (Ionicons man-outline/
+// woman-outline). "car-outline" y "truck-outline" son variantes outline
+// reales del set; MaterialCommunityIcons no tiene una variante outline para
+// SUV/estate ni para moto, así que "car-estate" y "motorbike" quedan como
+// están (son ya el glyph más simple disponible para esa forma en este set).
 const TIPOS_VEHICULO = {
   auto: {
     etiqueta: "Auto",
@@ -19,7 +26,7 @@ const TIPOS_VEHICULO = {
   },
   camioneta: {
     etiqueta: "Camioneta",
-    icono: "car-pickup",
+    icono: "truck-outline",
     grupos: [
       { grupo: "Cabina simple", opciones: ["Chico", "Mediano"] },
       { grupo: "Doble cabina", opciones: ["Chico", "Mediano", "Grande"] },
@@ -44,6 +51,8 @@ const TIPOS = Object.entries(TIPOS_VEHICULO).map(([id, valor]) => ({ id, ...valo
 // subdivisión) y el nivel de nafta. La parte visual de daños (diagramas,
 // foto, guardar) quedó en InspeccionVisualStep.
 export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
+  const [errores, setErrores] = useState({});
+
   function elegirTipo(tipoId) {
     onCambiar({ tipoVehiculo: tipoId, grupo: null, subdivision: null });
   }
@@ -53,9 +62,24 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
   }
 
   const tipoInfo = datos.tipoVehiculo ? TIPOS_VEHICULO[datos.tipoVehiculo] : null;
-  const puedeContinuar = !!datos.subdivision;
+  const puedeContinuar = !!datos.subdivision && !!datos.kilometraje?.trim();
   const claveDiagrama = obtenerClaveDiagrama(datos);
   const tieneDiagramaEspecifico = !!DIAGRAMAS_POR_TIPO_VEHICULO[claveDiagrama];
+
+  // Mismo patrón que DatosServicioStep: el botón ya queda deshabilitado sin
+  // kilometraje (puedeContinuar de arriba), pero además se valida al
+  // intentar avanzar para mostrar el error inline, no solo un botón
+  // apagado sin explicación.
+  function validar() {
+    const nuevosErrores = {};
+    if (!datos.kilometraje?.trim()) nuevosErrores.kilometraje = "Ingresá el kilometraje";
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  }
+
+  function handleContinuar() {
+    if (validar()) onContinuar();
+  }
 
   return (
     <View style={styles.pantalla}>
@@ -77,8 +101,8 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
                 >
                   <MaterialCommunityIcons
                     name={t.icono}
-                    size={28}
-                    color={seleccionado ? colors.accentLight : colors.textSecondary}
+                    size={32}
+                    color={seleccionado ? colors.bg : colors.textSecondary}
                   />
                   <Text style={[styles.tarjetaTexto, seleccionado && styles.tarjetaTextoSeleccionado]}>
                     {t.etiqueta}
@@ -88,30 +112,61 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
             })}
           </View>
 
+          <Input
+            label="Kilometraje"
+            value={datos.kilometraje ?? ""}
+            onChangeText={(v) => onCambiar({ kilometraje: v.replace(/[^0-9]/g, "") })}
+            placeholder="0"
+            keyboardType="numeric"
+            sufijo="km"
+            error={errores.kilometraje}
+          />
+
           {tipoInfo && (
             <View style={styles.subdivisiones}>
               <Text style={styles.texto}>Elegí la subdivisión</Text>
               {tipoInfo.grupos.map((g) => (
                 <View key={g.grupo ?? "unico"} style={styles.grupo}>
                   {g.grupo && <Text style={styles.grupoTitulo}>{g.grupo}</Text>}
-                  <ChipGroup
-                    options={g.opciones.map((opcion) => ({
-                      value: opcion,
-                      label: opcion,
-                      selected: datos.grupo === g.grupo && datos.subdivision === opcion,
-                    }))}
-                    onPress={(opcion) => elegirSubdivision(g.grupo, opcion)}
-                  />
+                  <View style={styles.bloquesSubdivision}>
+                    {g.opciones.map((opcion) => {
+                      const seleccionada = datos.grupo === g.grupo && datos.subdivision === opcion;
+                      return (
+                        <TouchableOpacity
+                          key={opcion}
+                          style={[styles.bloqueSubdivision, seleccionada && styles.bloqueSubdivisionSeleccionado]}
+                          onPress={() => elegirSubdivision(g.grupo, opcion)}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={[
+                              styles.bloqueSubdivisionTexto,
+                              seleccionada && styles.bloqueSubdivisionTextoSeleccionado,
+                            ]}
+                          >
+                            {opcion}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
               ))}
 
-              <Text style={styles.notaPlaceholder}>
-                {tieneDiagramaEspecifico
-                  ? "Esta carrocería ya tiene su propio diagrama de paneles reales."
-                  : datos.tipoVehiculo === "moto"
-                  ? "Próximamente — todavía estamos preparando el diagrama de esta categoría de moto."
-                  : "Por ahora esta carrocería usa el diagrama genérico, con solo la vista de Frente disponible — más adelante se suman las otras vistas y su modelo real."}
-              </Text>
+              {tieneDiagramaEspecifico ? (
+                <View style={styles.bannerConfirmacion}>
+                  <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.accentLight} />
+                  <Text style={styles.bannerConfirmacionTexto}>
+                    Esta carrocería ya tiene su propio diagrama de paneles reales.
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.notaPlaceholder}>
+                  {datos.tipoVehiculo === "moto"
+                    ? "Próximamente — todavía estamos preparando el diagrama de esta categoría de moto."
+                    : "Por ahora esta carrocería usa el diagrama genérico, con solo la vista de Frente disponible — más adelante se suman las otras vistas y su modelo real."}
+                </Text>
+              )}
             </View>
           )}
 
@@ -123,7 +178,7 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
           )}
 
           <View style={styles.boton}>
-            <Button title="Siguiente" onPress={onContinuar} disabled={!puedeContinuar} />
+            <Button title="Siguiente" onPress={handleContinuar} disabled={!puedeContinuar} />
           </View>
         </ScrollView>
       </SwipeVolver>
@@ -157,18 +212,15 @@ const styles = StyleSheet.create({
   tarjetaTipo: {
     width: "47%",
     aspectRatio: 1.3,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surface2,
     borderRadius: radii.card,
     ...continuousCorner,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   tarjetaTipoSeleccionada: {
-    backgroundColor: colors.surface2,
-    borderColor: colors.accent,
+    backgroundColor: colors.accent,
   },
   tarjetaTexto: {
     fontFamily: fonts.bodyMedium,
@@ -176,8 +228,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   tarjetaTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.textPrimary,
+    fontFamily: fonts.bodyBold,
+    color: colors.bg,
   },
   subdivisiones: {
     marginTop: 4,
@@ -193,12 +245,57 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 6,
   },
+  // Mismo criterio visual que tarjetaTipo/tarjetaTipoSeleccionada de arriba
+  // (fondo sólido colors.accent si está elegida, surface2 si no, radii.card,
+  // sin bordes) — para que ambos selectores de esta pantalla se lean como
+  // un mismo sistema, no dos estilos distintos.
+  bloquesSubdivision: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  bloqueSubdivision: {
+    backgroundColor: colors.surface2,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  bloqueSubdivisionSeleccionado: {
+    backgroundColor: colors.accent,
+  },
+  bloqueSubdivisionTexto: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  bloqueSubdivisionTextoSeleccionado: {
+    fontFamily: fonts.bodyBold,
+    color: colors.bg,
+  },
   notaPlaceholder: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 10,
     fontStyle: "italic",
+  },
+  bannerConfirmacion: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.accentTint,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 10,
+  },
+  bannerConfirmacionTexto: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.accentLight,
   },
   boton: {
     marginTop: 28,

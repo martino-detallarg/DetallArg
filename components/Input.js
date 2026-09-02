@@ -14,6 +14,7 @@ export default function Input({
   autoCapitalize = "sentences",
   multiline = false,
   numberOfLines,
+  sufijo,
   ...rest
 }) {
   const [mostrarTexto, setMostrarTexto] = useState(false);
@@ -44,6 +45,7 @@ export default function Input({
           textAlignVertical={multiline ? "top" : "center"}
           {...rest}
         />
+        {sufijo ? <Text style={styles.sufijo}>{sufijo}</Text> : null}
         {esPassword ? (
           <TouchableOpacity
             onPress={() => setMostrarTexto((actual) => !actual)}
@@ -110,5 +112,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.error,
     marginTop: 6,
+  },
+  sufijo: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textMuted,
+    marginLeft: 6,
   },
 });
