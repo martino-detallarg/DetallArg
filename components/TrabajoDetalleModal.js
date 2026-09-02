@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
+import TelefonoConAcciones from "./TelefonoConAcciones";
 import { ESTADOS_TRABAJO } from "../data/mockData";
-import { formatearPesos } from "../utils/formato";
+import { useServicios } from "../data/ServicioContext";
+import { formatearDuracion, formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 // Mismo criterio de color por estado que TurnoCard.js.
@@ -18,6 +20,7 @@ const COLOR_ESTADO = {
 // datos del servicio), con un selector de estado debajo para ir avanzando
 // (o volviendo) por las etapas del trabajo.
 export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onCambiarEstado, onEliminar, onClose }) {
+  const { getServicioById } = useServicios();
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
   const [errorEstado, setErrorEstado] = useState(null);
   const [eliminando, setEliminando] = useState(false);
@@ -42,6 +45,19 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   if (!turno || !cliente) return null;
 
   const hayCambioSinGuardar = estadoLocal !== turno.estado;
+
+  // El nombre se muestra con el mismo criterio que el resto de la app
+  // (turno.servicio es el nombre CONGELADO al momento de crear el turno,
+  // no se recalcula si el servicio se renombra o se borra después — mismo
+  // principio que turno_receta_aplicada). La duración, en cambio, nunca se
+  // congeló en el turno, así que esa sí sale de resolver el servicio vivo
+  // contra el catálogo (ServicioContext) — si ya no existe, se omite en vez
+  // de mostrar un dato inventado.
+  const nombreServicio = turno.servicio?.trim() || "Servicio no especificado";
+  const servicioCatalogo = turno.servicioId ? getServicioById(turno.servicioId) : null;
+  const duracionServicio = servicioCatalogo
+    ? formatearDuracion(servicioCatalogo.duracionValor, servicioCatalogo.duracionUnidad)
+    : null;
 
   async function handleGuardarCambios() {
     if (!hayCambioSinGuardar) return;
@@ -125,7 +141,11 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                 </View>
                 <View style={styles.celda}>
                   <Text style={styles.campoLabel}>Teléfono</Text>
-                  <Text style={styles.campoValor}>{cliente.telefono}</Text>
+                  {cliente.telefono ? (
+                    <TelefonoConAcciones telefono={cliente.telefono} textStyle={styles.campoValor} />
+                  ) : (
+                    <Text style={styles.campoValor}>-</Text>
+                  )}
                 </View>
                 <View style={styles.celda}>
                   <Text style={styles.campoLabel}>Vehículo</Text>
@@ -148,6 +168,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
 
             <View style={styles.tarjetaSeccion}>
               <Text style={styles.tituloTarjeta}>Servicio</Text>
+              <Text style={styles.nombreServicio}>{nombreServicio}</Text>
               <View style={styles.grilla}>
                 <View style={styles.celda}>
                   <Text style={styles.campoLabel}>Fecha</Text>
@@ -157,6 +178,12 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                   <Text style={styles.campoLabel}>Hora de llegada</Text>
                   <Text style={styles.campoValor}>{turno.hora || "-"}</Text>
                 </View>
+                {duracionServicio && (
+                  <View style={styles.celda}>
+                    <Text style={styles.campoLabel}>Duración estimada</Text>
+                    <Text style={styles.campoValor}>{duracionServicio}</Text>
+                  </View>
+                )}
                 {turno.tiempoEstimado && (
                   <View style={styles.celda}>
                     <Text style={styles.campoLabel}>Tiempo estimado</Text>
@@ -268,6 +295,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 10,
+  },
+  nombreServicio: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginBottom: 12,
   },
   grilla: {
     flexDirection: "row",

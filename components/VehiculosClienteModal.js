@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
+import TelefonoConAcciones from "./TelefonoConAcciones";
 import { useClientes } from "../data/ClienteContext";
 import { esPatenteValida, formatearPatente, normalizarPatente } from "../utils/patente";
 import { colors, continuousCorner, fonts, radii } from "../theme";
@@ -133,7 +134,11 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
 
           <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
             <View style={styles.encabezadoCliente}>
-              <Text style={styles.telefono}>{cliente.telefono}</Text>
+              {cliente.telefono ? (
+                <TelefonoConAcciones telefono={cliente.telefono} textStyle={styles.telefono} />
+              ) : (
+                <Text style={styles.telefono}>Sin teléfono</Text>
+              )}
               <TouchableOpacity
                 onPress={onEditarCliente}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
