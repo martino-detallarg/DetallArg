@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
@@ -7,6 +7,7 @@ import Input from "./Input";
 import Button from "./Button";
 import SelectorSiluetaModal, { ICONOS_SILUETA } from "./SelectorSiluetaModal";
 import { useEquipo } from "../data/EquipoContext";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 // Formulario de alta y edición de empleado (mismo patrón que ClienteModal):
@@ -26,6 +27,9 @@ export default function EmpleadoModal({ visible, item, onClose }) {
   const [silueta, setSilueta] = useState(null);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const editando = item !== null;
+  const scrollRef = useRef(null);
+  const rolRef = useRef(null);
+  const telefonoRef = useRef(null);
   // El `item` que llega por prop es la foto del empleado al momento de
   // abrir el modal — no se actualiza solo. Para que el switch refleje el
   // estado real después de tocarlo (sin actualización optimista, mismo
@@ -49,6 +53,7 @@ export default function EmpleadoModal({ visible, item, onClose }) {
   }
 
   const esValido = nombre.trim() !== "" && rol.trim() !== "";
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   async function handleGuardar() {
     if (!esValido) return;
@@ -113,7 +118,7 @@ export default function EmpleadoModal({ visible, item, onClose }) {
               onAtras={onClose}
             />
 
-            <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+            <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
               <View style={styles.avatarContenedor}>
                 <TouchableOpacity
                   onPress={() => setSelectorVisible(true)}
@@ -138,24 +143,32 @@ export default function EmpleadoModal({ visible, item, onClose }) {
                 value={nombre}
                 onChangeText={setNombre}
                 placeholder="Ej: Carlos Gómez"
+                returnKeyType="next"
+                onSubmitEditing={() => rolRef.current?.focus()}
               />
               <Input
+                ref={rolRef}
                 label="Rol / puesto"
                 value={rol}
                 onChangeText={setRol}
                 placeholder="Ej: Lavador, Encargado"
+                returnKeyType="next"
+                onSubmitEditing={() => telefonoRef.current?.focus()}
               />
               <Input
+                ref={telefonoRef}
                 label="Teléfono (opcional)"
                 value={telefono}
                 onChangeText={setTelefono}
                 placeholder="11 2345-6789"
                 keyboardType="phone-pad"
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
 
               {error && <Text style={styles.error}>{error}</Text>}
 
-              <View style={styles.boton}>
+              <View style={styles.boton} onLayout={onLayoutBoton}>
                 <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} loading={cargando} />
               </View>
 

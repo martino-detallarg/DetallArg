@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
 import { useClientes } from "../data/ClienteContext";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 // Formulario de alta y edición de cliente (mismo patrón que CostoFijoModal):
@@ -26,6 +27,8 @@ export default function ClienteModal({ visible, cliente, onClose, onEliminado })
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const editando = cliente !== null;
+  const scrollRef = useRef(null);
+  const telefonoRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -36,6 +39,7 @@ export default function ClienteModal({ visible, cliente, onClose, onEliminado })
   }, [visible, cliente]);
 
   const esValido = nombre.trim() !== "" && telefono.trim() !== "";
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   async function handleGuardar() {
     if (!esValido) return;
@@ -83,24 +87,29 @@ export default function ClienteModal({ visible, cliente, onClose, onEliminado })
               onAtras={onClose}
             />
 
-            <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+            <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
               <Input
                 label="Nombre y apellido"
                 value={nombre}
                 onChangeText={setNombre}
                 placeholder="Juan Pérez"
+                returnKeyType="next"
+                onSubmitEditing={() => telefonoRef.current?.focus()}
               />
               <Input
+                ref={telefonoRef}
                 label="Teléfono"
                 value={telefono}
                 onChangeText={setTelefono}
                 placeholder="11 2345-6789"
                 keyboardType="phone-pad"
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
 
               {error && <Text style={styles.error}>{error}</Text>}
 
-              <View style={styles.boton}>
+              <View style={styles.boton} onLayout={onLayoutBoton}>
                 <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} loading={cargando} />
               </View>
 

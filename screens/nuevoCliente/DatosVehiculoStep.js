@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import { esPatenteValida, normalizarPatente } from "../../utils/patente";
+import { useScrollAlHabilitar } from "../../hooks/useScrollAlHabilitar";
 import { colors, fonts } from "../../theme";
 
 export default function DatosVehiculoStep({
@@ -19,6 +20,8 @@ export default function DatosVehiculoStep({
 }) {
   const [errores, setErrores] = useState({});
   const sinPatente = !!datos.sinPatente;
+  const scrollRef = useRef(null);
+  const anioRef = useRef(null);
 
   function validar() {
     const nuevosErrores = {};
@@ -36,6 +39,7 @@ export default function DatosVehiculoStep({
 
   const esValido =
     (sinPatente || esPatenteValida(datos.patente)) && datos.marcaModelo.trim() !== "";
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   return (
     <KeyboardAvoidingView
@@ -45,7 +49,7 @@ export default function DatosVehiculoStep({
       <WizardHeader titulo="Datos del Vehículo" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
       <SwipeVolver onAtras={onAtras}>
-        <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
           {!sinPatente && (
             <>
               <Input
@@ -55,6 +59,8 @@ export default function DatosVehiculoStep({
                 placeholder="ABC123 o AB123CD"
                 autoCapitalize="characters"
                 error={errores.patente}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
               {!errores.patente && (
                 <Text style={styles.ayudaPatente}>Formato: ABC123 (viejo) o AB123CD (Mercosur)</Text>
@@ -77,8 +83,11 @@ export default function DatosVehiculoStep({
             onChangeText={(v) => onCambiar({ marcaModelo: v })}
             placeholder="Volkswagen Golf"
             error={errores.marcaModelo}
+            returnKeyType="next"
+            onSubmitEditing={() => anioRef.current?.focus()}
           />
           <Input
+            ref={anioRef}
             label="Año (opcional)"
             value={datos.anio}
             onChangeText={(v) => onCambiar({ anio: v })}
@@ -90,11 +99,13 @@ export default function DatosVehiculoStep({
             value={datos.color}
             onChangeText={(v) => onCambiar({ color: v })}
             placeholder="Gris"
+            returnKeyType="done"
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
 
           {error && <Text style={styles.error}>{error}</Text>}
 
-          <View style={styles.boton}>
+          <View style={styles.boton} onLayout={onLayoutBoton}>
             <Button title="Continuar" onPress={handleContinuar} disabled={!esValido} loading={cargando} />
           </View>
         </ScrollView>

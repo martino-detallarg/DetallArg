@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,7 @@ import Button from "./Button";
 import { useFinanzas } from "../data/FinanzasContext";
 import { ORDEN_FORMAS_PAGO, FORMAS_PAGO } from "../data/mockFinanzas";
 import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../utils/fecha";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 // Registra el cobro de un turno ya Finalizado/Entregado (ver
@@ -23,6 +24,7 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -35,6 +37,7 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
 
   const montoNumerico = Number(monto.replace(",", "."));
   const esValido = monto.trim() !== "" && !Number.isNaN(montoNumerico) && montoNumerico > 0 && fecha.trim() !== "";
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   function obtenerFechaInicialPicker() {
     return parsearFechaDDMMAAAA(fecha) || new Date();
@@ -61,7 +64,7 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
           <KeyboardAvoidingView style={styles.flexUno} behavior={Platform.OS === "ios" ? "padding" : undefined}>
             <WizardHeader titulo="Registrar Cobro" paso={1} totalPasos={1} onAtras={onClose} />
 
-            <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+            <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
               <Input
                 label="Monto cobrado"
                 value={monto}
@@ -124,7 +127,7 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
 
               {error && <Text style={styles.error}>{error}</Text>}
 
-              <View style={styles.boton}>
+              <View style={styles.boton} onLayout={onLayoutBoton}>
                 <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} loading={cargando} />
               </View>
               <View style={styles.botonCancelar}>

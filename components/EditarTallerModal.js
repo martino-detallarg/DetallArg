@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -7,6 +7,7 @@ import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
 import { useTaller } from "../data/TallerContext";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, fonts } from "../theme";
 
 const TAMANO_LOGO = 96;
@@ -21,6 +22,8 @@ export default function EditarTallerModal({ visible, onClose }) {
   const [logoNuevo, setLogoNuevo] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const scrollRef = useRef(null);
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, nombre.trim() !== "");
 
   useEffect(() => {
     if (visible) {
@@ -74,7 +77,7 @@ export default function EditarTallerModal({ visible, onClose }) {
           >
           <WizardHeader titulo="Editar Mi Taller" paso={1} totalPasos={1} onAtras={onClose} />
 
-          <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
             <TouchableOpacity style={styles.logoBox} onPress={handleElegirLogo} activeOpacity={0.8}>
               {logo ? (
                 <Image source={{ uri: logo }} style={styles.logoImagen} resizeMode="cover" />
@@ -96,7 +99,7 @@ export default function EditarTallerModal({ visible, onClose }) {
 
             {error && <Text style={styles.error}>{error}</Text>}
 
-            <View style={styles.boton}>
+            <View style={styles.boton} onLayout={onLayoutBoton}>
               <Button
                 title="Guardar cambios"
                 onPress={handleGuardar}

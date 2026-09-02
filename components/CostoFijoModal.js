@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,6 +6,7 @@ import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
 import { useData } from "../data/DataContext";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 export default function CostoFijoModal({ visible, item, onClose }) {
@@ -15,6 +16,8 @@ export default function CostoFijoModal({ visible, item, onClose }) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const editando = item !== null;
+  const scrollRef = useRef(null);
+  const montoRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -26,6 +29,7 @@ export default function CostoFijoModal({ visible, item, onClose }) {
 
   const montoNumerico = Number(monto.replace(",", "."));
   const esValido = nombre.trim() !== "" && monto.trim() !== "" && !Number.isNaN(montoNumerico) && montoNumerico > 0;
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   async function handleGuardar() {
     if (!esValido) return;
@@ -73,15 +77,18 @@ export default function CostoFijoModal({ visible, item, onClose }) {
             onAtras={onClose}
           />
 
-          <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
             <Input
               label="Nombre"
               value={nombre}
               onChangeText={setNombre}
               placeholder="Ej: Alquiler del local"
+              returnKeyType="next"
+              onSubmitEditing={() => montoRef.current?.focus()}
             />
 
             <Input
+              ref={montoRef}
               label="Monto mensual"
               value={monto}
               onChangeText={setMonto}
@@ -91,7 +98,7 @@ export default function CostoFijoModal({ visible, item, onClose }) {
 
             {error && <Text style={styles.error}>{error}</Text>}
 
-            <View style={styles.boton}>
+            <View style={styles.boton} onLayout={onLayoutBoton}>
               <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} loading={cargando} />
             </View>
 

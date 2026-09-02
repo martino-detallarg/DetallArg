@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
@@ -8,6 +8,7 @@ import Button from "./Button";
 import TelefonoConAcciones from "./TelefonoConAcciones";
 import { useClientes } from "../data/ClienteContext";
 import { esPatenteValida, formatearPatente, normalizarPatente } from "../utils/patente";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const VEHICULO_VACIO = { marca: "", modelo: "", anio: "", patente: "", color: "", sinPatente: false };
@@ -50,6 +51,9 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
   const [cargando, setCargando] = useState(false);
   const [eliminandoId, setEliminandoId] = useState(null);
   const [error, setError] = useState(null);
+  const scrollRef = useRef(null);
+  const modeloRef = useRef(null);
+  const anioRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -121,6 +125,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
   const esValido =
     datosVehiculo.marca.trim() !== "" &&
     (datosVehiculo.sinPatente || esPatenteValida(datosVehiculo.patente));
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
@@ -132,7 +137,7 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
           >
           <WizardHeader titulo={cliente.nombre} paso={1} totalPasos={1} onAtras={onClose} />
 
-          <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
             <View style={styles.encabezadoCliente}>
               {cliente.telefono ? (
                 <TelefonoConAcciones telefono={cliente.telefono} textStyle={styles.telefono} />
@@ -197,14 +202,20 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                   value={datosVehiculo.marca}
                   onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, marca: v }))}
                   placeholder="Volkswagen"
+                  returnKeyType="next"
+                  onSubmitEditing={() => modeloRef.current?.focus()}
                 />
                 <Input
+                  ref={modeloRef}
                   label="Modelo"
                   value={datosVehiculo.modelo}
                   onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, modelo: v }))}
                   placeholder="Golf"
+                  returnKeyType="next"
+                  onSubmitEditing={() => anioRef.current?.focus()}
                 />
                 <Input
+                  ref={anioRef}
                   label="Año (opcional)"
                   value={datosVehiculo.anio}
                   onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, anio: v }))}
@@ -219,6 +230,8 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                       onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, patente: normalizarPatente(v) }))}
                       placeholder="ABC123 o AB123CD"
                       autoCapitalize="characters"
+                      returnKeyType="done"
+                      onSubmitEditing={() => Keyboard.dismiss()}
                     />
                     <Text style={styles.ayudaPatente}>Formato: ABC123 (viejo) o AB123CD (Mercosur)</Text>
                   </>
@@ -238,9 +251,11 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                   value={datosVehiculo.color}
                   onChangeText={(v) => setDatosVehiculo((d) => ({ ...d, color: v }))}
                   placeholder="Gris"
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
                 />
 
-                <View style={styles.boton}>
+                <View style={styles.boton} onLayout={onLayoutBoton}>
                   <Button
                     title={vehiculoEditandoId ? "Guardar cambios" : "Agregar vehículo"}
                     onPress={handleGuardarVehiculo}

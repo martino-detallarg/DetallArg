@@ -1,24 +1,38 @@
-import { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { forwardRef, useState } from "react";
+import { Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../theme";
 
-export default function Input({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  error,
-  secureTextEntry,
-  keyboardType,
-  autoCapitalize = "sentences",
-  multiline = false,
-  numberOfLines,
-  sufijo,
-  ...rest
-}) {
+const Input = forwardRef(function Input(
+  {
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    error,
+    secureTextEntry,
+    keyboardType,
+    autoCapitalize = "sentences",
+    multiline = false,
+    numberOfLines,
+    sufijo,
+    returnKeyType,
+    onSubmitEditing,
+    ...rest
+  },
+  ref
+) {
   const [mostrarTexto, setMostrarTexto] = useState(false);
   const esPassword = !!secureTextEntry;
+
+  // Un teclado numérico no tiene tecla "Enter" que cierre nada — sin esto,
+  // la única forma de cerrarlo es tocar afuera. Si el caller no pasó su
+  // propio returnKeyType/onSubmitEditing (por ejemplo para encadenar al
+  // siguiente campo de un formulario), se le pone un botón "Listo" que
+  // cierra el teclado por default.
+  const esNumerico = keyboardType === "numeric";
+  const returnKeyTypeFinal = returnKeyType ?? (esNumerico ? "done" : undefined);
+  const onSubmitEditingFinal = onSubmitEditing ?? (esNumerico ? () => Keyboard.dismiss() : undefined);
 
   return (
     <View style={styles.contenedor}>
@@ -31,6 +45,7 @@ export default function Input({
         ]}
       >
         <TextInput
+          ref={ref}
           style={[styles.input, multiline ? styles.inputMultiline : null]}
           value={value}
           onChangeText={onChangeText}
@@ -43,6 +58,8 @@ export default function Input({
           multiline={multiline}
           numberOfLines={numberOfLines}
           textAlignVertical={multiline ? "top" : "center"}
+          returnKeyType={returnKeyTypeFinal}
+          onSubmitEditing={onSubmitEditingFinal}
           {...rest}
         />
         {sufijo ? <Text style={styles.sufijo}>{sufijo}</Text> : null}
@@ -62,7 +79,9 @@ export default function Input({
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
-}
+});
+
+export default Input;
 
 const styles = StyleSheet.create({
   contenedor: {

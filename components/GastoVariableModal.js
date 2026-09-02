@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,7 @@ import Button from "./Button";
 import { useFinanzas } from "../data/FinanzasContext";
 import { CATEGORIAS_GASTOS_VARIABLES, ORDEN_CATEGORIAS_GASTOS_VARIABLES } from "../data/mockFinanzas";
 import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../utils/fecha";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 // Carga de un gasto variable (comisiones, imprevistos — nada de equipamiento
@@ -24,6 +25,7 @@ export default function GastoVariableModal({ visible, onClose }) {
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -38,6 +40,7 @@ export default function GastoVariableModal({ visible, onClose }) {
   const montoNumerico = Number(monto.replace(",", "."));
   const esValido =
     monto.trim() !== "" && !Number.isNaN(montoNumerico) && montoNumerico > 0 && categoria !== null && fecha.trim() !== "";
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   function obtenerFechaInicialPicker() {
     return parsearFechaDDMMAAAA(fecha) || new Date();
@@ -64,7 +67,7 @@ export default function GastoVariableModal({ visible, onClose }) {
           <KeyboardAvoidingView style={styles.flexUno} behavior={Platform.OS === "ios" ? "padding" : undefined}>
             <WizardHeader titulo="Cargar Gasto" paso={1} totalPasos={1} onAtras={onClose} />
 
-            <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+            <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
               <Input
                 label="Monto"
                 value={monto}
@@ -136,7 +139,7 @@ export default function GastoVariableModal({ visible, onClose }) {
 
               {error && <Text style={styles.error}>{error}</Text>}
 
-              <View style={styles.boton}>
+              <View style={styles.boton} onLayout={onLayoutBoton}>
                 <Button title="Guardar" onPress={handleGuardar} disabled={!esValido} loading={cargando} />
               </View>
               <View style={styles.botonCancelar}>

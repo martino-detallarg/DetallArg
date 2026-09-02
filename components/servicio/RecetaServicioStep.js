@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "../wizard/WizardHeader";
 import Button from "../Button";
@@ -107,6 +107,8 @@ export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos
                   placeholder="Costo estimado por uso ($)"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
                 />
                 <View style={styles.libreFormularioBotones}>
                   <TouchableOpacity
@@ -179,6 +181,8 @@ export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos
                     placeholder="0"
                     placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
+                    returnKeyType="done"
+                    onSubmitEditing={() => Keyboard.dismiss()}
                   />
                   <Text style={styles.cantidadUnidad}>{insumo.capacidadUnidad ?? ""}</Text>
                 </View>

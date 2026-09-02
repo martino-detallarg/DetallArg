@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import Button from "./Button";
 import ChipGroup from "./ChipGroup";
 import RecetaServicioStep from "./servicio/RecetaServicioStep";
 import { useServicios } from "../data/ServicioContext";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const TOTAL_PASOS = 2;
@@ -28,6 +29,8 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const editando = item !== null;
+  const scrollRef = useRef(null);
+  const descripcionRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -53,6 +56,7 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
     duracionValor.trim() !== "" &&
     !Number.isNaN(duracionNumerica) &&
     duracionNumerica > 0;
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   function handleCerrar() {
     setFase("datos");
@@ -143,15 +147,18 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
                 onAtras={handleCerrar}
               />
 
-              <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+              <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
                 <Input
                   label="Nombre del servicio"
                   value={nombre}
                   onChangeText={setNombre}
                   placeholder="Ej: Pulido de mantenimiento"
+                  returnKeyType="next"
+                  onSubmitEditing={() => descripcionRef.current?.focus()}
                 />
 
                 <Input
+                  ref={descripcionRef}
                   label="Descripción"
                   value={descripcion}
                   onChangeText={setDescripcion}
@@ -184,7 +191,7 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
                   />
                 </View>
 
-                <View style={styles.boton}>
+                <View style={styles.boton} onLayout={onLayoutBoton}>
                   <Button title="Continuar a receta de insumos" onPress={handleContinuar} disabled={!esValido} />
                 </View>
 

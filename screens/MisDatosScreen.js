@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import WizardHeader from "../components/wizard/WizardHeader";
 import Input from "../components/Input";
 import Button from "../components/Button";
@@ -14,6 +14,10 @@ export default function MisDatosScreen({ navigation }) {
   const [datos, setDatos] = useState(misDatos);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const webRef = useRef(null);
+  const correoRef = useRef(null);
+  const telefonoRef = useRef(null);
+  const ubicacionRef = useRef(null);
 
   // `misDatos` llega vacío al montar y se llena recién cuando termina el
   // fetch inicial de TallerContext (asíncrono) — sin este efecto, si el
@@ -70,35 +74,49 @@ export default function MisDatosScreen({ navigation }) {
               value={datos.nombrePersonal}
               onChangeText={(v) => cambiar("nombrePersonal", v)}
               placeholder="Ej: Martino Fernández"
+              returnKeyType="next"
+              onSubmitEditing={() => webRef.current?.focus()}
             />
             <Input
+              ref={webRef}
               label="Link de página web"
               value={datos.web}
               onChangeText={(v) => cambiar("web", v)}
               placeholder="Ej: www.mitaller.com"
               autoCapitalize="none"
               keyboardType="url"
+              returnKeyType="next"
+              onSubmitEditing={() => correoRef.current?.focus()}
             />
             <Input
+              ref={correoRef}
               label="Correo"
               value={datos.correo}
               onChangeText={(v) => cambiar("correo", v)}
               placeholder="Ej: contacto@mitaller.com"
               autoCapitalize="none"
               keyboardType="email-address"
+              returnKeyType="next"
+              onSubmitEditing={() => telefonoRef.current?.focus()}
             />
             <Input
+              ref={telefonoRef}
               label="Teléfono"
               value={datos.telefono}
               onChangeText={(v) => cambiar("telefono", v)}
               placeholder="Ej: 11 5555-5555"
               keyboardType="phone-pad"
+              returnKeyType="next"
+              onSubmitEditing={() => ubicacionRef.current?.focus()}
             />
             <Input
+              ref={ubicacionRef}
               label="Ubicación"
               value={datos.ubicacion}
               onChangeText={(v) => cambiar("ubicacion", v)}
               placeholder="Ej: Palermo, CABA"
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
             />
 
             <Text style={styles.label}>Situación fiscal (opcional)</Text>

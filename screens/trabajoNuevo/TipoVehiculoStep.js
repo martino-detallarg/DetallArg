@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
@@ -7,6 +7,7 @@ import Button from "../../components/Button";
 import Input from "../../components/Input";
 import FuelGauge from "../../components/wizard/FuelGauge";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
+import { useScrollAlHabilitar } from "../../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
 // Íconos outline/finos de MaterialCommunityIcons — mismo criterio "trazo
@@ -52,6 +53,7 @@ const TIPOS = Object.entries(TIPOS_VEHICULO).map(([id, valor]) => ({ id, ...valo
 // foto, guardar) quedó en InspeccionVisualStep.
 export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
   const [errores, setErrores] = useState({});
+  const scrollRef = useRef(null);
 
   function elegirTipo(tipoId) {
     onCambiar({ tipoVehiculo: tipoId, grupo: null, subdivision: null });
@@ -63,6 +65,7 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
 
   const tipoInfo = datos.tipoVehiculo ? TIPOS_VEHICULO[datos.tipoVehiculo] : null;
   const puedeContinuar = !!datos.subdivision && !!datos.kilometraje?.trim();
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, puedeContinuar);
   const claveDiagrama = obtenerClaveDiagrama(datos);
   const tieneDiagramaEspecifico = !!DIAGRAMAS_POR_TIPO_VEHICULO[claveDiagrama];
 
@@ -94,7 +97,7 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
       <WizardHeader titulo="Tipo de Vehículo" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
       <SwipeVolver onAtras={onAtras}>
-        <ScrollView contentContainerStyle={styles.contenido}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido}>
           <Text style={styles.texto}>Seleccioná el tipo de vehículo</Text>
 
           <View style={styles.grid}>
@@ -187,7 +190,7 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
             </>
           )}
 
-          <View style={styles.boton}>
+          <View style={styles.boton} onLayout={onLayoutBoton}>
             <Button title="Siguiente" onPress={handleContinuar} disabled={!puedeContinuar} />
           </View>
         </ScrollView>

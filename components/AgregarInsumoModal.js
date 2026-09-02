@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -19,7 +20,17 @@ import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import { CATEGORIAS, UNIDADES_CAPACIDAD, catalogoInsumos } from "../data/mockInsumos";
 import { useData } from "../data/DataContext";
+import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../theme";
+
+// returnKeyType="done" + Keyboard.dismiss() para todo campo numérico crudo
+// de este archivo (no pasan por Input.js, que ya trae este default) — mismo
+// criterio en los 5 campos numéricos: capacidad, precio, cantidad actual y
+// ml por uso (x2, catálogo y formulario personalizado).
+const PROPS_NUMERICO_DONE = {
+  returnKeyType: "done",
+  onSubmitEditing: () => Keyboard.dismiss(),
+};
 
 // Un producto "se diluye" si su catálogo lista alguna dilución real más allá
 // de "Puro" (usarlo puro no es una dilución que el taller tenga que elegir).
@@ -99,6 +110,7 @@ function CamposStock({
             placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             editable={!bloqueada}
+            {...PROPS_NUMERICO_DONE}
           />
         </View>
         <View style={styles.campo}>
@@ -139,6 +151,7 @@ function CamposStock({
             placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             editable={!bloqueada}
+            {...PROPS_NUMERICO_DONE}
           />
         </View>
         <View style={styles.campo}>
@@ -151,6 +164,7 @@ function CamposStock({
             placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             editable={!bloqueada}
+            {...PROPS_NUMERICO_DONE}
           />
         </View>
       </View>
@@ -288,6 +302,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
                       placeholderTextColor={colors.textMuted}
                       keyboardType="numeric"
                       editable={!bloqueada}
+                      {...PROPS_NUMERICO_DONE}
                     />
                   </View>
                 ))}
@@ -358,7 +373,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
   );
 }
 
-function FormularioPersonalizado({ onAgregar, onCancelar }) {
+function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
   const claveCategoriaInicial = Object.keys(CATEGORIAS)[0];
   const [nombre, setNombre] = useState("");
   const [marca, setMarca] = useState("");
@@ -381,6 +396,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar }) {
     cantidadActual,
   });
   const puedeAgregar = nombre.trim() !== "" && marca.trim() !== "" && stockValido;
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, puedeAgregar);
 
   async function handleConfirmar() {
     setGuardando(true);
@@ -503,6 +519,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar }) {
             placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             editable={!guardando}
+            {...PROPS_NUMERICO_DONE}
           />
         </View>
       ) : (
@@ -533,7 +550,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar }) {
 
       {error && <Text style={styles.filaError}>{error}</Text>}
 
-      <View style={styles.formularioBotones}>
+      <View style={styles.formularioBotones} onLayout={onLayoutBoton}>
         <TouchableOpacity style={styles.formularioBotonCancelar} onPress={onCancelar} disabled={guardando} activeOpacity={0.8}>
           <Text style={styles.formularioBotonCancelarTexto}>Cancelar</Text>
         </TouchableOpacity>
@@ -560,6 +577,7 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
   const [idsAgregados, setIdsAgregados] = useState(new Set());
   const [filaExpandidaId, setFilaExpandidaId] = useState(null);
   const [vistaPersonalizado, setVistaPersonalizado] = useState(false);
+  const formularioScrollRef = useRef(null);
 
   // Cuando se abre desde el estado vacío de una categoría (CategoriaInsumosModal),
   // arranca con esa categoría ya buscada en vez de la lista completa de 478 productos.
@@ -646,10 +664,11 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
             />
 
             {vistaPersonalizado ? (
-              <ScrollView contentContainerStyle={styles.lista} keyboardShouldPersistTaps="handled">
+              <ScrollView ref={formularioScrollRef} contentContainerStyle={styles.lista} keyboardShouldPersistTaps="handled">
                 <FormularioPersonalizado
                   onAgregar={handleAgregarPersonalizado}
                   onCancelar={() => setVistaPersonalizado(false)}
+                  scrollRef={formularioScrollRef}
                 />
               </ScrollView>
             ) : (

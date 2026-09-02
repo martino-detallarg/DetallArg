@@ -1,13 +1,16 @@
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
+import { useScrollAlHabilitar } from "../../hooks/useScrollAlHabilitar";
 import { colors } from "../../theme";
 
 export default function DatosClienteStep({ datos, paso = 1, totalPasos = 2, onCambiar, onAtras, onContinuar }) {
   const [errores, setErrores] = useState({});
+  const scrollRef = useRef(null);
+  const telefonoRef = useRef(null);
 
   function validar() {
     const nuevosErrores = {};
@@ -22,6 +25,7 @@ export default function DatosClienteStep({ datos, paso = 1, totalPasos = 2, onCa
   }
 
   const esValido = datos.nombre.trim() !== "" && datos.telefono.trim() !== "";
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   return (
     <KeyboardAvoidingView
@@ -31,24 +35,29 @@ export default function DatosClienteStep({ datos, paso = 1, totalPasos = 2, onCa
       <WizardHeader titulo="Datos del Cliente" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
       <SwipeVolver onAtras={onAtras}>
-        <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
           <Input
             label="Nombre y apellido"
             value={datos.nombre}
             onChangeText={(v) => onCambiar({ nombre: v })}
             placeholder="Juan Pérez"
             error={errores.nombre}
+            returnKeyType="next"
+            onSubmitEditing={() => telefonoRef.current?.focus()}
           />
           <Input
+            ref={telefonoRef}
             label="Teléfono / Celular"
             value={datos.telefono}
             onChangeText={(v) => onCambiar({ telefono: v })}
             placeholder="11 2345-6789"
             keyboardType="phone-pad"
+            returnKeyType="done"
+            onSubmitEditing={() => Keyboard.dismiss()}
             error={errores.telefono}
           />
 
-          <View style={styles.boton}>
+          <View style={styles.boton} onLayout={onLayoutBoton}>
             <Button title="Continuar a Vehículo" onPress={handleContinuar} disabled={!esValido} />
           </View>
         </ScrollView>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -21,6 +21,7 @@ import { useServicios } from "../../data/ServicioContext";
 import { useTaller } from "../../data/TallerContext";
 import { useEquipo } from "../../data/EquipoContext";
 import { formatearDuracion } from "../../utils/formato";
+import { useScrollAlHabilitar } from "../../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
 export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
@@ -31,6 +32,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
   const [errores, setErrores] = useState({});
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [mostrarPickerHora, setMostrarPickerHora] = useState(false);
+  const scrollRef = useRef(null);
 
   function obtenerFechaInicialPicker() {
     return parsearFechaDDMMAAAA(datos.fecha) || new Date();
@@ -105,6 +107,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     datos.fecha.trim() !== "" &&
     datos.hora.trim() !== "" &&
     !errorHorario;
+  const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   return (
     <KeyboardAvoidingView
@@ -114,7 +117,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
       <WizardHeader titulo="Datos del Servicio" paso={paso} totalPasos={totalPasos} onAtras={onAtras} />
 
       <SwipeVolver onAtras={onAtras}>
-      <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Servicio</Text>
         {servicios.length === 0 && !cargandoServicios ? (
           <Text style={styles.vacioAviso}>
@@ -250,7 +253,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
           numberOfLines={3}
         />
 
-        <View style={styles.boton}>
+        <View style={styles.boton} onLayout={onLayoutBoton}>
           <Button title="Continuar a Inspección" onPress={handleContinuar} disabled={!esValido} />
         </View>
       </ScrollView>
