@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   label: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",

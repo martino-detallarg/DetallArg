@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   libresListaTitulo: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   libreFilaCosto: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textSecondary,
   },
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     ...shadowSubtle,
   },
   cantidadUnidad: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     minWidth: 24,
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.borderSubtle,
   },
   huerfanasTitulo: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",

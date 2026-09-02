@@ -175,12 +175,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   posicionTexto: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
   },
   posicionTextoSeleccionado: {
-    fontFamily: fonts.monoMedium,
+    fontFamily: fonts.bodySemiBold,
     color: colors.accent,
   },
 });

@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   paso: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 13,
     color: colors.textMuted,
   },

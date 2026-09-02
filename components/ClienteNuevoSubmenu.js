@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   migasTexto: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",

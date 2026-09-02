@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   inicialDia: {
     width: "14.2857%",
     textAlign: "center",
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     color: colors.textMuted,
     textTransform: "uppercase",

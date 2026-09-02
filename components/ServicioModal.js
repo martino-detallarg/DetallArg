@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   label: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 8,

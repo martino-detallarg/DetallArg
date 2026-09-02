@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   resumenTitulo: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",

@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   diaSemana: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.accent,
     textTransform: "uppercase",

@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 8,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   itemPrecio: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   itemLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",

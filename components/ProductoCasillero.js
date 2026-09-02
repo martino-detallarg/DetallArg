@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   porcentajeTexto: {
-    fontFamily: fonts.monoMedium,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     color: colors.textPrimary,
   },
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   marcaTexto: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 7.5,
     color: colors.accentLight,
     textAlign: "center",

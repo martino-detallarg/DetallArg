@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   seccion: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",

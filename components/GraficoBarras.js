@@ -95,12 +95,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   valor: {
-    fontFamily: fonts.monoMedium,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     color: colors.textSecondary,
   },
   etiqueta: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.body,
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 2,

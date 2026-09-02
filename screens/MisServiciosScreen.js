@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     minHeight: 36,
   },
   tarjetaPrecio: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 13,
     color: colors.accentLight,
     marginTop: 8,

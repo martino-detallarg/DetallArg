@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 6,

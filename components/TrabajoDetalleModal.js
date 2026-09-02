@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     width: "48%",
   },
   campoLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.body,
     fontSize: 11,
     color: colors.textMuted,
     marginBottom: 2,

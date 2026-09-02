@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   mensajeLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",

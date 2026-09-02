@@ -221,14 +221,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   etiquetaInactivoTexto: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     color: colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   filaRol: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.body,
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,

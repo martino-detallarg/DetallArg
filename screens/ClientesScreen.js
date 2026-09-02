@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   filaVehiculos: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.body,
     fontSize: 11,
     color: colors.accentLight,
     marginTop: 4,

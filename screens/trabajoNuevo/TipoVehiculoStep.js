@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   grupoTitulo: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",

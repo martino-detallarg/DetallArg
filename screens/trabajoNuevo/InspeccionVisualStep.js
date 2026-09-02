@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   fotosContador: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 8,

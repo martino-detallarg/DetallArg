@@ -820,7 +820,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   campoLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     color: colors.textMuted,
     textTransform: "uppercase",

@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   totalLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   filaMonto: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,

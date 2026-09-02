@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   horaLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     color: colors.textMuted,
     textTransform: "uppercase",

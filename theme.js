@@ -60,6 +60,4 @@ export const fonts = {
   bodyMedium: "Inter_500Medium",
   bodySemiBold: "Inter_600SemiBold",
   bodyBold: "Inter_700Bold",
-  mono: "JetBrainsMono_400Regular",
-  monoMedium: "JetBrainsMono_500Medium",
 };

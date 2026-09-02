@@ -120,8 +120,7 @@ export function formatearFechaLarga(fecha) {
 
 // "agosto 2026" — para el label chico de mes/año arriba de la tira de días
 // de la Agenda (el textTransform: "uppercase" del estilo se encarga de
-// mostrarlo en mayúsculas, mismo criterio que el resto de los labels chicos
-// en fonts.mono).
+// mostrarlo en mayúsculas).
 export function formatearMesAnio(fecha) {
   return `${MESES_LARGO[fecha.getMonth()]} ${fecha.getFullYear()}`;
 }

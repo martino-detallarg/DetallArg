@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   centroLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     color: colors.textMuted,
     marginTop: 4,

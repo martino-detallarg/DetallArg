@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   seccionLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textSecondary,
     textTransform: "uppercase",
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   filaSubtitulo: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.body,
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,

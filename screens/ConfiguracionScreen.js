@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   seccionLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textSecondary,
     textTransform: "uppercase",

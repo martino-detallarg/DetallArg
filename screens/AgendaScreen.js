@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     color: colors.bg,
   },
   mesAnio: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   diaLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 10,
     color: colors.textMuted,
     textTransform: "uppercase",

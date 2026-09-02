@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   leyendaMonto: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textSecondary,
   },
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   gastosTitulo: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   gastoFilaMonto: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textSecondary,
   },

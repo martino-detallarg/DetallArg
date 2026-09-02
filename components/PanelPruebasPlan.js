@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   titulo: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.error,
     textTransform: "uppercase",

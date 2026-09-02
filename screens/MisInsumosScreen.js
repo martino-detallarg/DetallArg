@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   seccionCantidad: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textMuted,
   },
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   filaVaciaCantidad: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: colors.textMuted,
   },
