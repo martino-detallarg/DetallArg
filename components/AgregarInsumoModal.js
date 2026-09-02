@@ -167,6 +167,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
     producto.diluciones.includes(producto.dilucionRecomendada) ? [producto.dilucionRecomendada] : []
   );
   const [dilucionCustomTexto, setDilucionCustomTexto] = useState("");
+  const [mlPorUsoPorDilucion, setMlPorUsoPorDilucion] = useState({});
 
   const [rendimientoTexto, setRendimientoTexto] = useState(producto.rendimientoEstimado ?? "");
 
@@ -203,7 +204,14 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
     setError(null);
     try {
       await onAgregar({
-        diluciones: tieneDilucion ? dilucionesSeleccionadas : [],
+        diluciones: tieneDilucion
+          ? dilucionesSeleccionadas.map((texto) => ({
+              texto,
+              mlPorUso: mlPorUsoPorDilucion[texto]?.trim()
+                ? Number(mlPorUsoPorDilucion[texto].replace(",", "."))
+                : null,
+            }))
+          : [],
         rendimiento: tieneDilucion ? null : rendimientoTexto.trim(),
         capacidadTotal: capacidadNumerica,
         capacidadUnidad,
@@ -263,6 +271,28 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
                 );
               })}
             </View>
+            {dilucionesSeleccionadas.length > 0 ? (
+              <View style={styles.mlPorUsoLista}>
+                {dilucionesSeleccionadas.map((opcion) => (
+                  <View key={opcion} style={styles.mlPorUsoFila}>
+                    <Text style={styles.mlPorUsoLabel} numberOfLines={1}>
+                      {etiquetaCortaDilucion(opcion)}
+                    </Text>
+                    <TextInput
+                      style={styles.mlPorUsoInput}
+                      value={mlPorUsoPorDilucion[opcion] ?? ""}
+                      onChangeText={(texto) =>
+                        setMlPorUsoPorDilucion((actuales) => ({ ...actuales, [opcion]: texto.replace(/[^\d.,]/g, "") }))
+                      }
+                      placeholder="ml por uso"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                      editable={!bloqueada}
+                    />
+                  </View>
+                ))}
+              </View>
+            ) : null}
             <View style={styles.dilucionCustomFila}>
               <TextInput
                 style={styles.dilucionCustomInput}
@@ -335,6 +365,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar }) {
   const [categoria, setCategoria] = useState(claveCategoriaInicial);
   const [seDiluye, setSeDiluye] = useState(false);
   const [dilucionTexto, setDilucionTexto] = useState("");
+  const [mlPorUsoTexto, setMlPorUsoTexto] = useState("");
   const [rendimientoTexto, setRendimientoTexto] = useState("");
 
   const [capacidadTotal, setCapacidadTotal] = useState("");
@@ -359,7 +390,15 @@ function FormularioPersonalizado({ onAgregar, onCancelar }) {
         nombre: nombre.trim(),
         marca: marca.trim(),
         categoria,
-        diluciones: seDiluye && dilucionTexto.trim() ? [dilucionTexto.trim()] : [],
+        diluciones:
+          seDiluye && dilucionTexto.trim()
+            ? [
+                {
+                  texto: dilucionTexto.trim(),
+                  mlPorUso: mlPorUsoTexto.trim() ? Number(mlPorUsoTexto.replace(",", ".")) : null,
+                },
+              ]
+            : [],
         rendimiento: seDiluye ? null : rendimientoTexto.trim(),
         capacidadTotal: capacidadNumerica,
         capacidadUnidad,
@@ -449,6 +488,20 @@ function FormularioPersonalizado({ onAgregar, onCancelar }) {
             onChangeText={setDilucionTexto}
             placeholder="Ej. 1:200"
             placeholderTextColor={colors.textMuted}
+            editable={!guardando}
+          />
+        </View>
+      ) : null}
+      {seDiluye ? (
+        <View style={styles.campo}>
+          <Text style={styles.campoLabel}>Ml por uso</Text>
+          <TextInput
+            style={styles.campoInput}
+            value={mlPorUsoTexto}
+            onChangeText={(texto) => setMlPorUsoTexto(texto.replace(/[^\d.,]/g, ""))}
+            placeholder="Ej. 50"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="numeric"
             editable={!guardando}
           />
         </View>
@@ -803,6 +856,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
+  },
+  mlPorUsoLista: {
+    gap: 6,
+    marginTop: 8,
+  },
+  mlPorUsoFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  mlPorUsoLabel: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  mlPorUsoInput: {
+    width: 90,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   unidadChip: {
     borderWidth: 1,

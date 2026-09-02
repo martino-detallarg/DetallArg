@@ -133,9 +133,8 @@ create policy "empleados_delete_propio"
   using (auth.uid() = taller_id);
 
 -- ----------------------------------------------------------------------------
--- insumos — taller_id directo. SELECT/INSERT/UPDATE (agregarInsumo,
--- descontarInsumos). SIN DELETE a propósito: no existe `eliminarInsumo` en
--- DataContext todavía — mínimo privilegio, no se agrega de más.
+-- insumos — taller_id directo. CRUD completo (agregarInsumo,
+-- descontarInsumos, y DELETE agregado a pedido de Augusto).
 -- ----------------------------------------------------------------------------
 
 alter table public.insumos enable row level security;
@@ -155,6 +154,11 @@ create policy "insumos_update_propio"
   on public.insumos for update to authenticated
   using (auth.uid() = taller_id)
   with check (auth.uid() = taller_id);
+
+drop policy if exists "insumos_delete_propio" on public.insumos;
+create policy "insumos_delete_propio"
+  on public.insumos for delete to authenticated
+  using (auth.uid() = taller_id);
 
 -- ----------------------------------------------------------------------------
 -- costos_fijos — taller_id directo. CRUD completo (agregarCostoFijo/
