@@ -27,6 +27,10 @@ const MAPEO_CAMPOS_TURNO = {
   tipoVehiculo: "tipo_vehiculo",
   grupoVehiculo: "grupo_vehiculo",
   subdivisionVehiculo: "subdivision_vehiculo",
+  // kilometraje: TODO — descomentar cuando se corra
+  // supabase/alter_turnos_kilometraje.sql en la base real (la columna
+  // todavía no existe, ver esa migración). Hasta entonces, sumarlo acá
+  // rompe tanto el SELECT de cargarTurnos como el INSERT de agregarTurno.
   nivelNafta: "nivel_nafta",
 };
 
