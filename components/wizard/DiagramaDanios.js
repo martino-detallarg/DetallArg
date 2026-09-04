@@ -19,7 +19,15 @@ import { colors, continuousCorner, fonts, radii } from "../../theme";
 // `danios` es un mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada
 // zona puede tener varios tipos de daño a la vez (por eso `tipos` es un
 // array), y `nota` solo se usa cuando "otro" está entre los tipos elegidos.
-export default function DiagramaDanios({ claveVehiculo, vista, danios, onCambiarZona, ancho = 220, tipoVehiculo }) {
+export default function DiagramaDanios({
+  claveVehiculo,
+  vista,
+  danios,
+  onCambiarZona,
+  ancho = 220,
+  tipoVehiculo,
+  diagramaRef,
+}) {
   const [zonaActiva, setZonaActiva] = useState(null);
 
   // Moto tiene su propio set de tipos de daño, más chico y específico
@@ -61,7 +69,17 @@ export default function DiagramaDanios({ claveVehiculo, vista, danios, onCambiar
 
   return (
     <View style={styles.contenedor}>
-      <Diagrama danios={danios} onPanelPress={handleTocarZona} width={ancho} />
+      {/* Wrapper propio (no el <View style={contenedor}> de afuera, que
+      también incluye el selector de chips y el resumen de texto) para que
+      FirmaConformidadStep pueda capturar SOLO el gráfico con
+      react-native-view-shot al armar el PDF de conformidad — ver
+      InspeccionVisualStep.js. collapsable={false} es necesario en Android:
+      sin eso, RN puede "aplanar" esta View en el árbol nativo y la captura
+      falla. `diagramaRef` es opcional — el resto de los usos de este
+      componente (que no necesitan capturar nada) simplemente no lo pasan. */}
+      <View ref={diagramaRef} collapsable={false}>
+        <Diagrama danios={danios} onPanelPress={handleTocarZona} width={ancho} />
+      </View>
 
       {zonaActiva ? (
         <View style={styles.selector}>

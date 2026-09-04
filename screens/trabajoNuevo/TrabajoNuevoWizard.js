@@ -7,6 +7,7 @@ import SeleccionarVehiculoStep from "../nuevoCliente/SeleccionarVehiculoStep";
 import DatosServicioStep from "./DatosServicioStep";
 import TipoVehiculoStep from "./TipoVehiculoStep";
 import InspeccionVisualStep from "./InspeccionVisualStep";
+import FirmaConformidadStep from "./FirmaConformidadStep";
 import ConfirmacionTrabajoStep from "./ConfirmacionTrabajoStep";
 import { useClientes } from "../../data/ClienteContext";
 import { formatearFechaDDMMAAAA } from "../../utils/fecha";
@@ -42,6 +43,11 @@ function datosVacios(clienteId, autoId) {
       // puede tener varios tipos de daño previo a la vez, no uno solo.
       danios: {},
       fotosDano: [],
+      // [{ vistaId, etiqueta, imagen }] — capturada por InspeccionVisualStep
+      // al tocar "Continuar" (react-native-view-shot), consumida por
+      // FirmaConformidadStep para armar el PDF de conformidad. No se manda a
+      // Supabase (turnoACamposDb solo traduce los campos de MAPEO_CAMPOS_TURNO).
+      imagenesDiagrama: [],
     },
   };
 }
@@ -56,15 +62,13 @@ export default function TrabajoNuevoWizard({
   clienteIdInicial,
   autoIdInicial,
 }) {
-  const { getClienteById } = useClientes();
+  const { getClienteById, getVehiculoById } = useClientes();
   const seSaltaSeleccion = !!(clienteIdInicial && autoIdInicial);
-  const totalPasos = seSaltaSeleccion ? 3 : 4;
+  const totalPasos = seSaltaSeleccion ? 4 : 5;
 
   const [fase, setFase] = useState(seSaltaSeleccion ? "servicio" : "elegirCliente");
   const [datos, setDatos] = useState(datosVacios(clienteIdInicial, autoIdInicial));
   const [clienteTemporal, setClienteTemporal] = useState(null);
-  const [guardando, setGuardando] = useState(false);
-  const [errorGuardado, setErrorGuardado] = useState(null);
   const desplazamiento = useRef(new Animated.Value(ANCHO_PANTALLA)).current;
 
   // Entra deslizándose desde la derecha (en vez del "slide" vertical nativo
@@ -76,7 +80,6 @@ export default function TrabajoNuevoWizard({
       setDatos(datosVacios(clienteIdInicial, autoIdInicial));
       setFase(clienteIdInicial && autoIdInicial ? "servicio" : "elegirCliente");
       setClienteTemporal(null);
-      setErrorGuardado(null);
       desplazamiento.setValue(ANCHO_PANTALLA);
       Animated.timing(desplazamiento, {
         toValue: 0,
@@ -108,35 +111,30 @@ export default function TrabajoNuevoWizard({
     setFase("servicio");
   }
 
+  // Ya no maneja "guardando"/error ni cambia de fase: eso ahora lo hace
+  // FirmaConformidadStep, que llama a esto una sola vez (recién cuando el
+  // cliente ya firmó) y decide qué mostrar/hacer con el resultado —
+  // relanza el error tal cual para que quien llama lo capture.
   async function handleFinalizar() {
-    setGuardando(true);
-    setErrorGuardado(null);
-    try {
-      await onGuardarTrabajo({
-        clienteId: datos.clienteId,
-        autoId: datos.autoId,
-        servicio: datos.servicio.tipo,
-        servicioId: datos.servicio.servicioId,
-        precio: datos.servicio.precio,
-        fecha: datos.servicio.fecha,
-        hora: datos.servicio.hora,
-        observaciones: datos.servicio.observaciones,
-        empleadosAsignados: datos.servicio.empleadosAsignados,
-        tipoVehiculo: datos.inspeccion.tipoVehiculo,
-        grupoVehiculo: datos.inspeccion.grupo,
-        subdivisionVehiculo: datos.inspeccion.subdivision,
-        kilometraje: datos.inspeccion.kilometraje ? Number(datos.inspeccion.kilometraje) : null,
-        nivelNafta: datos.inspeccion.nivelNafta,
-        danios: datos.inspeccion.danios,
-        fotosDano: datos.inspeccion.fotosDano,
-        estado: "Pendiente",
-      });
-      setFase("confirmacion");
-    } catch (err) {
-      setErrorGuardado("No se pudo guardar el trabajo. Probá de nuevo.");
-    } finally {
-      setGuardando(false);
-    }
+    await onGuardarTrabajo({
+      clienteId: datos.clienteId,
+      autoId: datos.autoId,
+      servicio: datos.servicio.tipo,
+      servicioId: datos.servicio.servicioId,
+      precio: datos.servicio.precio,
+      fecha: datos.servicio.fecha,
+      hora: datos.servicio.hora,
+      observaciones: datos.servicio.observaciones,
+      empleadosAsignados: datos.servicio.empleadosAsignados,
+      tipoVehiculo: datos.inspeccion.tipoVehiculo,
+      grupoVehiculo: datos.inspeccion.grupo,
+      subdivisionVehiculo: datos.inspeccion.subdivision,
+      kilometraje: datos.inspeccion.kilometraje ? Number(datos.inspeccion.kilometraje) : null,
+      nivelNafta: datos.inspeccion.nivelNafta,
+      danios: datos.inspeccion.danios,
+      fotosDano: datos.inspeccion.fotosDano,
+      estado: "Pendiente",
+    });
   }
 
   const pasoActual = {
@@ -145,9 +143,11 @@ export default function TrabajoNuevoWizard({
     servicio: seSaltaSeleccion ? 1 : 2,
     tipoVehiculo: seSaltaSeleccion ? 2 : 3,
     inspeccionVisual: seSaltaSeleccion ? 3 : 4,
+    conformidad: seSaltaSeleccion ? 4 : 5,
   }[fase];
 
   const clienteSeleccionado = datos.clienteId ? getClienteById(datos.clienteId) : null;
+  const autoSeleccionado = datos.autoId ? getVehiculoById(datos.autoId) : null;
 
   return (
     <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" onRequestClose={cerrar}>
@@ -204,9 +204,23 @@ export default function TrabajoNuevoWizard({
               totalPasos={totalPasos}
               onCambiar={actualizarInspeccion}
               onAtras={() => setFase("tipoVehiculo")}
+              onContinuar={(imagenesDiagrama) => {
+                actualizarInspeccion({ imagenesDiagrama });
+                setFase("conformidad");
+              }}
+            />
+          )}
+          {fase === "conformidad" && clienteSeleccionado && (
+            <FirmaConformidadStep
+              cliente={clienteSeleccionado}
+              auto={autoSeleccionado}
+              servicio={datos.servicio}
+              inspeccion={datos.inspeccion}
+              paso={pasoActual}
+              totalPasos={totalPasos}
+              onAtras={() => setFase("inspeccionVisual")}
               onFinalizar={handleFinalizar}
-              guardando={guardando}
-              error={errorGuardado}
+              onTerminar={() => setFase("confirmacion")}
             />
           )}
           {fase === "confirmacion" && clienteSeleccionado && (

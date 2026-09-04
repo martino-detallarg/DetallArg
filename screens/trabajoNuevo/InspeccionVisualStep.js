@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { captureRef } from "react-native-view-shot";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Button from "../../components/Button";
@@ -21,20 +22,17 @@ const PADDING_PANTALLA = 20;
 
 // Pantalla 2 de la inspección: un diagrama de daños por vista, a pantalla
 // completa, navegado con swipe (mismo patrón de Mis Insumos/Finanzas). El
-// botón de agregar foto y el de guardar quedan fijos abajo, visibles sin
+// botón de agregar foto y el de continuar quedan fijos abajo, visibles sin
 // importar en qué vista del carrusel se esté parado.
-export default function InspeccionVisualStep({
-  datos,
-  paso,
-  totalPasos,
-  onCambiar,
-  onAtras,
-  onFinalizar,
-  guardando,
-  error,
-}) {
+export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
   const { width } = useWindowDimensions();
   const [vistaActiva, setVistaActiva] = useState(0);
+  const [capturando, setCapturando] = useState(false);
+  // Un ref por vista (no uno solo): el carrusel de abajo mantiene montadas
+  // TODAS las páginas a la vez (ScrollView, a diferencia de FlatList, no
+  // virtualiza), así que al tocar "Continuar" se puede capturar cada
+  // diagrama sin importar cuál está visible en pantalla en ese momento.
+  const refsDiagrama = useRef({});
 
   const anchoDiagrama = width - PADDING_PANTALLA * 2;
   const claveDiagrama = obtenerClaveDiagrama(datos);
@@ -85,6 +83,30 @@ export default function InspeccionVisualStep({
     setVistaActiva(indice);
   }
 
+  // Convierte cada diagrama ya cargado a una imagen (para el PDF de
+  // conformidad, ver FirmaConformidadStep.js) justo al avanzar — así queda
+  // "tal como quedó cargada en el check-in", con los daños marcados en ese
+  // momento. Si la captura de una vista puntual falla, esa vista sigue sin
+  // imagen en el PDF (se ignora, no bloquea el check-in por un problema de
+  // captura).
+  async function handleContinuar() {
+    setCapturando(true);
+    const capturas = [];
+    for (const vista of vistas) {
+      const ref = refsDiagrama.current[vista.id];
+      if (!ref) continue;
+      try {
+        const imagen = await captureRef(ref, { format: "png", quality: 0.9, result: "data-uri" });
+        capturas.push({ vistaId: vista.id, etiqueta: vista.etiqueta, imagen });
+      } catch (err) {
+        // Sin imagen para esta vista puntual — utils/conformidadPdf.js
+        // simplemente no dibuja el <img> si imagen es null.
+      }
+    }
+    setCapturando(false);
+    onContinuar(capturas);
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.pantalla}
@@ -131,6 +153,9 @@ export default function InspeccionVisualStep({
                   onCambiarZona={handleCambiarZona}
                   ancho={anchoDiagrama}
                   tipoVehiculo={datos.tipoVehiculo}
+                  diagramaRef={(el) => {
+                    refsDiagrama.current[vista.id] = el;
+                  }}
                 />
               </ScrollView>
             ))}
@@ -163,10 +188,8 @@ export default function InspeccionVisualStep({
           </Text>
         )}
 
-        {error && <Text style={styles.error}>{error}</Text>}
-
         <View style={styles.boton}>
-          <Button title="Finalizar y Guardar Trabajo" onPress={onFinalizar} loading={guardando} disabled={guardando} />
+          <Button title="Continuar" onPress={handleContinuar} loading={capturando} disabled={capturando} />
         </View>
       </View>
       </SwipeVolver>
@@ -262,13 +285,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 8,
     textAlign: "center",
-  },
-  error: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.error,
-    textAlign: "center",
-    marginTop: 10,
   },
   boton: {
     marginTop: 14,
