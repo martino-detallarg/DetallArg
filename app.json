@@ -7,14 +7,23 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.detallarg.app",
+      "buildNumber": "1"
     },
     "android": {
+      "package": "com.detallarg.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -24,11 +33,19 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "DetallArg necesita acceder a tus fotos para adjuntarlas al cliente o al vehículo."
+          "photosPermission": "DetallArg necesita acceder a tus fotos para adjuntarlas al cliente o al vehículo.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       "@react-native-community/datetimepicker",
       "expo-file-system"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "251b4120-eb61-437d-beef-820c8c0d0f11"
+      }
+    },
+    "owner": "rivernics-team"
   }
 }
