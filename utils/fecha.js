@@ -98,6 +98,16 @@ export function obtenerDiasDeLaSemana(fechaBase) {
   return Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
 }
 
+// Lunes y domingo de la semana ANTERIOR a la que contiene `fecha` (mismo
+// criterio de semana, lunes a domingo, que obtenerDiasDeLaSemana) — usado
+// por el resumen semanal de Notificaciones (ver ResumenSemanalCard.js).
+export function obtenerSemanaAnterior(fecha = new Date()) {
+  const [lunesEstaSemana] = obtenerDiasDeLaSemana(fecha);
+  const lunesAnterior = sumarDias(lunesEstaSemana, -7);
+  const domingoAnterior = sumarDias(lunesAnterior, 6);
+  return { desde: lunesAnterior, hasta: domingoAnterior };
+}
+
 export function formatearDiaSemanaCorto(fecha) {
   return DIAS_SEMANA_CORTO[fecha.getDay()];
 }
@@ -112,6 +122,27 @@ export function formatearMesCorto(fecha) {
 
 export function obtenerDiaSemanaHorario(fecha) {
   return DIAS_SEMANA_HORARIO[fecha.getDay()];
+}
+
+// Días que quedan del mes en curso sin contar hoy (ej. si hoy es el día 25
+// de un mes de 30, quedan 5) — usado por la alerta de punto de equilibrio de
+// Finanzas para avisar cuando se acerca el fin de mes.
+export function diasRestantesDelMes(fecha = new Date()) {
+  const ultimoDiaDelMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+  return ultimoDiaDelMes - fecha.getDate();
+}
+
+// Cantidad de días del mes de `fecha` (28-31) — usado junto con
+// diasTranscurridosDelMes para proyectar el cierre de mes en Finanzas.
+export function diasTotalesDelMes(fecha = new Date()) {
+  return new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+}
+
+// Día del mes de `fecha` (1-31) — nombrado a propósito igual que
+// diasRestantesDelMes/diasTotalesDelMes para que las tres se lean como un
+// mismo grupo en vez de mezclar con fecha.getDate() suelto.
+export function diasTranscurridosDelMes(fecha = new Date()) {
+  return fecha.getDate();
 }
 
 export function formatearFechaLarga(fecha) {

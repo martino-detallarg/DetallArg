@@ -1,24 +1,14 @@
 // Generación de PDFs de Catálogo: dos armadores de HTML (ficha individual y
-// catálogo completo) más el paso final de "generar y compartir" el PDF.
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
-import { File, Paths } from "expo-file-system";
+// catálogo completo). El paso final de "generar y compartir" y el escapado
+// de HTML viven en utils/pdf.js, compartidos con utils/finanzasPdf.js.
 import { formatearDuracion } from "./formato";
+import { escapeHtml } from "./pdf";
+
+export { generarYCompartirPdf } from "./pdf";
 
 function formatearPrecioCatalogo(precio, monedaCobro) {
   const numero = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(precio ?? 0);
   return `${monedaCobro ?? "ARS $"} ${numero}`;
-}
-
-// Escapa texto libre (nombre del taller, ubicación, etc.) antes de
-// insertarlo en el HTML, para que un "&" o "<" cargado a mano no rompa el
-// documento.
-function escapeHtml(texto) {
-  return String(texto ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 // Reúne los medios de contacto cargados en Mis Datos (correo/teléfono/web),
@@ -330,24 +320,4 @@ export function construirHtmlCatalogoCompleto(itemsCatalogo, servicios, taller, 
       </body>
     </html>
   `;
-}
-
-// Mismo patrón de "generar y compartir" usado en el resto de la app:
-// Print.printToFileAsync + Sharing.shareAsync. El PDF generado por
-// expo-print vive en un archivo temporal con nombre aleatorio, así que se
-// copia a un archivo con `nombreArchivo` antes de compartirlo para que la
-// hoja de compartir muestre un nombre legible.
-export async function generarYCompartirPdf(html, nombreArchivo) {
-  const { uri } = await Print.printToFileAsync({ html });
-
-  const nombreSeguro = nombreArchivo.replace(/[\\/:*?"<>|]/g, "-");
-  const archivoDestino = new File(Paths.cache, nombreSeguro);
-  new File(uri).copy(archivoDestino);
-
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(archivoDestino.uri, {
-      mimeType: "application/pdf",
-      UTI: "com.adobe.pdf",
-    });
-  }
 }

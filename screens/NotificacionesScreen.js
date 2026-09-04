@@ -13,22 +13,48 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import NotificacionStockBajoCard from "../components/NotificacionStockBajoCard";
+import ResumenSemanalCard from "../components/ResumenSemanalCard";
 import SolicitarPedidoModal from "../components/SolicitarPedidoModal";
 import { useData } from "../data/DataContext";
+import { useFinanzas } from "../data/FinanzasContext";
+import { useTurnos } from "../data/TurnoContext";
 import { usePedido } from "../data/PedidoContext";
 import { UMBRAL_STOCK_BAJO } from "../data/mockInsumos";
+import { obtenerSemanaAnterior } from "../utils/fecha";
+import { calcularResumenPeriodo } from "../utils/calculosFinanzas";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const CANTIDAD_PAGINAS = 2;
 
 export default function NotificacionesScreen({ navigation }) {
   const { width } = useWindowDimensions();
-  const { misInsumos, cargandoInsumos, errorCargaInsumos } = useData();
+  const { misInsumos, cargandoInsumos, errorCargaInsumos, costosFijos, cargandoCostosFijos } = useData();
+  const { cobros, cargandoCobros, gastosVariables, cargandoGastosVariables } = useFinanzas();
+  const { cargandoTurnos, getTurnoById } = useTurnos();
   const { pedido } = usePedido();
   const [modalVisible, setModalVisible] = useState(false);
   const [paginaActiva, setPaginaActiva] = useState(0);
   const insumosStockBajo = misInsumos.filter((insumo) => insumo.nivel <= UMBRAL_STOCK_BAJO);
   const hayPedido = pedido.length > 0;
+
+  // FEATURE 10: no es una notificación real ni se guarda en ningún lado —
+  // se recalcula desde cero cada vez que se entra a esta pantalla, siempre
+  // sobre la semana lunes-a-domingo INMEDIATAMENTE anterior a hoy (mismo
+  // criterio de semana que el resto de la app, ver obtenerDiasDeLaSemana).
+  // Mientras cargandoResumenSemanal, se omite la tarjeta en vez de mostrar
+  // $0 de facturación/ganancia falsos — es informativa, no vale la pena
+  // sumarle un spinner propio por un dato secundario.
+  const cargandoResumenSemanal = cargandoCobros || cargandoGastosVariables || cargandoCostosFijos || cargandoTurnos;
+  const totalCostosFijos = costosFijos.reduce((suma, c) => suma + c.monto, 0);
+  const { desde: desdeSemanaAnterior, hasta: hastaSemanaAnterior } = obtenerSemanaAnterior();
+  const resumenSemanal = calcularResumenPeriodo(
+    desdeSemanaAnterior,
+    hastaSemanaAnterior,
+    cobros,
+    gastosVariables,
+    totalCostosFijos,
+    getTurnoById
+  );
 
   function handleScrollFin(evento) {
     const indice = Math.round(evento.nativeEvent.contentOffset.x / width);
@@ -41,6 +67,17 @@ export default function NotificacionesScreen({ navigation }) {
       <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
 
       <Text style={styles.titulo}>Notificaciones</Text>
+
+      {!cargandoResumenSemanal && (
+        <View style={styles.resumenSemanalContenedor}>
+          <ResumenSemanalCard
+            desde={desdeSemanaAnterior}
+            hasta={hastaSemanaAnterior}
+            facturacion={resumenSemanal.facturacion}
+            gananciaNeta={resumenSemanal.gananciaNeta}
+          />
+        </View>
+      )}
 
       <ScrollView
         horizontal
@@ -114,6 +151,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 4,
     marginBottom: 14,
+  },
+  resumenSemanalContenedor: {
+    paddingHorizontal: 20,
   },
   pager: {
     flex: 1,

@@ -15,37 +15,47 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import GraficoDonut from "../components/GraficoDonut";
 import GraficoTrabajosDelMes from "../components/GraficoTrabajosDelMes";
+import GraficoTendenciaMensual from "../components/GraficoTendenciaMensual";
+import RankingLista from "../components/RankingLista";
 import GastoVariableModal from "../components/GastoVariableModal";
 import { useData } from "../data/DataContext";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useTurnos } from "../data/TurnoContext";
+import { useClientes } from "../data/ClienteContext";
+import { useTaller } from "../data/TallerContext";
 import { CATEGORIAS_GASTOS_VARIABLES } from "../data/mockFinanzas";
 import { formatearPesos } from "../utils/formato";
-import { parsearFechaDDMMAAAA } from "../utils/fecha";
+import {
+  parsearFechaDDMMAAAA,
+  formatearMesAnio,
+  diasRestantesDelMes,
+  diasTranscurridosDelMes,
+  diasTotalesDelMes,
+} from "../utils/fecha";
 import {
   calcularMargenPromedio,
   calcularPuntoEquilibrio,
+  calcularFaltanteParaEquilibrio,
+  calcularTendenciaGananciaNeta,
+  calcularTotalDescontado,
+  calcularProyeccionCierreMes,
+  calcularPorcentajeInsumosSobreFacturacion,
+  claveMes,
+  claveMesDeFecha,
   costoInsumosTurno,
   nombreTrabajoCobro,
+  rankingClientesPorFacturacion,
+  rankingServiciosPorGanancia,
 } from "../utils/calculosFinanzas";
+import { construirHtmlResumenFinanciero, generarYCompartirPdf } from "../utils/finanzasPdf";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const PADDING_PANTALLA = 20;
-const CANTIDAD_PAGINAS = 2;
-
-// Clave "año-mes" (ej. "2026-7") para agrupar cobros/gastos variables por
-// mes real.
-function claveMesDeFecha(fecha) {
-  return `${fecha.getFullYear()}-${fecha.getMonth()}`;
-}
-
-// Misma clave a partir de una fecha "DD/MM/AAAA" (formato de cobro.fecha /
-// gastoVariable.fecha). null si la fecha no es válida (mismo criterio
-// best-effort que el resto de utils/fecha.js).
-function claveMes(fechaDDMMAAAA) {
-  const fecha = parsearFechaDDMMAAAA(fechaDDMMAAAA);
-  return fecha ? claveMesDeFecha(fecha) : null;
-}
+const CANTIDAD_PAGINAS = 3;
+const CANTIDAD_MESES_TENDENCIA = 6;
+const UMBRAL_DIAS_ALERTA_EQUILIBRIO = 10;
+// "Definilo vos, sugiero 15-20%" — 20 para no dejar pasar casos límite.
+const UMBRAL_MARGEN_BAJO_PORCENTAJE = 20;
 
 function obtenerTimestamp(fechaDDMMAAAA) {
   return parsearFechaDDMMAAAA(fechaDDMMAAAA)?.getTime() ?? 0;
@@ -89,10 +99,13 @@ export default function FinanzasScreen({ navigation }) {
     errorCargaGastosVariables,
     eliminarGastoVariable,
   } = useFinanzas();
-  const { getTurnoById } = useTurnos();
+  const { cargandoTurnos, errorCargaTurnos, getTurnoById } = useTurnos();
+  const { cargandoClientes, errorCargaClientes, getClienteById } = useClientes();
+  const { nombreTaller, logoTaller, misDatos } = useTaller();
   const [paginaActiva, setPaginaActiva] = useState(0);
   const [modalGastoVisible, setModalGastoVisible] = useState(false);
   const [indiceSeleccionado, setIndiceSeleccionado] = useState(null);
+  const [generandoPdf, setGenerandoPdf] = useState(false);
   const anchoGrafico = width - PADDING_PANTALLA * 2 - 32;
 
   const totalCostosFijos = costosFijos.reduce((suma, c) => suma + c.monto, 0);
@@ -138,6 +151,10 @@ export default function FinanzasScreen({ navigation }) {
     });
 
   const gananciaBrutaDelMes = trabajosDelMes.reduce((suma, t) => suma + t.margen, 0);
+  // Facturación real (lo cobrado), distinta de gananciaBrutaDelMes (lo
+  // cobrado menos costo de insumos) — el PDF "para el contador" necesita la
+  // primera, no la segunda (ver utils/finanzasPdf.js).
+  const totalFacturadoDelMes = trabajosDelMes.reduce((suma, t) => suma + t.cobro.monto, 0);
   const gananciaNetaDelMes = gananciaBrutaDelMes - totalCostosFijos - totalGastosVariablesDelMes;
   const margenPromedioMesPorcentaje =
     trabajosDelMes.length > 0
@@ -150,6 +167,69 @@ export default function FinanzasScreen({ navigation }) {
   // utils/calculosFinanzas.js).
   const margenPromedio = calcularMargenPromedio(cobros, getTurnoById);
   const puntoEquilibrio = calcularPuntoEquilibrio(totalCostosFijos, margenPromedio);
+
+  // Cuánto se "regaló" este mes respecto del precio de lista congelado en
+  // cada turno (ver calcularTotalDescontado) — solo cuenta cuando se cobró
+  // menos que ese precio.
+  const totalDescontadoDelMes = calcularTotalDescontado(
+    cobros.filter((c) => claveMes(c.fecha) === claveMesActual),
+    getTurnoById
+  );
+
+  // Alerta de punto de equilibrio: solo se muestra cuando falta poco para
+  // que termine el mes Y todavía no se cubrieron los costos fijos+variables
+  // de este mes — no antes (sería ruido) ni mientras los datos de los que
+  // depende (cobros/gastos/costos/turnos) todavía están cargando (mostraría
+  // un déficit falso).
+  const diasRestantes = diasRestantesDelMes();
+  const faltanteEquilibrio = calcularFaltanteParaEquilibrio(gananciaNetaDelMes, margenPromedio);
+  const mostrarAlertaEquilibrio =
+    !cargandoGananciaBruta &&
+    !errorGananciaBruta &&
+    !cargandoTurnos &&
+    diasRestantes <= UMBRAL_DIAS_ALERTA_EQUILIBRIO &&
+    faltanteEquilibrio !== null;
+
+  // Página 3 (Tendencia y rendimiento): depende de costosFijos/cobros/
+  // gastosVariables (igual que la ganancia bruta) más turnos (para resolver
+  // cliente/servicio de cada cobro) y clientes (para los nombres del ranking).
+  const cargandoTendencia = cargandoGananciaBruta || cargandoTurnos || cargandoClientes;
+  const errorTendencia = errorGananciaBruta || errorCargaTurnos || errorCargaClientes;
+
+  const tendenciaGananciaNeta = calcularTendenciaGananciaNeta(
+    CANTIDAD_MESES_TENDENCIA,
+    cobros,
+    gastosVariables,
+    totalCostosFijos,
+    getTurnoById
+  );
+  const rankingServicios = rankingServiciosPorGanancia(cobros, getTurnoById, CANTIDAD_MESES_TENDENCIA);
+  const rankingClientes = rankingClientesPorFacturacion(cobros, getTurnoById, getClienteById);
+
+  // FEATURE 9: mismo ranking de arriba, con un aviso agregado en los
+  // servicios cuyo margen % está por debajo del umbral — item.alerta/
+  // item.alertaTexto son leídos por RankingLista.js, opcionales (el ranking
+  // de clientes no los tiene y se ve exactamente igual que antes).
+  const rankingServiciosConAlerta = rankingServicios.map((item) => ({
+    ...item,
+    alerta: item.margenPorcentaje != null && item.margenPorcentaje < UMBRAL_MARGEN_BAJO_PORCENTAJE,
+    alertaTexto: "Margen bajo, revisá el precio o la receta de este servicio.",
+  }));
+
+  // FEATURE 7: proyección de cierre de mes, a partir del ritmo de lo que se
+  // lleva facturado/gastado — ver calcularProyeccionCierreMes.
+  const proyeccionGananciaNeta = calcularProyeccionCierreMes(
+    gananciaBrutaDelMes,
+    totalGastosVariablesDelMes,
+    totalCostosFijos,
+    diasTranscurridosDelMes(),
+    diasTotalesDelMes()
+  );
+
+  // FEATURE 8: costo de insumos consumidos como % de lo facturado este mes
+  // — dato de eficiencia, no de ganancia (por eso va aparte de las tarjetas
+  // de margen).
+  const porcentajeInsumosSobreFacturacion = calcularPorcentajeInsumosSobreFacturacion(trabajosDelMes);
 
   function handlePressSegmento(clave) {
     if (clave === "fijos") {
@@ -176,6 +256,58 @@ export default function FinanzasScreen({ navigation }) {
     setIndiceSeleccionado((actual) => (actual === indice ? null : indice));
   }
 
+  // Paso 1: confirmar que quiere exportar (Sí/No). Paso 2, solo si dijo que
+  // sí: elegir el propósito, que define qué versión del PDF se arma (ver
+  // utils/finanzasPdf.js) — "completo" con todo el detalle interno, o
+  // "contador" con solo los totales fiscales. `null` en cualquier punto en
+  // que cancele (No, o Cancelar en el segundo paso).
+  function elegirTipoExportacion() {
+    return new Promise((resolve) => {
+      Alert.alert("Exportar resumen del mes", "¿Querés exportar el resumen de este mes?", [
+        { text: "No", style: "cancel", onPress: () => resolve(null) },
+        {
+          text: "Sí",
+          onPress: () => {
+            Alert.alert("¿Para qué es este resumen?", "Elegí qué versión del PDF generar.", [
+              { text: "Cancelar", style: "cancel", onPress: () => resolve(null) },
+              { text: "Para analizar tus finanzas", onPress: () => resolve("completo") },
+              { text: "Para mostrarle a tu contador", onPress: () => resolve("contador") },
+            ]);
+          },
+        },
+      ]);
+    });
+  }
+
+  async function handleExportarPdf() {
+    const tipo = await elegirTipoExportacion();
+    if (!tipo) return;
+
+    setGenerandoPdf(true);
+    try {
+      const mesEtiqueta = formatearMesAnio(new Date());
+      const html = construirHtmlResumenFinanciero({
+        tipo,
+        taller: { nombreTaller, logoTaller, misDatos },
+        mesEtiqueta,
+        totalFacturadoDelMes,
+        gananciaNetaDelMes,
+        gananciaBrutaDelMes,
+        totalCostosFijos,
+        totalGastosVariablesDelMes,
+        puntoEquilibrio,
+        trabajosDelMes,
+        rankingServicios,
+      });
+      const sufijo = tipo === "contador" ? "Contador" : "Análisis";
+      await generarYCompartirPdf(html, `${nombreTaller} - Resumen ${mesEtiqueta} (${sufijo}).pdf`);
+    } catch (err) {
+      Alert.alert("No se pudo generar el PDF", "Probá de nuevo en unos segundos.");
+    } finally {
+      setGenerandoPdf(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
@@ -183,11 +315,28 @@ export default function FinanzasScreen({ navigation }) {
 
       <Text style={styles.titulo}>Finanzas</Text>
 
+      {mostrarAlertaEquilibrio && (
+        <View style={styles.alertaBanner}>
+          <Ionicons name="alert-circle" size={20} color={colors.amber} />
+          <Text style={styles.alertaTexto}>
+            Quedan {diasRestantes} {diasRestantes === 1 ? "día" : "días"} del mes. Te{" "}
+            {faltanteEquilibrio.trabajos === 1 ? "falta" : "faltan"} {faltanteEquilibrio.trabajos}{" "}
+            {faltanteEquilibrio.trabajos === 1 ? "trabajo" : "trabajos"} o{" "}
+            {formatearPesos(faltanteEquilibrio.facturacion)} para cubrir tus costos fijos este mes.
+          </Text>
+        </View>
+      )}
+
       <View style={styles.resumenContenedor}>
         <View style={styles.tarjeta}>
           <Text style={styles.resumenLabel}>Ganancia neta del mes</Text>
           <Text style={[styles.resumenMonto, gananciaNetaDelMes < 0 && styles.resumenMontoNegativo]}>
             {formatearPesos(gananciaNetaDelMes)}
+          </Text>
+          <Text style={styles.proyeccionTexto}>
+            {proyeccionGananciaNeta !== null
+              ? `A este ritmo, vas a cerrar el mes con ~${formatearPesos(proyeccionGananciaNeta)} de ganancia neta.`
+              : "Todavía es pronto en el mes para proyectar cómo vas a cerrar."}
           </Text>
         </View>
 
@@ -205,6 +354,16 @@ export default function FinanzasScreen({ navigation }) {
             </Text>
           )}
         </View>
+
+        {totalDescontadoDelMes > 0 && (
+          <View style={styles.tarjeta}>
+            <Text style={styles.resumenLabel}>Regalado este mes</Text>
+            <Text style={styles.resumenMonto}>{formatearPesos(totalDescontadoDelMes)}</Text>
+            <Text style={styles.equilibrioTexto}>
+              Es lo que cobraste de menos respecto del precio de lista en los trabajos con descuento.
+            </Text>
+          </View>
+        )}
       </View>
 
       <ScrollView
@@ -294,6 +453,19 @@ export default function FinanzasScreen({ navigation }) {
               })}
             </View>
           )}
+
+          {/* FEATURE 8 — va aparte de las tarjetas de margen (resumenContenedor
+          de arriba) a propósito: es un dato de eficiencia (cuánto de lo que
+          entra se va en insumos), no de ganancia. */}
+          {porcentajeInsumosSobreFacturacion !== null && (
+            <View style={[styles.tarjeta, styles.tarjetaConMargen]}>
+              <Text style={styles.tarjetaTitulo}>Eficiencia de insumos</Text>
+              <Text style={styles.insumosPorcentajeTexto}>
+                Tus insumos representan el {Math.round(porcentajeInsumosSobreFacturacion)}% de lo que facturás
+                este mes.
+              </Text>
+            </View>
+          )}
         </ScrollView>
 
         <ScrollView
@@ -345,11 +517,94 @@ export default function FinanzasScreen({ navigation }) {
             )}
           </View>
         </ScrollView>
+
+        <ScrollView
+          style={{ width }}
+          contentContainerStyle={styles.pagina}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.tarjeta}>
+            <Text style={styles.tarjetaTitulo}>Tendencia de {CANTIDAD_MESES_TENDENCIA} meses</Text>
+            <View style={styles.graficoContenedor}>
+              <GraficoTendenciaMensual datos={tendenciaGananciaNeta} ancho={anchoGrafico} />
+            </View>
+
+            {(cargandoTendencia || errorTendencia) && (
+              <View style={styles.tarjetaOverlay}>
+                {cargandoTendencia ? (
+                  <ActivityIndicator color={colors.accent} size="large" />
+                ) : (
+                  <Text style={styles.tarjetaOverlayError}>{errorTendencia}</Text>
+                )}
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.tarjeta, styles.tarjetaConMargen]}>
+            <Text style={styles.tarjetaTitulo}>Servicios más rentables</Text>
+            <Text style={styles.tarjetaSubtitulo}>Últimos {CANTIDAD_MESES_TENDENCIA} meses, por ganancia total</Text>
+            <View style={styles.rankingContenedor}>
+              <RankingLista
+                items={rankingServiciosConAlerta}
+                etiquetaCantidad="ventas"
+                vacioTexto="Todavía no hay suficientes cobros para armar este ranking."
+              />
+            </View>
+
+            {(cargandoTendencia || errorTendencia) && (
+              <View style={styles.tarjetaOverlay}>
+                {cargandoTendencia ? (
+                  <ActivityIndicator color={colors.accent} size="large" />
+                ) : (
+                  <Text style={styles.tarjetaOverlayError}>{errorTendencia}</Text>
+                )}
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.tarjeta, styles.tarjetaConMargen]}>
+            <Text style={styles.tarjetaTitulo}>Clientes que más aportan</Text>
+            <Text style={styles.tarjetaSubtitulo}>Facturación histórica total</Text>
+            <View style={styles.rankingContenedor}>
+              <RankingLista
+                items={rankingClientes}
+                etiquetaCantidad="trabajos"
+                vacioTexto="Todavía no hay suficientes cobros para armar este ranking."
+              />
+            </View>
+
+            {(cargandoTendencia || errorTendencia) && (
+              <View style={styles.tarjetaOverlay}>
+                {cargandoTendencia ? (
+                  <ActivityIndicator color={colors.accent} size="large" />
+                ) : (
+                  <Text style={styles.tarjetaOverlayError}>{errorTendencia}</Text>
+                )}
+              </View>
+            )}
+          </View>
+        </ScrollView>
       </ScrollView>
 
       <TouchableOpacity style={styles.botonGasto} onPress={() => setModalGastoVisible(true)} activeOpacity={0.85}>
         <Ionicons name="remove-circle-outline" size={18} color={colors.bg} />
         <Text style={styles.botonGastoTexto}>Cargar gasto</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.botonExportar}
+        onPress={handleExportarPdf}
+        disabled={generandoPdf || cargandoGananciaBruta || cargandoTendencia}
+        activeOpacity={0.85}
+      >
+        {generandoPdf ? (
+          <ActivityIndicator color={colors.textPrimary} size="small" />
+        ) : (
+          <Ionicons name="download-outline" size={18} color={colors.textPrimary} />
+        )}
+        <Text style={styles.botonGastoTexto}>
+          {generandoPdf ? "Generando..." : "Exportar resumen del mes"}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.puntos}>
@@ -376,13 +631,33 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 14,
   },
+  alertaBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: colors.amberTint,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.amber,
+    marginHorizontal: PADDING_PANTALLA,
+    marginBottom: 16,
+    padding: 14,
+  },
+  alertaTexto: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textPrimary,
+  },
   resumenContenedor: {
     paddingHorizontal: PADDING_PANTALLA,
     gap: 12,
     marginBottom: 16,
   },
   resumenLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",
@@ -401,6 +676,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 14,
     lineHeight: 20,
+    color: colors.textSecondary,
+  },
+  proyeccionTexto: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 6,
+  },
+  insumosPorcentajeTexto: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
     color: colors.textSecondary,
   },
   pager: {
@@ -548,7 +835,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   gananciaBrutaLabel: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     color: colors.textMuted,
     textTransform: "uppercase",
@@ -571,6 +858,18 @@ const styles = StyleSheet.create({
   },
   graficoContenedor: {
     marginTop: 20,
+  },
+  tarjetaConMargen: {
+    marginTop: 16,
+  },
+  tarjetaSubtitulo: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  rankingContenedor: {
+    marginTop: 14,
   },
   detalleTarjeta: {
     backgroundColor: colors.surface2,
@@ -599,7 +898,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   detalleValor: {
-    fontFamily: fonts.mono,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 13,
     color: colors.textPrimary,
   },
@@ -611,6 +910,19 @@ const styles = StyleSheet.create({
     ...continuousCorner,
     borderWidth: 1,
     borderColor: colors.borderAccent,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  botonExportar: {
+    marginHorizontal: PADDING_PANTALLA,
+    marginTop: 10,
+    height: 48,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
