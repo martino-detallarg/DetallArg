@@ -19,6 +19,7 @@ import HistorialClientesScreen from "../screens/HistorialClientesScreen";
 import ConfiguracionScreen from "../screens/ConfiguracionScreen";
 import DocumentoLegalScreen from "../screens/DocumentoLegalScreen";
 import DrawerContent from "../components/DrawerContent";
+import RenovacionInsumoModal from "../components/RenovacionInsumoModal";
 import { colors } from "../theme";
 
 const Drawer = createDrawerNavigator();
@@ -142,6 +143,7 @@ function DrawerNavigator() {
 // pantalla real desde la que se entró.
 export default function DashboardNavigator() {
   return (
+    <>
     <RootStack.Navigator
       screenOptions={{
         headerShown: false,
@@ -156,5 +158,11 @@ export default function DashboardNavigator() {
       <RootStack.Screen name="Dashboard" component={DrawerNavigator} />
       <RootStack.Screen name="HistorialClientes" component={HistorialClientesScreen} />
     </RootStack.Navigator>
+    {/* Fuera del Stack a propósito, mismo criterio que HistorialClientes de
+    arriba pero todavía más arriba: tiene que poder mostrarse sin importar
+    en qué pantalla/Stack esté parado el taller cuando finaliza un trabajo
+    (Home o Agenda) — ver DataContext.insumosParaRenovar. */}
+    <RenovacionInsumoModal />
+    </>
   );
 }

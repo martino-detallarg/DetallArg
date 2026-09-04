@@ -48,6 +48,14 @@ export function DataProvider({ children }) {
   const [errorCargaCostosFijos, setErrorCargaCostosFijos] = useState(null);
   const [intentoCargaCostosFijos, setIntentoCargaCostosFijos] = useState(0);
 
+  // Cola de insumos que quedaron en 0% de stock al finalizar un trabajo
+  // ([{ id, nombre }]), consumida por RenovacionInsumoModal.js (montado una
+  // sola vez cerca de la raíz de la app, ver DashboardNavigator.js) — uno
+  // por vez, en el orden en que se fueron agotando. Puramente en memoria,
+  // no se persiste: si se cierra la app con la cola sin resolver, se pierde
+  // (mismo criterio "sin persistencia real" que PedidoContext).
+  const [insumosParaRenovar, setInsumosParaRenovar] = useState([]);
+
   // Dependencia `user?.id`, no `user` completo — mismo detalle que
   // ClienteContext/TallerContext (evita recargar en cada refresh automático
   // de token).
@@ -214,7 +222,7 @@ export function DataProvider({ children }) {
         const insumo = misInsumos.find((i) => i.id === item.insumoId);
         if (!insumo || !insumo.capacidadTotal) return null;
         const puntosADescontar = (item.cantidad / insumo.capacidadTotal) * 100;
-        return { id: insumo.id, nivel: Math.max(0, insumo.nivel - puntosADescontar) };
+        return { id: insumo.id, nombre: insumo.nombre, nivel: Math.max(0, insumo.nivel - puntosADescontar) };
       })
       .filter(Boolean);
 
@@ -231,6 +239,58 @@ export function DataProvider({ children }) {
         const actualizacion = actualizaciones.find((a) => a.id === insumo.id);
         return actualizacion ? { ...insumo, nivel: actualizacion.nivel } : insumo;
       })
+    );
+
+    // Insumos que ESTE consumo dejó en 0% — dispara el flujo de renovación
+    // automática (ver RenovacionInsumoModal.js). Se encolan por nombre/id
+    // nada más: el resto de los datos (productoId, capacidadUnidad, etc.)
+    // se leen de misInsumos en el momento en que el modal los necesita, no
+    // acá, para no arrastrar un snapshot potencialmente viejo.
+    const agotados = actualizaciones.filter((a) => a.nivel === 0).map((a) => ({ id: a.id, nombre: a.nombre }));
+    if (agotados.length > 0) {
+      setInsumosParaRenovar((actuales) => [
+        ...actuales,
+        ...agotados.filter((a) => !actuales.some((existente) => existente.id === a.id)),
+      ]);
+    }
+  }
+
+  // Saca un insumo de la cola de renovación sin tocar Supabase — se llama
+  // al cerrar el modal en cualquier punto del flujo (dijo "No" a alguna de
+  // las dos preguntas, o ya completó la renovación).
+  function descartarRenovacion(id) {
+    setInsumosParaRenovar((actuales) => actuales.filter((i) => i.id !== id));
+  }
+
+  // Reponer stock de un insumo YA cargado (a diferencia de agregarInsumo,
+  // que inserta uno nuevo): se usa cuando el taller confirma que renovó el
+  // envase, desde RenovacionInsumoModal.js. `cantidadActual` se espera
+  // igual a `capacidadTotal` (envase lleno recién comprado) — mismo cálculo
+  // de `nivel` que agregarInsumo, no uno nuevo.
+  async function reponerInsumo(id, { capacidadTotal, capacidadUnidad, precioCompra, cantidadActual }) {
+    const nivel =
+      capacidadTotal > 0
+        ? Math.max(0, Math.min(100, Math.round((cantidadActual / capacidadTotal) * 100)))
+        : 100;
+
+    const { error } = await supabase
+      .from("insumos")
+      .update({
+        capacidad_total: capacidadTotal,
+        capacidad_unidad: capacidadUnidad,
+        precio_compra: precioCompra,
+        cantidad_actual: cantidadActual,
+        nivel,
+      })
+      .eq("id", id);
+    if (error) throw error;
+
+    setMisInsumos((actuales) =>
+      actuales.map((insumo) =>
+        insumo.id === id
+          ? { ...insumo, capacidadTotal, capacidadUnidad, precioCompra, cantidadActual, nivel }
+          : insumo
+      )
     );
   }
 
@@ -282,11 +342,22 @@ export function DataProvider({ children }) {
       moverInsumoDeCategoria,
       eliminarInsumo,
       descontarInsumos,
+      reponerInsumo,
+      insumosParaRenovar,
+      descartarRenovacion,
       agregarCostoFijo,
       actualizarCostoFijo,
       eliminarCostoFijo,
     }),
-    [misInsumos, cargandoInsumos, errorCargaInsumos, costosFijos, cargandoCostosFijos, errorCargaCostosFijos]
+    [
+      misInsumos,
+      cargandoInsumos,
+      errorCargaInsumos,
+      costosFijos,
+      cargandoCostosFijos,
+      errorCargaCostosFijos,
+      insumosParaRenovar,
+    ]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
