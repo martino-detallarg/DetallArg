@@ -17,6 +17,7 @@ const ITEMS_MENU = [
   { ruta: "MisHorarios", titulo: "Mis Horarios", icono: "time-outline" },
   { ruta: "MisServicios", titulo: "Mis Servicios", icono: "construct-outline" },
   { ruta: "Catalogo", titulo: "Catálogo", icono: "albums-outline" },
+  { ruta: "Presupuesto", titulo: "Calculadora de Presupuesto", icono: "calculator-outline" },
   { ruta: "HistorialClientes", titulo: "Historial de Clientes", icono: "archive-outline" },
 ];
 
