@@ -54,7 +54,15 @@ function obtenerUltimosMeses(cantidad) {
 export default function FinanzasScreen({ navigation }) {
   const { width } = useWindowDimensions();
   const { costosFijos, cargandoCostosFijos, errorCargaCostosFijos } = useData();
-  const { cobros, gastosVariables, eliminarGastoVariable } = useFinanzas();
+  const {
+    cobros,
+    cargandoCobros,
+    errorCargaCobros,
+    gastosVariables,
+    cargandoGastosVariables,
+    errorCargaGastosVariables,
+    eliminarGastoVariable,
+  } = useFinanzas();
   const [paginaActiva, setPaginaActiva] = useState(0);
   const [modalGastoVisible, setModalGastoVisible] = useState(false);
   const anchoGrafico = width - PADDING_PANTALLA * 2 - 32;
@@ -69,6 +77,15 @@ export default function FinanzasScreen({ navigation }) {
     { clave: "fijos", etiqueta: "Fijos", valor: totalCostosFijos, color: colors.accent },
     { clave: "variables", etiqueta: "Variables", valor: totalGastosVariablesDelMes, color: colors.accentLight },
   ];
+
+  // La dona mezcla costosFijos (Fijos) y gastosVariables (Variables); las
+  // barras mezclan cobros (Ingresos) + costosFijos y gastosVariables
+  // (Egresos) — cada gráfico solo puede darse por completo cuando terminaron
+  // de cargar (sin error) todas las fuentes que efectivamente dibuja.
+  const cargandoDona = cargandoCostosFijos || cargandoGastosVariables;
+  const errorDona = errorCargaCostosFijos || errorCargaGastosVariables;
+  const cargandoBarras = cargandoCostosFijos || cargandoCobros || cargandoGastosVariables;
+  const errorBarras = errorCargaCostosFijos || errorCargaCobros || errorCargaGastosVariables;
 
   // Egresos = costos fijos (constante: no hay historial mes a mes de
   // costos_fijos, así que se aplica el total vigente a cada mes) + gastos
@@ -155,16 +172,17 @@ export default function FinanzasScreen({ navigation }) {
               ))}
             </View>
 
-            {/* Mientras cargandoCostosFijos, costosFijos vale [] y la dona
-            mostraría un "Total mensual" y un "Fijos: $0" falsos (el total
-            real todavía no llegó) — este overlay tapa la card hasta que se
-            sepa el dato real. */}
-            {(cargandoCostosFijos || errorCargaCostosFijos) && (
+            {/* Mientras cargandoCostosFijos o cargandoGastosVariables,
+            costosFijos y/o gastosVariables valen [] y la dona mostraría
+            "Fijos"/"Variables" en $0 falsos (el total real todavía no
+            llegó) — este overlay tapa la card hasta que se sepan los dos
+            datos reales. */}
+            {(cargandoDona || errorDona) && (
               <View style={styles.tarjetaOverlay}>
-                {cargandoCostosFijos ? (
+                {cargandoDona ? (
                   <ActivityIndicator color={colors.accent} size="large" />
                 ) : (
-                  <Text style={styles.tarjetaOverlayError}>{errorCargaCostosFijos}</Text>
+                  <Text style={styles.tarjetaOverlayError}>{errorDona}</Text>
                 )}
               </View>
             )}
@@ -223,6 +241,21 @@ export default function FinanzasScreen({ navigation }) {
                 <Text style={styles.leyendaMonto}>{formatearPesos(totalEgresosPeriodo)}</Text>
               </View>
             </View>
+
+            {/* Mismo criterio que la card de "Costos del mes": mientras
+            cargandoCobros/cargandoGastosVariables/cargandoCostosFijos,
+            datosBarras mezclaría fuentes a medio cargar y mostraría
+            Ingresos/Egresos en $0 falsos — este overlay tapa la card hasta
+            que se sepan los tres datos reales. */}
+            {(cargandoBarras || errorBarras) && (
+              <View style={styles.tarjetaOverlay}>
+                {cargandoBarras ? (
+                  <ActivityIndicator color={colors.accent} size="large" />
+                ) : (
+                  <Text style={styles.tarjetaOverlayError}>{errorBarras}</Text>
+                )}
+              </View>
+            )}
           </View>
         </ScrollView>
       </ScrollView>
