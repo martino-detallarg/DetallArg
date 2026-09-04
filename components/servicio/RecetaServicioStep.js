@@ -3,10 +3,32 @@ import { FlatList, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "../wizard/WizardHeader";
 import Button from "../Button";
+import ChipGroup from "../ChipGroup";
 import { useData } from "../../data/DataContext";
 import { CATEGORIAS } from "../../data/mockInsumos";
 import { formatearPesos } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
+
+// Diluciones con un ml-por-uso real cargado (ver AgregarInsumoModal.js) —
+// las únicas que permiten calcular la cantidad física a partir de "usos".
+// Un insumo con diluciones viejas sin ese dato todavía (backfill pendiente,
+// ver supabase/alter_insumos_diluciones_jsonb.sql) cae al input de ml de
+// siempre, igual que uno sin diluciones o "puro".
+function obtenerDilucionesUsables(insumo) {
+  return (insumo?.diluciones ?? []).filter((d) => Number(d.mlPorUso) > 0);
+}
+
+// Cantidad física (ml) a partir de "usos" × ml-por-uso de la dilución
+// elegida — la que se sigue guardando en cantidad (servicio_receta_items),
+// nunca "usos" ni el texto de la dilución. "" si todavía no hay suficiente
+// dato para calcularla (mismo criterio que el input de ml manual: una
+// cantidad vacía o inválida se filtra al guardar, ver ServicioModal.js).
+function calcularCantidadPorUsos(usos, dilucionTexto, insumo) {
+  const dilucion = obtenerDilucionesUsables(insumo).find((d) => d.texto === dilucionTexto);
+  const numUsos = Number(String(usos).replace(",", "."));
+  if (!dilucion || Number.isNaN(numUsos) || numUsos <= 0) return "";
+  return String(numUsos * dilucion.mlPorUso);
+}
 
 // Paso 2 de ServicioModal.js: marcar qué insumos usa el servicio y en qué
 // cantidad. La receta se guarda como [{ insumoId, cantidad }] para líneas del
@@ -40,12 +62,41 @@ export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos
     if (yaEsta) {
       onCambiar(receta.filter((item) => item.insumoId !== insumoId));
     } else {
-      onCambiar([...receta, { insumoId, cantidad: "" }]);
+      const insumo = misInsumos.find((i) => i.id === insumoId);
+      const dilucionesUsables = obtenerDilucionesUsables(insumo);
+      onCambiar([
+        ...receta,
+        dilucionesUsables.length > 0
+          ? { insumoId, cantidad: "", usos: "", dilucionTexto: dilucionesUsables[0].texto }
+          : { insumoId, cantidad: "" },
+      ]);
     }
   }
 
   function cambiarCantidad(insumoId, cantidad) {
     onCambiar(receta.map((item) => (item.insumoId === insumoId ? { ...item, cantidad } : item)));
+  }
+
+  function cambiarUsos(insumoId, usos) {
+    const insumo = misInsumos.find((i) => i.id === insumoId);
+    onCambiar(
+      receta.map((item) =>
+        item.insumoId === insumoId
+          ? { ...item, usos, cantidad: calcularCantidadPorUsos(usos, item.dilucionTexto, insumo) }
+          : item
+      )
+    );
+  }
+
+  function elegirDilucion(insumoId, dilucionTexto) {
+    const insumo = misInsumos.find((i) => i.id === insumoId);
+    onCambiar(
+      receta.map((item) =>
+        item.insumoId === insumoId
+          ? { ...item, dilucionTexto, cantidad: calcularCantidadPorUsos(item.usos, dilucionTexto, insumo) }
+          : item
+      )
+    );
   }
 
   function quitarHuerfana(insumoId) {
@@ -154,10 +205,14 @@ export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos
         }
         renderItem={({ item: insumo }) => {
           const categoria = CATEGORIAS[insumo.categoria];
-          const marcado = receta.some((r) => r.insumoId === insumo.id);
+          const itemReceta = receta.find((r) => r.insumoId === insumo.id);
+          const marcado = !!itemReceta;
           const cantidad = obtenerCantidad(insumo.id);
+          const dilucionesUsables = obtenerDilucionesUsables(insumo);
+          const usaDiluciones = marcado && dilucionesUsables.length > 0;
+          const dilucionActual = itemReceta?.dilucionTexto ?? dilucionesUsables[0]?.texto;
           return (
-            <View style={styles.fila}>
+            <View style={[styles.fila, usaDiluciones && styles.filaConDiluciones]}>
               <TouchableOpacity
                 style={styles.filaPrincipal}
                 onPress={() => toggleInsumo(insumo.id)}
@@ -172,7 +227,7 @@ export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos
                 </Text>
               </TouchableOpacity>
 
-              {marcado && (
+              {marcado && !usaDiluciones && (
                 <View style={styles.cantidadWrapper}>
                   <TextInput
                     style={styles.cantidadInput}
@@ -185,6 +240,35 @@ export default function RecetaServicioStep({ receta, onCambiar, paso, totalPasos
                     onSubmitEditing={() => Keyboard.dismiss()}
                   />
                   <Text style={styles.cantidadUnidad}>{insumo.capacidadUnidad ?? ""}</Text>
+                </View>
+              )}
+
+              {usaDiluciones && (
+                <View style={styles.dilucionBloque}>
+                  {dilucionesUsables.length > 1 && (
+                    <ChipGroup
+                      style={styles.dilucionChips}
+                      options={dilucionesUsables.map((d) => ({
+                        value: d.texto,
+                        label: d.texto,
+                        selected: d.texto === dilucionActual,
+                      }))}
+                      onPress={(texto) => elegirDilucion(insumo.id, texto)}
+                    />
+                  )}
+                  <View style={styles.cantidadWrapper}>
+                    <TextInput
+                      style={styles.cantidadInput}
+                      value={String(itemReceta.usos ?? "")}
+                      onChangeText={(v) => cambiarUsos(insumo.id, v)}
+                      placeholder="0"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                      returnKeyType="done"
+                      onSubmitEditing={() => Keyboard.dismiss()}
+                    />
+                    <Text style={styles.cantidadUnidad}>usos</Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -352,6 +436,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 8,
     gap: 10,
+  },
+  // El selector de dilución + input de usos necesita más ancho que el
+  // input de ml compacto (sobre todo con más de una dilución), así que en
+  // vez de compartir la fila con el nombre pasa a ocupar su propia fila
+  // completa debajo, indentada para leerse como parte de ese insumo.
+  filaConDiluciones: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+  dilucionBloque: {
+    marginTop: 10,
+    marginLeft: 30,
+    gap: 10,
+  },
+  dilucionChips: {
+    gap: 6,
   },
   filaPrincipal: {
     flex: 1,

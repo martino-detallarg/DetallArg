@@ -260,6 +260,13 @@ export function DataProvider({ children }) {
     setCostosFijos((actuales) => actuales.filter((c) => c.id !== id));
   }
 
+  async function eliminarInsumo(id) {
+    const { error } = await supabase.from("insumos").delete().eq("id", id);
+    if (error) throw error;
+
+    setMisInsumos((actuales) => actuales.filter((i) => i.id !== id));
+  }
+
   const value = useMemo(
     () => ({
       misInsumos,
@@ -273,6 +280,7 @@ export function DataProvider({ children }) {
       agregarInsumo,
       getInsumoById,
       moverInsumoDeCategoria,
+      eliminarInsumo,
       descontarInsumos,
       agregarCostoFijo,
       actualizarCostoFijo,

@@ -105,7 +105,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
 
   return (
     <>
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible && !modalCobroVisible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.fondo}>
         <View style={styles.contenedor}>
           <ScrollView showsVerticalScrollIndicator={false}>

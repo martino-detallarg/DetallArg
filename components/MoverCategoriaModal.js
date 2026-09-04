@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
 import { useData } from "../data/DataContext";
@@ -7,11 +7,13 @@ import { CATEGORIAS } from "../data/mockInsumos";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 // Modal chico (bottom sheet) para mover un insumo ya cargado en "Mis
-// Insumos" a otra categoría de la estantería. Se abre desde un
-// ProductoCasillero (ver MisInsumosScreen.js y CategoriaInsumosModal.js).
+// Insumos" a otra categoría de la estantería, o eliminarlo del todo. Se abre
+// desde un ProductoCasillero (ver MisInsumosScreen.js y
+// CategoriaInsumosModal.js).
 export default function MoverCategoriaModal({ visible, insumo, onClose }) {
-  const { moverInsumoDeCategoria } = useData();
+  const { moverInsumoDeCategoria, eliminarInsumo } = useData();
   const [guardando, setGuardando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
   }, [visible, insumo?.id]);
 
   async function handleElegir(clave) {
-    if (!insumo || clave === insumo.categoria || guardando) return;
+    if (!insumo || clave === insumo.categoria || guardando || eliminando) return;
     setGuardando(true);
     setError(null);
     try {
@@ -30,6 +32,30 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
     } finally {
       setGuardando(false);
     }
+  }
+
+  async function confirmarEliminar() {
+    setEliminando(true);
+    setError(null);
+    try {
+      await eliminarInsumo(insumo.id);
+      onClose();
+    } catch (err) {
+      setError("No se pudo eliminar el insumo. Probá de nuevo.");
+    } finally {
+      setEliminando(false);
+    }
+  }
+
+  function handleEliminar() {
+    Alert.alert(
+      "Eliminar insumo",
+      `Esta acción no se puede deshacer. ¿Eliminar "${insumo?.nombre}" de Mis Insumos?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Eliminar", style: "destructive", onPress: confirmarEliminar },
+      ]
+    );
   }
 
   return (
@@ -51,7 +77,7 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
                   key={clave}
                   style={[styles.opcion, esActual && styles.opcionActual]}
                   onPress={() => handleElegir(clave)}
-                  disabled={esActual || guardando}
+                  disabled={esActual || guardando || eliminando}
                   activeOpacity={0.8}
                 >
                   <View style={styles.opcionIcono}>
@@ -70,7 +96,19 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
 
           {error && <Text style={styles.error}>{error}</Text>}
 
-          <Button title="Cancelar" variant="secondary" onPress={onClose} disabled={guardando} />
+          <TouchableOpacity
+            style={styles.eliminarBoton}
+            onPress={handleEliminar}
+            disabled={guardando || eliminando}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.error} />
+            <Text style={styles.eliminarBotonTexto}>
+              {eliminando ? "Eliminando..." : "Eliminar insumo"}
+            </Text>
+          </TouchableOpacity>
+
+          <Button title="Cancelar" variant="secondary" onPress={onClose} disabled={guardando || eliminando} />
         </View>
       </View>
     </Modal>
@@ -145,5 +183,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.error,
     textAlign: "center",
+  },
+  eliminarBoton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 50,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
+  eliminarBotonTexto: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.error,
   },
 });

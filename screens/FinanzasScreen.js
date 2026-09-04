@@ -13,19 +13,25 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
-import GraficoBarras from "../components/GraficoBarras";
 import GraficoDonut from "../components/GraficoDonut";
+import GraficoTrabajosDelMes from "../components/GraficoTrabajosDelMes";
 import GastoVariableModal from "../components/GastoVariableModal";
 import { useData } from "../data/DataContext";
 import { useFinanzas } from "../data/FinanzasContext";
+import { useTurnos } from "../data/TurnoContext";
 import { CATEGORIAS_GASTOS_VARIABLES } from "../data/mockFinanzas";
 import { formatearPesos } from "../utils/formato";
-import { formatearMesCorto, parsearFechaDDMMAAAA } from "../utils/fecha";
+import { parsearFechaDDMMAAAA } from "../utils/fecha";
+import {
+  calcularMargenPromedio,
+  calcularPuntoEquilibrio,
+  costoInsumosTurno,
+  nombreTrabajoCobro,
+} from "../utils/calculosFinanzas";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const PADDING_PANTALLA = 20;
 const CANTIDAD_PAGINAS = 2;
-const CANTIDAD_MESES_GRAFICO = 6;
 
 // Clave "año-mes" (ej. "2026-7") para agrupar cobros/gastos variables por
 // mes real.
@@ -41,14 +47,34 @@ function claveMes(fechaDDMMAAAA) {
   return fecha ? claveMesDeFecha(fecha) : null;
 }
 
-// Los últimos `cantidad` meses, terminando en el mes actual, con su clave de
-// agrupación y su etiqueta corta para el eje del gráfico de barras.
-function obtenerUltimosMeses(cantidad) {
-  const ahora = new Date();
-  return Array.from({ length: cantidad }, (_, i) => {
-    const fecha = new Date(ahora.getFullYear(), ahora.getMonth() - (cantidad - 1 - i), 1);
-    return { clave: claveMesDeFecha(fecha), etiqueta: formatearMesCorto(fecha) };
-  });
+function obtenerTimestamp(fechaDDMMAAAA) {
+  return parsearFechaDDMMAAAA(fechaDDMMAAAA)?.getTime() ?? 0;
+}
+
+function DetalleTrabajoCard({ trabajo }) {
+  return (
+    <View style={styles.detalleTarjeta}>
+      <Text style={styles.detalleNombre} numberOfLines={1}>
+        {trabajo.nombre}
+      </Text>
+      <View style={styles.detalleFila}>
+        <Text style={styles.detalleLabel}>Monto cobrado</Text>
+        <Text style={styles.detalleValor}>{formatearPesos(trabajo.cobro.monto)}</Text>
+      </View>
+      <View style={styles.detalleFila}>
+        <Text style={styles.detalleLabel}>Costo de insumos</Text>
+        <Text style={styles.detalleValor}>{formatearPesos(trabajo.costoInsumos)}</Text>
+      </View>
+      <View style={styles.detalleFila}>
+        <Text style={styles.detalleLabel}>% de ganancia</Text>
+        <Text style={styles.detalleValor}>{Math.round(trabajo.porcentajeGanancia)}%</Text>
+      </View>
+      <View style={styles.detalleFila}>
+        <Text style={styles.detalleLabel}>% de costo variable</Text>
+        <Text style={styles.detalleValor}>{Math.round(trabajo.porcentajeCostoVariable)}%</Text>
+      </View>
+    </View>
+  );
 }
 
 export default function FinanzasScreen({ navigation }) {
@@ -63,8 +89,10 @@ export default function FinanzasScreen({ navigation }) {
     errorCargaGastosVariables,
     eliminarGastoVariable,
   } = useFinanzas();
+  const { getTurnoById } = useTurnos();
   const [paginaActiva, setPaginaActiva] = useState(0);
   const [modalGastoVisible, setModalGastoVisible] = useState(false);
+  const [indiceSeleccionado, setIndiceSeleccionado] = useState(null);
   const anchoGrafico = width - PADDING_PANTALLA * 2 - 32;
 
   const totalCostosFijos = costosFijos.reduce((suma, c) => suma + c.monto, 0);
@@ -78,30 +106,50 @@ export default function FinanzasScreen({ navigation }) {
     { clave: "variables", etiqueta: "Variables", valor: totalGastosVariablesDelMes, color: colors.accentLight },
   ];
 
-  // La dona mezcla costosFijos (Fijos) y gastosVariables (Variables); las
-  // barras mezclan cobros (Ingresos) + costosFijos y gastosVariables
-  // (Egresos) — cada gráfico solo puede darse por completo cuando terminaron
-  // de cargar (sin error) todas las fuentes que efectivamente dibuja.
+  // La dona mezcla costosFijos (Fijos) y gastosVariables (Variables); la
+  // card de ganancia bruta mezcla cobros (para trabajosDelMes) + costosFijos
+  // y gastosVariables (para gananciaNetaDelMes/puntoEquilibrio) — cada
+  // gráfico solo puede darse por completo cuando terminaron de cargar (sin
+  // error) todas las fuentes que efectivamente usa.
   const cargandoDona = cargandoCostosFijos || cargandoGastosVariables;
   const errorDona = errorCargaCostosFijos || errorCargaGastosVariables;
-  const cargandoBarras = cargandoCostosFijos || cargandoCobros || cargandoGastosVariables;
-  const errorBarras = errorCargaCostosFijos || errorCargaCobros || errorCargaGastosVariables;
+  const cargandoGananciaBruta = cargandoCostosFijos || cargandoCobros || cargandoGastosVariables;
+  const errorGananciaBruta = errorCargaCostosFijos || errorCargaCobros || errorCargaGastosVariables;
 
-  // Egresos = costos fijos (constante: no hay historial mes a mes de
-  // costos_fijos, así que se aplica el total vigente a cada mes) + gastos
-  // variables reales de ESE mes. A propósito NO se suma acá el costo de
-  // insumos consumidos: ya se contó una vez al comprar el insumo (regla de
-  // no doble conteo).
-  const datosBarras = obtenerUltimosMeses(CANTIDAD_MESES_GRAFICO).map(({ clave, etiqueta }) => {
-    const ingreso = cobros.filter((c) => claveMes(c.fecha) === clave).reduce((suma, c) => suma + c.monto, 0);
-    const gastosDelMes = gastosVariables
-      .filter((g) => claveMes(g.fecha) === clave)
-      .reduce((suma, g) => suma + g.monto, 0);
-    return { etiqueta, valor: ingreso, valorSecundario: totalCostosFijos + gastosDelMes };
-  });
+  // Un trabajo por cada cobro del mes actual, con su margen bruto (monto -
+  // costo de insumos) ya calculado — ver utils/calculosFinanzas.js. Ordenado
+  // por fecha para que las barras del gráfico sigan el orden cronológico.
+  const trabajosDelMes = cobros
+    .filter((c) => claveMes(c.fecha) === claveMesActual)
+    .slice()
+    .sort((a, b) => obtenerTimestamp(a.fecha) - obtenerTimestamp(b.fecha))
+    .map((cobro) => {
+      const turno = cobro.turnoId ? getTurnoById(cobro.turnoId) : null;
+      const costoInsumos = costoInsumosTurno(turno);
+      const margen = cobro.monto - costoInsumos;
+      return {
+        cobro,
+        nombre: nombreTrabajoCobro(turno),
+        costoInsumos,
+        margen,
+        porcentajeGanancia: cobro.monto > 0 ? (margen / cobro.monto) * 100 : 0,
+        porcentajeCostoVariable: cobro.monto > 0 ? (costoInsumos / cobro.monto) * 100 : 0,
+      };
+    });
 
-  const totalIngresosPeriodo = datosBarras.reduce((suma, d) => suma + d.valor, 0);
-  const totalEgresosPeriodo = datosBarras.reduce((suma, d) => suma + d.valorSecundario, 0);
+  const gananciaBrutaDelMes = trabajosDelMes.reduce((suma, t) => suma + t.margen, 0);
+  const gananciaNetaDelMes = gananciaBrutaDelMes - totalCostosFijos - totalGastosVariablesDelMes;
+  const margenPromedioMesPorcentaje =
+    trabajosDelMes.length > 0
+      ? trabajosDelMes.reduce((suma, t) => suma + t.porcentajeGanancia, 0) / trabajosDelMes.length
+      : 0;
+
+  // El margen promedio (para el punto de equilibrio) se calcula sobre TODOS
+  // los cobros con turno resoluble, no solo los del mes actual — con pocos
+  // trabajos por mes el dato sería demasiado ruidoso (ver
+  // utils/calculosFinanzas.js).
+  const margenPromedio = calcularMargenPromedio(cobros, getTurnoById);
+  const puntoEquilibrio = calcularPuntoEquilibrio(totalCostosFijos, margenPromedio);
 
   function handlePressSegmento(clave) {
     if (clave === "fijos") {
@@ -124,12 +172,40 @@ export default function FinanzasScreen({ navigation }) {
     setPaginaActiva(indice);
   }
 
+  function handlePressBarra(indice) {
+    setIndiceSeleccionado((actual) => (actual === indice ? null : indice));
+  }
+
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
       <ScreenHeader onAbrirMenu={() => navigation.getParent()?.openDrawer()} />
 
       <Text style={styles.titulo}>Finanzas</Text>
+
+      <View style={styles.resumenContenedor}>
+        <View style={styles.tarjeta}>
+          <Text style={styles.resumenLabel}>Ganancia neta del mes</Text>
+          <Text style={[styles.resumenMonto, gananciaNetaDelMes < 0 && styles.resumenMontoNegativo]}>
+            {formatearPesos(gananciaNetaDelMes)}
+          </Text>
+        </View>
+
+        <View style={styles.tarjeta}>
+          <Text style={styles.resumenLabel}>Punto de equilibrio</Text>
+          {puntoEquilibrio ? (
+            <Text style={styles.equilibrioTexto}>
+              Necesitás facturar {formatearPesos(puntoEquilibrio.facturacion)} (o hacer ~
+              {puntoEquilibrio.trabajos} {puntoEquilibrio.trabajos === 1 ? "trabajo" : "trabajos"}) este mes
+              para cubrir tus costos fijos.
+            </Text>
+          ) : (
+            <Text style={styles.equilibrioTexto}>
+              Todavía no hay suficientes trabajos cobrados para calcular esto.
+            </Text>
+          )}
+        </View>
+      </View>
 
       <ScrollView
         horizontal
@@ -226,33 +302,44 @@ export default function FinanzasScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.tarjeta}>
-            <Text style={styles.tarjetaTitulo}>Ingresos vs. Egresos · últimos 6 meses</Text>
-            <GraficoBarras datos={datosBarras} ancho={anchoGrafico} colorSecundario={colors.error} />
+            <Text style={styles.gananciaBrutaMonto}>{formatearPesos(gananciaBrutaDelMes)}</Text>
+            <Text style={styles.gananciaBrutaLabel}>Ganancia bruta del mes</Text>
 
-            <View style={styles.leyenda}>
-              <View style={styles.leyendaFila}>
-                <View style={[styles.leyendaPunto, { backgroundColor: colors.accent }]} />
-                <Text style={styles.leyendaTexto}>Ingresos (6 meses)</Text>
-                <Text style={styles.leyendaMonto}>{formatearPesos(totalIngresosPeriodo)}</Text>
-              </View>
-              <View style={styles.leyendaFila}>
-                <View style={[styles.leyendaPunto, { backgroundColor: colors.error }]} />
-                <Text style={styles.leyendaTexto}>Egresos (6 meses)</Text>
-                <Text style={styles.leyendaMonto}>{formatearPesos(totalEgresosPeriodo)}</Text>
-              </View>
-            </View>
+            {trabajosDelMes.length === 0 ? (
+              <Text style={styles.vacio}>Todavía no cobraste ningún trabajo este mes.</Text>
+            ) : (
+              <>
+                <Text style={styles.subtitulo}>
+                  {trabajosDelMes.length} {trabajosDelMes.length === 1 ? "trabajo realizado" : "trabajos realizados"}{" "}
+                  · margen promedio {Math.round(margenPromedioMesPorcentaje)}%
+                </Text>
+
+                <View style={styles.graficoContenedor}>
+                  <GraficoTrabajosDelMes
+                    datos={trabajosDelMes.map((t) => ({ valor: t.margen }))}
+                    ancho={anchoGrafico}
+                    indiceSeleccionado={indiceSeleccionado}
+                    onPressBarra={handlePressBarra}
+                  />
+                </View>
+
+                {indiceSeleccionado !== null && trabajosDelMes[indiceSeleccionado] && (
+                  <DetalleTrabajoCard trabajo={trabajosDelMes[indiceSeleccionado]} />
+                )}
+              </>
+            )}
 
             {/* Mismo criterio que la card de "Costos del mes": mientras
             cargandoCobros/cargandoGastosVariables/cargandoCostosFijos,
-            datosBarras mezclaría fuentes a medio cargar y mostraría
-            Ingresos/Egresos en $0 falsos — este overlay tapa la card hasta
-            que se sepan los tres datos reales. */}
-            {(cargandoBarras || errorBarras) && (
+            trabajosDelMes/gananciaNetaDelMes mezclarían fuentes a medio
+            cargar y mostrarían montos en $0 falsos — este overlay tapa la
+            card hasta que se sepan los tres datos reales. */}
+            {(cargandoGananciaBruta || errorGananciaBruta) && (
               <View style={styles.tarjetaOverlay}>
-                {cargandoBarras ? (
+                {cargandoGananciaBruta ? (
                   <ActivityIndicator color={colors.accent} size="large" />
                 ) : (
-                  <Text style={styles.tarjetaOverlayError}>{errorBarras}</Text>
+                  <Text style={styles.tarjetaOverlayError}>{errorGananciaBruta}</Text>
                 )}
               </View>
             )}
@@ -288,6 +375,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: PADDING_PANTALLA,
     marginTop: 4,
     marginBottom: 14,
+  },
+  resumenContenedor: {
+    paddingHorizontal: PADDING_PANTALLA,
+    gap: 12,
+    marginBottom: 16,
+  },
+  resumenLabel: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  resumenMonto: {
+    fontFamily: fonts.headingBlack,
+    fontSize: 30,
+    color: colors.textPrimary,
+  },
+  resumenMontoNegativo: {
+    color: colors.error,
+  },
+  equilibrioTexto: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
   },
   pager: {
     flex: 1,
@@ -426,6 +540,68 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
     alignItems: "center",
     justifyContent: "center",
+  },
+  gananciaBrutaMonto: {
+    fontFamily: fonts.headingBlack,
+    fontSize: 26,
+    color: colors.textPrimary,
+    textAlign: "center",
+  },
+  gananciaBrutaLabel: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    textAlign: "center",
+    marginTop: 6,
+  },
+  subtitulo: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginTop: 10,
+  },
+  vacio: {
+    fontFamily: fonts.body,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: 20,
+  },
+  graficoContenedor: {
+    marginTop: 20,
+  },
+  detalleTarjeta: {
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 14,
+    marginTop: 18,
+  },
+  detalleNombre: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.textPrimary,
+    marginBottom: 10,
+  },
+  detalleFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  detalleLabel: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  detalleValor: {
+    fontFamily: fonts.mono,
+    fontSize: 13,
+    color: colors.textPrimary,
   },
   botonGasto: {
     marginHorizontal: PADDING_PANTALLA,
