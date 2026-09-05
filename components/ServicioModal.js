@@ -25,6 +25,9 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
   const [precio, setPrecio] = useState("");
   const [duracionValor, setDuracionValor] = useState("");
   const [duracionUnidad, setDuracionUnidad] = useState(UNIDADES_DURACION[0].clave);
+  const [tieneRecordatorio, setTieneRecordatorio] = useState(false);
+  const [duraMeses, setDuraMeses] = useState("");
+  const [recordarCadaMeses, setRecordarCadaMeses] = useState("");
   const [receta, setReceta] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -40,6 +43,9 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
       setPrecio(item ? String(item.precio) : "");
       setDuracionValor(item?.duracionValor ? String(item.duracionValor) : "");
       setDuracionUnidad(item?.duracionUnidad ?? UNIDADES_DURACION[0].clave);
+      setTieneRecordatorio(item?.tieneRecordatorio ?? false);
+      setDuraMeses(item?.duraMeses != null ? String(item.duraMeses) : "");
+      setRecordarCadaMeses(item?.recordarCadaMeses != null ? String(item.recordarCadaMeses) : "");
       setReceta(item?.receta ?? []);
       setError(null);
     }
@@ -47,6 +53,16 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
 
   const precioNumerico = Number(precio.replace(",", "."));
   const duracionNumerica = Number(duracionValor.replace(",", "."));
+  const duraMesesNumerico = Number(duraMeses.replace(",", "."));
+  const recordarCadaMesesNumerico = Number(recordarCadaMeses.replace(",", "."));
+  const recordatorioValido =
+    !tieneRecordatorio ||
+    (duraMeses.trim() !== "" &&
+      !Number.isNaN(duraMesesNumerico) &&
+      duraMesesNumerico > 0 &&
+      recordarCadaMeses.trim() !== "" &&
+      !Number.isNaN(recordarCadaMesesNumerico) &&
+      recordarCadaMesesNumerico > 0);
   const esValido =
     nombre.trim() !== "" &&
     descripcion.trim() !== "" &&
@@ -55,7 +71,8 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
     precioNumerico > 0 &&
     duracionValor.trim() !== "" &&
     !Number.isNaN(duracionNumerica) &&
-    duracionNumerica > 0;
+    duracionNumerica > 0 &&
+    recordatorioValido;
   const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   function handleCerrar() {
@@ -92,6 +109,9 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
       duracionValor: duracionNumerica,
       duracionUnidad,
       receta: recetaFinal,
+      tieneRecordatorio,
+      duraMeses: tieneRecordatorio ? duraMesesNumerico : null,
+      recordarCadaMeses: tieneRecordatorio ? recordarCadaMesesNumerico : null,
     };
 
     setCargando(true);
@@ -191,6 +211,39 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
                   />
                 </View>
 
+                <Text style={styles.label}>¿Tiene recordatorio de renovación?</Text>
+                <ChipGroup
+                  options={[
+                    { value: true, label: "Sí", selected: tieneRecordatorio === true },
+                    { value: false, label: "No", selected: tieneRecordatorio === false },
+                  ]}
+                  onPress={setTieneRecordatorio}
+                  style={styles.chips}
+                />
+
+                {tieneRecordatorio && (
+                  <View style={styles.duracionFila}>
+                    <View style={styles.recordatorioInput}>
+                      <Input
+                        label="Dura (en meses)"
+                        value={duraMeses}
+                        onChangeText={setDuraMeses}
+                        placeholder="Ej: 6"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={styles.recordatorioInput}>
+                      <Input
+                        label="Recordar cada (en meses)"
+                        value={recordarCadaMeses}
+                        onChangeText={setRecordarCadaMeses}
+                        placeholder="Ej: 5"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
+                )}
+
                 <View style={styles.boton} onLayout={onLayoutBoton}>
                   <Button title="Continuar a receta de insumos" onPress={handleContinuar} disabled={!esValido} />
                 </View>
@@ -262,6 +315,9 @@ const styles = StyleSheet.create({
   },
   duracionInput: {
     width: 100,
+  },
+  recordatorioInput: {
+    flex: 1,
   },
   chips: {
     marginBottom: 16,

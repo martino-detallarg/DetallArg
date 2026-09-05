@@ -21,6 +21,9 @@ function filaAServicio(fila) {
     precio: fila.precio,
     duracionValor: fila.duracion_valor,
     duracionUnidad: fila.duracion_unidad,
+    tieneRecordatorio: fila.tiene_recordatorio,
+    duraMeses: fila.dura_meses,
+    recordarCadaMeses: fila.recordar_cada_meses,
     receta: fila.servicio_receta_items.map((item) =>
       item.insumo_id
         ? { insumoId: item.insumo_id, cantidad: item.cantidad }
@@ -31,6 +34,7 @@ function filaAServicio(fila) {
 
 const COLUMNAS_SERVICIO =
   "id, nombre, descripcion, precio, duracion_valor, duracion_unidad, " +
+  "tiene_recordatorio, dura_meses, recordar_cada_meses, " +
   "servicio_receta_items(id, insumo_id, cantidad, nombre_libre, costo_estimado)";
 
 // Reconcilia servicio_receta_items contra una receta nueva ([{ insumoId,
@@ -145,7 +149,17 @@ export function ServicioProvider({ children }) {
     setIntentoCargaServicios((n) => n + 1);
   }
 
-  async function agregarServicio({ nombre, descripcion, precio, duracionValor, duracionUnidad, receta = [] }) {
+  async function agregarServicio({
+    nombre,
+    descripcion,
+    precio,
+    duracionValor,
+    duracionUnidad,
+    receta = [],
+    tieneRecordatorio,
+    duraMeses,
+    recordarCadaMeses,
+  }) {
     const { data, error } = await supabase
       .from("servicios")
       .insert({
@@ -155,8 +169,13 @@ export function ServicioProvider({ children }) {
         precio,
         duracion_valor: duracionValor,
         duracion_unidad: duracionUnidad,
+        tiene_recordatorio: tieneRecordatorio ?? false,
+        dura_meses: duraMeses ?? null,
+        recordar_cada_meses: recordarCadaMeses ?? null,
       })
-      .select("id, nombre, descripcion, precio, duracion_valor, duracion_unidad")
+      .select(
+        "id, nombre, descripcion, precio, duracion_valor, duracion_unidad, tiene_recordatorio, dura_meses, recordar_cada_meses"
+      )
       .single();
     if (error) throw error;
 
@@ -169,7 +188,10 @@ export function ServicioProvider({ children }) {
     return nuevoServicio;
   }
 
-  async function editarServicio(id, { nombre, descripcion, precio, duracionValor, duracionUnidad, receta = [] }) {
+  async function editarServicio(
+    id,
+    { nombre, descripcion, precio, duracionValor, duracionUnidad, receta = [], tieneRecordatorio, duraMeses, recordarCadaMeses }
+  ) {
     const { error } = await supabase
       .from("servicios")
       .update({
@@ -178,6 +200,9 @@ export function ServicioProvider({ children }) {
         precio,
         duracion_valor: duracionValor,
         duracion_unidad: duracionUnidad,
+        tiene_recordatorio: tieneRecordatorio ?? false,
+        dura_meses: duraMeses ?? null,
+        recordar_cada_meses: recordarCadaMeses ?? null,
       })
       .eq("id", id);
     if (error) throw error;
@@ -186,7 +211,20 @@ export function ServicioProvider({ children }) {
 
     setServicios((actuales) =>
       actuales.map((s) =>
-        s.id === id ? { ...s, nombre, descripcion, precio, duracionValor, duracionUnidad, receta } : s
+        s.id === id
+          ? {
+              ...s,
+              nombre,
+              descripcion,
+              precio,
+              duracionValor,
+              duracionUnidad,
+              receta,
+              tieneRecordatorio: tieneRecordatorio ?? false,
+              duraMeses: duraMeses ?? null,
+              recordarCadaMeses: recordarCadaMeses ?? null,
+            }
+          : s
       )
     );
   }
