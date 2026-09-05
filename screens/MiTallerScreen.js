@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import EditarTallerModal from "../components/EditarTallerModal";
 import EstadoCarga from "../components/EstadoCarga";
 import { useTaller } from "../data/TallerContext";
+import { useClientes } from "../data/ClienteContext";
+import { useTurnos } from "../data/TurnoContext";
+import { useServicios } from "../data/ServicioContext";
+import { useData } from "../data/DataContext";
+import { useFinanzas } from "../data/FinanzasContext";
+import { generarYCompartirBackup } from "../utils/backupDatos";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const TAMANO_LOGO = 88;
@@ -23,7 +29,34 @@ const ITEMS_MENU = [
 
 export default function MiTallerScreen({ navigation }) {
   const { nombreTaller, logoTaller, cargandoTaller, errorCargaTaller, recargarTaller } = useTaller();
+  const { clientes } = useClientes();
+  const { turnos } = useTurnos();
+  const { servicios } = useServicios();
+  const { misInsumos, costosFijos } = useData();
+  const { cobros, gastosVariables } = useFinanzas();
   const [modalVisible, setModalVisible] = useState(false);
+  const [exportando, setExportando] = useState(false);
+
+  // 100% de solo lectura sobre lo que ya está cargado en memoria por los
+  // contextos de arriba — no dispara ningún fetch nuevo ni toca Supabase.
+  async function handleExportarDatos() {
+    setExportando(true);
+    try {
+      await generarYCompartirBackup(nombreTaller, {
+        clientes,
+        turnos,
+        servicios,
+        insumos: misInsumos,
+        costosFijos,
+        cobros,
+        gastosVariables,
+      });
+    } catch (err) {
+      Alert.alert("No se pudo generar el backup", "Probá de nuevo en unos segundos.");
+    } finally {
+      setExportando(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.pantalla}>
@@ -71,6 +104,23 @@ export default function MiTallerScreen({ navigation }) {
               </TouchableOpacity>
             ))}
           </View>
+
+          <TouchableOpacity
+            style={[styles.fila, styles.filaExportar]}
+            onPress={handleExportarDatos}
+            disabled={exportando}
+            activeOpacity={0.8}
+          >
+            <View style={styles.filaIcono}>
+              <Ionicons name="cloud-download-outline" size={20} color={colors.textPrimary} />
+            </View>
+            <Text style={styles.filaTexto}>Exportar mis datos</Text>
+            {exportando ? (
+              <ActivityIndicator color={colors.accentLight} size="small" />
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </EstadoCarga>
 
@@ -131,6 +181,9 @@ const styles = StyleSheet.create({
   },
   lista: {
     gap: 10,
+  },
+  filaExportar: {
+    marginTop: 10,
   },
   fila: {
     flexDirection: "row",
