@@ -13,47 +13,45 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import NotificacionStockBajoCard from "../components/NotificacionStockBajoCard";
-import ResumenSemanalCard from "../components/ResumenSemanalCard";
+import TrabajoPendienteCobroCard from "../components/TrabajoPendienteCobroCard";
+import RegistrarCobroModal from "../components/RegistrarCobroModal";
 import SolicitarPedidoModal from "../components/SolicitarPedidoModal";
 import { useData } from "../data/DataContext";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useTurnos } from "../data/TurnoContext";
+import { useClientes } from "../data/ClienteContext";
 import { usePedido } from "../data/PedidoContext";
 import { UMBRAL_STOCK_BAJO } from "../data/mockInsumos";
-import { obtenerSemanaAnterior } from "../utils/fecha";
-import { calcularResumenPeriodo } from "../utils/calculosFinanzas";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
-const CANTIDAD_PAGINAS = 2;
+const CANTIDAD_PAGINAS = 3;
+// Página "Stock" (índice 1, ver el orden pedido: Clientes/Stock/Trabajos) —
+// el botón flotante de "Solicitar pedido" solo tiene sentido ahí.
+const PAGINA_STOCK = 1;
+// Mismo criterio que TrabajoDetalleModal.js: un turno "pendiente de cobro"
+// es uno que ya se dio por terminado pero todavía no tiene un cobro
+// registrado (ver ESTADOS_QUE_PERMITEN_COBRO ahí).
+const ESTADOS_QUE_PERMITEN_COBRO = ["Finalizado", "Entregado"];
 
 export default function NotificacionesScreen({ navigation }) {
   const { width } = useWindowDimensions();
-  const { misInsumos, cargandoInsumos, errorCargaInsumos, costosFijos, cargandoCostosFijos } = useData();
-  const { cobros, cargandoCobros, gastosVariables, cargandoGastosVariables } = useFinanzas();
-  const { cargandoTurnos, getTurnoById } = useTurnos();
+  const { misInsumos, cargandoInsumos, errorCargaInsumos } = useData();
+  const { cobros, cargandoCobros, errorCargaCobros } = useFinanzas();
+  const { turnos, cargandoTurnos, errorCargaTurnos } = useTurnos();
+  const { getClienteById, getVehiculoById } = useClientes();
   const { pedido } = usePedido();
   const [modalVisible, setModalVisible] = useState(false);
+  const [turnoParaCobrar, setTurnoParaCobrar] = useState(null);
   const [paginaActiva, setPaginaActiva] = useState(0);
   const insumosStockBajo = misInsumos.filter((insumo) => insumo.nivel <= UMBRAL_STOCK_BAJO);
   const hayPedido = pedido.length > 0;
 
-  // FEATURE 10: no es una notificación real ni se guarda en ningún lado —
-  // se recalcula desde cero cada vez que se entra a esta pantalla, siempre
-  // sobre la semana lunes-a-domingo INMEDIATAMENTE anterior a hoy (mismo
-  // criterio de semana que el resto de la app, ver obtenerDiasDeLaSemana).
-  // Mientras cargandoResumenSemanal, se omite la tarjeta en vez de mostrar
-  // $0 de facturación/ganancia falsos — es informativa, no vale la pena
-  // sumarle un spinner propio por un dato secundario.
-  const cargandoResumenSemanal = cargandoCobros || cargandoGastosVariables || cargandoCostosFijos || cargandoTurnos;
-  const totalCostosFijos = costosFijos.reduce((suma, c) => suma + c.monto, 0);
-  const { desde: desdeSemanaAnterior, hasta: hastaSemanaAnterior } = obtenerSemanaAnterior();
-  const resumenSemanal = calcularResumenPeriodo(
-    desdeSemanaAnterior,
-    hastaSemanaAnterior,
-    cobros,
-    gastosVariables,
-    totalCostosFijos,
-    getTurnoById
+  // Mismo criterio que TrabajoDetalleModal.js: turnos ya Finalizado/Entregado
+  // sin ningún cobro asociado todavía.
+  const cargandoTrabajos = cargandoTurnos || cargandoCobros;
+  const errorTrabajos = errorCargaTurnos || errorCargaCobros;
+  const trabajosPendientesCobro = turnos.filter(
+    (turno) => ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado) && !cobros.some((c) => c.turnoId === turno.id)
   );
 
   function handleScrollFin(evento) {
@@ -68,17 +66,6 @@ export default function NotificacionesScreen({ navigation }) {
 
       <Text style={styles.titulo}>Notificaciones</Text>
 
-      {!cargandoResumenSemanal && (
-        <View style={styles.resumenSemanalContenedor}>
-          <ResumenSemanalCard
-            desde={desdeSemanaAnterior}
-            hasta={hastaSemanaAnterior}
-            facturacion={resumenSemanal.facturacion}
-            gananciaNeta={resumenSemanal.gananciaNeta}
-          />
-        </View>
-      )}
-
       <ScrollView
         horizontal
         pagingEnabled
@@ -86,6 +73,16 @@ export default function NotificacionesScreen({ navigation }) {
         onMomentumScrollEnd={handleScrollFin}
         style={styles.pager}
       >
+        <View style={[styles.paginaClientes, { width }]}>
+          <View style={styles.clientesIcono}>
+            <Ionicons name="notifications-outline" size={32} color={colors.accent} />
+          </View>
+          <Text style={styles.clientesTexto}>
+            Acá vas a ver recordatorios para tus clientes, como renovación de tratamientos o
+            aplicar booster.
+          </Text>
+        </View>
+
         <ScrollView
           style={{ width }}
           contentContainerStyle={styles.contenido}
@@ -106,18 +103,34 @@ export default function NotificacionesScreen({ navigation }) {
           )}
         </ScrollView>
 
-        <View style={[styles.paginaClientes, { width }]}>
-          <View style={styles.clientesIcono}>
-            <Ionicons name="notifications-outline" size={32} color={colors.accent} />
-          </View>
-          <Text style={styles.clientesTexto}>
-            Acá vas a ver recordatorios para tus clientes, como renovación de tratamientos o
-            aplicar booster.
-          </Text>
-        </View>
+        <ScrollView
+          style={{ width }}
+          contentContainerStyle={styles.contenido}
+          showsVerticalScrollIndicator={false}
+        >
+          {cargandoTrabajos ? (
+            <View style={styles.centroCarga}>
+              <ActivityIndicator color={colors.accent} size="large" />
+            </View>
+          ) : errorTrabajos ? (
+            <Text style={styles.errorTexto}>{errorTrabajos}</Text>
+          ) : trabajosPendientesCobro.length === 0 ? (
+            <Text style={styles.vacio}>No tenés trabajos pendientes de cobro.</Text>
+          ) : (
+            trabajosPendientesCobro.map((turno) => (
+              <TrabajoPendienteCobroCard
+                key={turno.id}
+                turno={turno}
+                cliente={getClienteById(turno.clienteId)}
+                auto={getVehiculoById(turno.autoId)}
+                onPress={() => setTurnoParaCobrar(turno)}
+              />
+            ))
+          )}
+        </ScrollView>
       </ScrollView>
 
-      {hayPedido && paginaActiva === 0 && (
+      {hayPedido && paginaActiva === PAGINA_STOCK && (
         <TouchableOpacity
           style={styles.botonPedido}
           onPress={() => setModalVisible(true)}
@@ -135,6 +148,11 @@ export default function NotificacionesScreen({ navigation }) {
       </View>
 
       <SolicitarPedidoModal visible={modalVisible} onClose={() => setModalVisible(false)} />
+      <RegistrarCobroModal
+        visible={!!turnoParaCobrar}
+        turno={turnoParaCobrar}
+        onClose={() => setTurnoParaCobrar(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -151,9 +169,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 4,
     marginBottom: 14,
-  },
-  resumenSemanalContenedor: {
-    paddingHorizontal: 20,
   },
   pager: {
     flex: 1,

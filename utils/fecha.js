@@ -98,16 +98,6 @@ export function obtenerDiasDeLaSemana(fechaBase) {
   return Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
 }
 
-// Lunes y domingo de la semana ANTERIOR a la que contiene `fecha` (mismo
-// criterio de semana, lunes a domingo, que obtenerDiasDeLaSemana) — usado
-// por el resumen semanal de Notificaciones (ver ResumenSemanalCard.js).
-export function obtenerSemanaAnterior(fecha = new Date()) {
-  const [lunesEstaSemana] = obtenerDiasDeLaSemana(fecha);
-  const lunesAnterior = sumarDias(lunesEstaSemana, -7);
-  const domingoAnterior = sumarDias(lunesAnterior, 6);
-  return { desde: lunesAnterior, hasta: domingoAnterior };
-}
-
 export function formatearDiaSemanaCorto(fecha) {
   return DIAS_SEMANA_CORTO[fecha.getDay()];
 }

@@ -4,7 +4,7 @@
 // punto de equilibrio y el gráfico de "Trabajos del mes" comparten la misma
 // lógica de margen por trabajo. Fórmulas confirmadas con el dueño del
 // producto — no cambiar el criterio acá sin volver a confirmar.
-import { diferenciaEnDias, formatearMesCorto, parsearFechaDDMMAAAA } from "./fecha";
+import { formatearMesCorto, parsearFechaDDMMAAAA } from "./fecha";
 
 // Costo total de insumos de un turno ya finalizado, a partir de su receta
 // congelada (turno.recetaAplicada, ver TurnoContext.js). Un turno sin receta
@@ -299,37 +299,4 @@ export function calcularPorcentajeInsumosSobreFacturacion(trabajosDelMes) {
 
   const totalCostoInsumos = trabajosDelMes.reduce((suma, t) => suma + t.costoInsumos, 0);
   return (totalCostoInsumos / totalFacturado) * 100;
-}
-
-// Facturación y ganancia neta de un rango de fechas [desde, hasta] (ambos
-// inclusive) — pensado para el resumen semanal de Notificaciones (ver
-// obtenerSemanaAnterior en utils/fecha.js y ResumenSemanalCard.js), pero
-// sirve para cualquier rango corto. Los costos fijos se prorratean por día
-// usando el mes de `hasta` y la cantidad de días del rango — no hay forma
-// de saber el costo fijo histórico real de cada semana (solo se guarda el
-// total VIGENTE, ver DataContext.js), así que esto es una aproximación
-// aceptable para una tarjeta informativa, no para el punto de equilibrio
-// real del mes (ese sigue sin prorratear, ver calcularPuntoEquilibrio).
-export function calcularResumenPeriodo(desde, hasta, cobros, gastosVariables, totalCostosFijos, getTurnoById) {
-  const dentroDelRango = (fechaDDMMAAAA) => {
-    const fecha = parsearFechaDDMMAAAA(fechaDDMMAAAA);
-    return !!fecha && diferenciaEnDias(desde, fecha) >= 0 && diferenciaEnDias(fecha, hasta) >= 0;
-  };
-
-  const cobrosDelPeriodo = cobros.filter((c) => dentroDelRango(c.fecha));
-  const facturacion = cobrosDelPeriodo.reduce((suma, c) => suma + c.monto, 0);
-  const gananciaBruta = cobrosDelPeriodo.reduce(
-    (suma, c) => suma + margenBrutoTrabajo(c, c.turnoId ? getTurnoById(c.turnoId) : null),
-    0
-  );
-  const gastosDelPeriodo = gastosVariables.filter((g) => dentroDelRango(g.fecha)).reduce((suma, g) => suma + g.monto, 0);
-
-  const diasDelRango = diferenciaEnDias(desde, hasta) + 1;
-  const diasDelMes = new Date(hasta.getFullYear(), hasta.getMonth() + 1, 0).getDate();
-  const costosFijosProrrateados = (totalCostosFijos / diasDelMes) * diasDelRango;
-
-  return {
-    facturacion,
-    gananciaNeta: gananciaBruta - costosFijosProrrateados - gastosDelPeriodo,
-  };
 }
