@@ -40,6 +40,7 @@ import {
   calcularTotalDescontado,
   calcularProyeccionCierreMes,
   calcularPorcentajeInsumosSobreFacturacion,
+  calcularDesgloseFacturado,
   claveMes,
   claveMesDeFecha,
   costoInsumosTurno,
@@ -156,6 +157,11 @@ export default function FinanzasScreen({ navigation }) {
   // primera, no la segunda (ver utils/finanzasPdf.js).
   const totalFacturadoDelMes = trabajosDelMes.reduce((suma, t) => suma + t.cobro.monto, 0);
   const gananciaNetaDelMes = gananciaBrutaDelMes - totalCostosFijos - totalGastosVariablesDelMes;
+  // Desglose facturado/no-facturado para el PDF "para el contador" (ver
+  // utils/finanzasPdf.js) — reusa los cobros del mes ya filtrados en
+  // trabajosDelMes en vez de volver a filtrar `cobros` desde cero.
+  const cobrosDelMes = trabajosDelMes.map((t) => t.cobro);
+  const desglose = calcularDesgloseFacturado(cobrosDelMes, gastosVariablesDelMes, totalCostosFijos);
   const margenPromedioMesPorcentaje =
     trabajosDelMes.length > 0
       ? trabajosDelMes.reduce((suma, t) => suma + t.porcentajeGanancia, 0) / trabajosDelMes.length
@@ -298,6 +304,7 @@ export default function FinanzasScreen({ navigation }) {
         puntoEquilibrio,
         trabajosDelMes,
         rankingServicios,
+        desglose,
       });
       const sufijo = tipo === "contador" ? "Contador" : "Análisis";
       await generarYCompartirPdf(html, `${nombreTaller} - Resumen ${mesEtiqueta} (${sufijo}).pdf`);

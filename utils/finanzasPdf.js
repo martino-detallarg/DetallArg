@@ -171,24 +171,33 @@ function bloqueKpis({ gananciaNetaDelMes, gananciaBrutaDelMes, totalCostosFijos,
   `;
 }
 
-// Versión "para el contador": solo los 3 totales fiscales, sin desglosar
-// costos fijos/variables ni mostrar ganancia bruta — esos son datos de
-// gestión interna del taller, no algo que el contador necesite para lo
-// fiscal (a diferencia de bloqueKpis, la versión completa).
-function bloqueKpisContador({ totalFacturadoDelMes, totalGastosDelMes, gananciaNetaDelMes }) {
+// Versión "para el contador": desglose real facturado/no-facturado (ver
+// calcularDesgloseFacturado en utils/calculosFinanzas.js) en vez de un solo
+// número de "Facturación total" que en realidad era todo lo cobrado, tenga
+// o no comprobante fiscal formal.
+function bloqueKpisContador({ desglose, gananciaNetaDelMes }) {
+  const { cobradoFacturado, cobradoNoFacturado, gastosFacturados, gastosNoFacturados, totalCostosFijos } = desglose;
   const negativa = gananciaNetaDelMes < 0 ? "negativo" : "";
   return `
     <div class="kpis">
       <div class="kpi">
-        <div class="kpi-label">Facturación total</div>
-        <div class="kpi-valor">${formatearPesos(totalFacturadoDelMes)}</div>
+        <div class="kpi-label">Cobrado con factura</div>
+        <div class="kpi-valor">${formatearPesos(cobradoFacturado)}</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Gastos totales</div>
-        <div class="kpi-valor">${formatearPesos(totalGastosDelMes)}</div>
+        <div class="kpi-label">Cobrado sin factura</div>
+        <div class="kpi-valor">${formatearPesos(cobradoNoFacturado)}</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Ganancia neta</div>
+        <div class="kpi-label">Gastos con comprobante</div>
+        <div class="kpi-valor">${formatearPesos(gastosFacturados + totalCostosFijos)}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Gastos sin comprobante</div>
+        <div class="kpi-valor">${formatearPesos(gastosNoFacturados)}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ganancia neta (total real)</div>
         <div class="kpi-valor ${negativa}">${formatearPesos(gananciaNetaDelMes)}</div>
       </div>
     </div>
@@ -275,6 +284,17 @@ function bloqueTrabajos(trabajosDelMes) {
   `;
 }
 
+// Solo en la versión "contador" — aclara que "con factura/sin factura" y
+// "con comprobante/sin comprobante" son marcas manuales del taller (ver
+// facturado en cobros/gastos_variables), no una validación fiscal real.
+function bloqueAvisoContador() {
+  return `
+    <div class="equilibrio">
+      Este resumen es información de gestión interna del taller, generada desde la app — no reemplaza ni constituye documentación fiscal formal (facturas, libro IVA, etc.). La marca "con factura / sin factura" y "con comprobante / sin comprobante" la carga el taller a mano en cada cobro y gasto; no está validada contra AFIP/ARCA.
+    </div>
+  `;
+}
+
 function bloqueFooter(taller) {
   const contacto = [taller?.misDatos?.correo, taller?.misDatos?.telefono].filter(Boolean).map(escapeHtml).join(" · ");
   return `
@@ -300,7 +320,6 @@ export function construirHtmlResumenFinanciero({
   tipo,
   taller,
   mesEtiqueta,
-  totalFacturadoDelMes,
   gananciaNetaDelMes,
   gananciaBrutaDelMes,
   totalCostosFijos,
@@ -308,6 +327,7 @@ export function construirHtmlResumenFinanciero({
   puntoEquilibrio,
   trabajosDelMes,
   rankingServicios,
+  desglose,
 }) {
   const esCompleto = tipo === "completo";
 
@@ -326,15 +346,12 @@ export function construirHtmlResumenFinanciero({
           ${
             esCompleto
               ? bloqueKpis({ gananciaNetaDelMes, gananciaBrutaDelMes, totalCostosFijos, totalGastosVariablesDelMes })
-              : bloqueKpisContador({
-                  totalFacturadoDelMes,
-                  totalGastosDelMes: totalCostosFijos + totalGastosVariablesDelMes,
-                  gananciaNetaDelMes,
-                })
+              : bloqueKpisContador({ desglose, gananciaNetaDelMes })
           }
           ${esCompleto ? bloqueEquilibrio(puntoEquilibrio) : ""}
           ${esCompleto ? bloqueRankingServicios(rankingServicios) : ""}
           ${esCompleto ? bloqueTrabajos(trabajosDelMes) : ""}
+          ${!esCompleto ? bloqueAvisoContador() : ""}
           ${bloqueFooter(taller)}
         </div>
       </body>

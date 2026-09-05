@@ -300,3 +300,27 @@ export function calcularPorcentajeInsumosSobreFacturacion(trabajosDelMes) {
   const totalCostoInsumos = trabajosDelMes.reduce((suma, t) => suma + t.costoInsumos, 0);
   return (totalCostoInsumos / totalFacturado) * 100;
 }
+
+// Separa cobros y gastos variables de un mes en facturado/no-facturado —
+// alimenta la versión "contador" del PDF (ver utils/finanzasPdf.js). No
+// reemplaza totalFacturadoDelMes/totalGastosVariablesDelMes que ya existen
+// en FinanzasScreen.js (esos siguen siendo el total real, facturado o no),
+// esto es el desglose adicional para que el contador vea la distinción real
+// en vez de un solo número.
+export function calcularDesgloseFacturado(cobrosDelMes, gastosVariablesDelMes, totalCostosFijos) {
+  const cobradoFacturado = cobrosDelMes.filter((c) => c.facturado).reduce((s, c) => s + c.monto, 0);
+  const cobradoNoFacturado = cobrosDelMes.filter((c) => !c.facturado).reduce((s, c) => s + c.monto, 0);
+  const gastosFacturados = gastosVariablesDelMes.filter((g) => g.facturado).reduce((s, g) => s + g.monto, 0);
+  const gastosNoFacturados = gastosVariablesDelMes.filter((g) => !g.facturado).reduce((s, g) => s + g.monto, 0);
+
+  return {
+    cobradoFacturado,
+    cobradoNoFacturado,
+    gastosFacturados,
+    // Costos fijos no tienen (todavía) distinción facturado/no-facturado:
+    // se suman enteros del lado "facturado" porque en general son gastos
+    // formales recurrentes (alquiler, servicios) — ver nota al pie del PDF.
+    gastosNoFacturados,
+    totalCostosFijos,
+  };
+}
