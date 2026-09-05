@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,11 +7,21 @@ import Input from "./Input";
 import Button from "./Button";
 import TelefonoConAcciones from "./TelefonoConAcciones";
 import { useClientes } from "../data/ClienteContext";
+import { useTurnos } from "../data/TurnoContext";
+import { useFinanzas } from "../data/FinanzasContext";
 import { esPatenteValida, formatearPatente, normalizarPatente } from "../utils/patente";
+import { parsearFechaDDMMAAAA } from "../utils/fecha";
+import { formatearPesos } from "../utils/formato";
 import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const VEHICULO_VACIO = { marca: "", modelo: "", anio: "", patente: "", color: "", sinPatente: false };
+
+// Mismo criterio que TrabajoDetalleModal.js: un turno "cuenta" para las
+// estadísticas del cliente (visita completa, con posibilidad de haber sido
+// cobrada) recién en estos dos estados — "Pendiente"/"En proceso" todavía no
+// son un trabajo terminado.
+const ESTADOS_QUE_PERMITEN_COBRO = ["Finalizado", "Entregado"];
 
 function FilaVehiculo({ vehiculo, onEditar, onEliminar, eliminando }) {
   return (
@@ -45,6 +55,8 @@ function FilaVehiculo({ vehiculo, onEditar, onEliminar, eliminando }) {
 // dentro del mismo modal (sin agregar otra pantalla).
 export default function VehiculosClienteModal({ visible, cliente, onClose, onEditarCliente, navigation }) {
   const { agregarVehiculo, editarVehiculo, eliminarVehiculo } = useClientes();
+  const { turnos } = useTurnos();
+  const { cobros } = useFinanzas();
   const [formularioVisible, setFormularioVisible] = useState(false);
   const [vehiculoEditandoId, setVehiculoEditandoId] = useState(null);
   const [datosVehiculo, setDatosVehiculo] = useState(VEHICULO_VACIO);
@@ -63,6 +75,60 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
       setError(null);
     }
   }, [visible, cliente?.id]);
+
+  // Estadísticas derivadas de turnos/cobros ya cargados en memoria (mismo
+  // criterio que FinanzasScreen.js con sus propios cálculos) — no toca
+  // ningún Context ni Supabase, se recalcula en cada render relevante.
+  const estadisticas = useMemo(() => {
+    if (!cliente) return null;
+    const turnosDelCliente = turnos.filter((t) => t.clienteId === cliente.id);
+    if (turnosDelCliente.length === 0) return { totalTurnos: 0 };
+
+    const visitasCompletas = turnosDelCliente.filter((t) => ESTADOS_QUE_PERMITEN_COBRO.includes(t.estado));
+    const idsVisitasCompletas = visitasCompletas.map((t) => t.id);
+    const totalGastado = cobros
+      .filter((c) => idsVisitasCompletas.includes(c.turnoId))
+      .reduce((suma, c) => suma + c.monto, 0);
+
+    // turno.fecha ya viene como "DD/MM/AAAA" (ver TurnoContext.js), así que
+    // una vez encontrado el más reciente se puede mostrar tal cual.
+    let ultimaVisitaFecha = null;
+    let ultimaVisitaTexto = null;
+    for (const turno of visitasCompletas) {
+      const fecha = parsearFechaDDMMAAAA(turno.fecha);
+      if (fecha && (!ultimaVisitaFecha || fecha.getTime() > ultimaVisitaFecha.getTime())) {
+        ultimaVisitaFecha = fecha;
+        ultimaVisitaTexto = turno.fecha;
+      }
+    }
+
+    // turno.servicio es el nombre denormalizado (no hace falta resolver el
+    // Servicio original) — el más repetido entre las visitas completas; en
+    // caso de empate queda el primero encontrado con ese conteo máximo.
+    let servicioFrecuente = null;
+    if (visitasCompletas.length > 0) {
+      const conteos = new Map();
+      for (const turno of visitasCompletas) {
+        const nombre = turno.servicio?.trim() || "Servicio sin nombre";
+        conteos.set(nombre, (conteos.get(nombre) ?? 0) + 1);
+      }
+      let maxConteo = 0;
+      for (const [nombre, conteo] of conteos) {
+        if (conteo > maxConteo) {
+          maxConteo = conteo;
+          servicioFrecuente = nombre;
+        }
+      }
+    }
+
+    return {
+      totalTurnos: turnosDelCliente.length,
+      visitas: visitasCompletas.length,
+      totalGastado,
+      ultimaVisitaTexto,
+      servicioFrecuente,
+    };
+  }, [turnos, cobros, cliente]);
 
   if (!cliente) return null;
 
@@ -152,6 +218,35 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
                 <Ionicons name="pencil-outline" size={16} color={colors.accentLight} />
               </TouchableOpacity>
             </View>
+
+            {estadisticas.totalTurnos === 0 ? (
+              <Text style={styles.sinTrabajos}>Todavía no tiene trabajos registrados</Text>
+            ) : (
+              <View style={styles.estadisticasCard}>
+                <View style={styles.estadisticasFila}>
+                  <Text style={styles.estadisticasLabel}>Visitas</Text>
+                  <Text style={styles.estadisticasValor}>{estadisticas.visitas}</Text>
+                </View>
+                <View style={styles.estadisticasFila}>
+                  <Text style={styles.estadisticasLabel}>Total gastado</Text>
+                  <Text style={styles.estadisticasValor}>{formatearPesos(estadisticas.totalGastado)}</Text>
+                </View>
+                {estadisticas.ultimaVisitaTexto && (
+                  <View style={styles.estadisticasFila}>
+                    <Text style={styles.estadisticasLabel}>Última visita</Text>
+                    <Text style={styles.estadisticasValor}>{estadisticas.ultimaVisitaTexto}</Text>
+                  </View>
+                )}
+                {estadisticas.servicioFrecuente && (
+                  <View style={styles.estadisticasFila}>
+                    <Text style={styles.estadisticasLabel}>Servicio más pedido</Text>
+                    <Text style={styles.estadisticasValor} numberOfLines={1}>
+                      {estadisticas.servicioFrecuente}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
 
             <TouchableOpacity
               onPress={() => {
@@ -311,6 +406,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
     alignItems: "center",
     justifyContent: "center",
+  },
+  sinTrabajos: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 16,
+  },
+  estadisticasCard: {
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    padding: 14,
+    marginBottom: 16,
+  },
+  estadisticasFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 5,
+  },
+  estadisticasLabel: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  estadisticasValor: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+    marginLeft: 12,
+    flexShrink: 1,
+    textAlign: "right",
   },
   verHistorialBoton: {
     alignSelf: "flex-start",
