@@ -15,6 +15,11 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
+import { CormorantGaramond_600SemiBold } from "@expo-google-fonts/cormorant-garamond";
+import { Jost_400Regular } from "@expo-google-fonts/jost";
+import { Manrope_400Regular, Manrope_800ExtraBold } from "@expo-google-fonts/manrope";
+import { Oswald_600SemiBold } from "@expo-google-fonts/oswald";
+import { Barlow_400Regular } from "@expo-google-fonts/barlow";
 
 import SplashScreen from "./screens/SplashScreen";
 import LoginScreen from "./screens/LoginScreen";
@@ -45,6 +50,15 @@ export default function App() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    // Solo para simular los 3 estilos del Catálogo dentro del Editor de
+    // Catálogo (screens/EditorCatalogoScreen.js) — el PDF en sí carga estas
+    // mismas familias por CDN, no desde estos assets nativos.
+    CormorantGaramond_600SemiBold,
+    Jost_400Regular,
+    Manrope_400Regular,
+    Manrope_800ExtraBold,
+    Oswald_600SemiBold,
+    Barlow_400Regular,
   });
 
   const onLayoutRootView = useCallback(async () => {
