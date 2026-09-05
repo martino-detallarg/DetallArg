@@ -14,14 +14,17 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import NotificacionStockBajoCard from "../components/NotificacionStockBajoCard";
 import TrabajoPendienteCobroCard from "../components/TrabajoPendienteCobroCard";
+import RecordatorioTratamientoCard from "../components/RecordatorioTratamientoCard";
 import RegistrarCobroModal from "../components/RegistrarCobroModal";
 import SolicitarPedidoModal from "../components/SolicitarPedidoModal";
 import { useData } from "../data/DataContext";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
+import { useServicios } from "../data/ServicioContext";
 import { usePedido } from "../data/PedidoContext";
 import { UMBRAL_STOCK_BAJO } from "../data/mockInsumos";
+import { calcularRecordatoriosVencidos } from "../utils/recordatorios";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const CANTIDAD_PAGINAS = 3;
@@ -39,6 +42,7 @@ export default function NotificacionesScreen({ navigation }) {
   const { cobros, cargandoCobros, errorCargaCobros } = useFinanzas();
   const { turnos, cargandoTurnos, errorCargaTurnos } = useTurnos();
   const { getClienteById, getVehiculoById } = useClientes();
+  const { servicios, cargandoServicios, errorCargaServicios } = useServicios();
   const { pedido } = usePedido();
   const [modalVisible, setModalVisible] = useState(false);
   const [turnoParaCobrar, setTurnoParaCobrar] = useState(null);
@@ -53,6 +57,10 @@ export default function NotificacionesScreen({ navigation }) {
   const trabajosPendientesCobro = turnos.filter(
     (turno) => ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado) && !cobros.some((c) => c.turnoId === turno.id)
   );
+
+  const cargandoRecordatorios = cargandoTurnos || cargandoServicios;
+  const errorRecordatorios = errorCargaTurnos || errorCargaServicios;
+  const recordatoriosVencidos = calcularRecordatoriosVencidos(turnos, servicios, getClienteById, getVehiculoById);
 
   function handleScrollFin(evento) {
     const indice = Math.round(evento.nativeEvent.contentOffset.x / width);
@@ -73,15 +81,28 @@ export default function NotificacionesScreen({ navigation }) {
         onMomentumScrollEnd={handleScrollFin}
         style={styles.pager}
       >
-        <View style={[styles.paginaClientes, { width }]}>
-          <View style={styles.clientesIcono}>
-            <Ionicons name="notifications-outline" size={32} color={colors.accent} />
-          </View>
-          <Text style={styles.clientesTexto}>
-            Acá vas a ver recordatorios para tus clientes, como renovación de tratamientos o
-            aplicar booster.
-          </Text>
-        </View>
+        <ScrollView
+          style={{ width }}
+          contentContainerStyle={styles.contenido}
+          showsVerticalScrollIndicator={false}
+        >
+          {cargandoRecordatorios ? (
+            <View style={styles.centroCarga}>
+              <ActivityIndicator color={colors.accent} size="large" />
+            </View>
+          ) : errorRecordatorios ? (
+            <Text style={styles.errorTexto}>{errorRecordatorios}</Text>
+          ) : recordatoriosVencidos.length === 0 ? (
+            <Text style={styles.vacio}>Por ahora no hay recordatorios vencidos.</Text>
+          ) : (
+            recordatoriosVencidos.map((recordatorio) => (
+              <RecordatorioTratamientoCard
+                key={`${recordatorio.turno.clienteId}-${recordatorio.turno.autoId}-${recordatorio.turno.servicioId}`}
+                recordatorio={recordatorio}
+              />
+            ))
+          )}
+        </ScrollView>
 
         <ScrollView
           style={{ width }}
@@ -193,31 +214,6 @@ const styles = StyleSheet.create({
     color: colors.error,
     textAlign: "center",
     marginTop: 40,
-  },
-  paginaClientes: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 40,
-  },
-  clientesIcono: {
-    width: 64,
-    height: 64,
-    borderRadius: radii.card,
-    ...continuousCorner,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderAccent,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  clientesTexto: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textSecondary,
-    textAlign: "center",
   },
   puntos: {
     flexDirection: "row",
