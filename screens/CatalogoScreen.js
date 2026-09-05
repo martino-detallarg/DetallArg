@@ -7,15 +7,13 @@ import ScreenHeader from "../components/ScreenHeader";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import EstadoCarga from "../components/EstadoCarga";
-import { useCatalogo } from "../data/CatalogoContext";
+import { useCatalogo, construirOrdenCompletoCatalogo } from "../data/CatalogoContext";
 import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
 import { PLANTILLAS_CATALOGO } from "../data/plantillasCatalogo";
 import { construirHtmlCatalogoCompleto, construirHtmlFicha, generarYCompartirPdf } from "../utils/catalogoPdf";
 import { formatearPesos, formatearDuracion } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
-
-const CLAVES_PLANTILLAS = Object.keys(PLANTILLAS_CATALOGO);
 
 // Confirmación envuelta en Promise para poder "esperar" a que el usuario
 // toque "Elegir foto" antes de abrir la galería, mismo criterio que un
@@ -29,31 +27,15 @@ function confirmarConAlert(titulo, mensaje) {
   });
 }
 
-function SelectorPlantilla({ claveSeleccionada, onSeleccionar }) {
-  return (
-    <View style={styles.plantillasFila}>
-      {CLAVES_PLANTILLAS.map((clave) => {
-        const plantilla = PLANTILLAS_CATALOGO[clave];
-        const activo = claveSeleccionada === clave;
-        return (
-          <TouchableOpacity
-            key={clave}
-            style={[styles.plantillaChip, activo && styles.plantillaChipSeleccionado]}
-            onPress={() => onSeleccionar(clave)}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.swatch, { backgroundColor: plantilla.colorAcento }]} />
-            <Text style={[styles.plantillaTexto, activo && styles.plantillaTextoSeleccionado]}>
-              {plantilla.nombre}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+// Plantilla base del estilo elegido en el Editor de Catálogo con el acento
+// que el taller haya tocado en la paleta pisado encima (spread simple, el
+// resto de la plantilla queda igual) — un solo estilo para todo el
+// catálogo y cada ficha individual, ya no uno por servicio.
+function obtenerPlantillaActiva(configuracionCatalogo) {
+  return { ...PLANTILLAS_CATALOGO[configuracionCatalogo.estiloBase], colorAcento: configuracionCatalogo.colorAcento };
 }
 
-function ItemCatalogoCard({ item, servicio, onQuitar, onCambiarPlantilla, onAgregarFotos, onGenerarFicha, generando }) {
+function ItemCatalogoCard({ item, servicio, onQuitar, onAgregarFotos, onGenerarFicha, generando }) {
   return (
     <View style={styles.itemCard}>
       <View style={styles.itemHeader}>
@@ -73,9 +55,6 @@ function ItemCatalogoCard({ item, servicio, onQuitar, onCambiarPlantilla, onAgre
           <Ionicons name="trash-outline" size={16} color={colors.error} />
         </TouchableOpacity>
       </View>
-
-      <Text style={styles.itemLabel}>Plantilla de esta ficha</Text>
-      <SelectorPlantilla claveSeleccionada={item.plantilla} onSeleccionar={onCambiarPlantilla} />
 
       {item.fotos.length > 0 && (
         <Text style={styles.fotosContador}>
@@ -107,11 +86,10 @@ export default function CatalogoScreen({ navigation }) {
     itemsCatalogo,
     tallerFormaTrabajo,
     tallerMonedaCobro,
-    plantillaCatalogoGeneral,
+    configuracionCatalogo,
     quitarDelCatalogo,
     actualizarItemCatalogo,
     actualizarDatosOperativos,
-    actualizarPlantillaGeneral,
   } = useCatalogo();
   const { servicios, cargandoServicios, errorCargaServicios, recargarServicios, getServicioById } = useServicios();
   const { nombreTaller, logoTaller, misDatos } = useTaller();
@@ -149,7 +127,7 @@ export default function CatalogoScreen({ navigation }) {
   async function handleGenerarFicha(item, servicio) {
     setGenerando(servicio.id);
     try {
-      const html = construirHtmlFicha(servicio, taller, datosOperativos, PLANTILLAS_CATALOGO[item.plantilla], item.fotos);
+      const html = construirHtmlFicha(servicio, taller, datosOperativos, obtenerPlantillaActiva(configuracionCatalogo), item.fotos);
       await generarYCompartirPdf(html, `${servicio.nombre} - Ficha.pdf`);
     } catch (err) {
       Alert.alert("No se pudo generar el PDF", "Probá de nuevo en unos segundos.");
@@ -161,12 +139,28 @@ export default function CatalogoScreen({ navigation }) {
   async function handleGenerarCatalogoCompleto() {
     setGenerando("completo");
     try {
-      const html = construirHtmlCatalogoCompleto(
+      // Filtrado por serviciosOcultos y orden por ordenServicios ANTES de
+      // pasarlo a construirHtmlCatalogoCompleto — a propósito acá y no
+      // adentro de catalogoPdf.js, que no debe conocer configuracionCatalogo.
+      const idsVisiblesOrdenados = construirOrdenCompletoCatalogo(
         itemsCatalogo,
+        configuracionCatalogo.ordenServicios
+      ).filter((servicioId) => !configuracionCatalogo.serviciosOcultos.includes(servicioId));
+      const itemsParaPdf = idsVisiblesOrdenados
+        .map((servicioId) => itemsCatalogo.find((item) => item.servicioId === servicioId))
+        .filter(Boolean);
+
+      const html = construirHtmlCatalogoCompleto(
+        itemsParaPdf,
         servicios,
         taller,
         datosOperativos,
-        PLANTILLAS_CATALOGO[plantillaCatalogoGeneral]
+        obtenerPlantillaActiva(configuracionCatalogo),
+        {
+          fotoPortada: configuracionCatalogo.fotoPortada,
+          textoLibre1: configuracionCatalogo.textoLibre1,
+          textoLibre2: configuracionCatalogo.textoLibre2,
+        }
       );
       await generarYCompartirPdf(html, `${nombreTaller} - Catálogo.pdf`);
     } catch (err) {
@@ -205,8 +199,20 @@ export default function CatalogoScreen({ navigation }) {
             />
           </View>
 
-          <Text style={styles.label}>Plantilla del catálogo completo</Text>
-          <SelectorPlantilla claveSeleccionada={plantillaCatalogoGeneral} onSeleccionar={actualizarPlantillaGeneral} />
+          <TouchableOpacity
+            style={styles.personalizarBoton}
+            onPress={() => navigation.navigate("EditorCatalogo")}
+            activeOpacity={0.85}
+          >
+            <View style={[styles.personalizarSwatch, { backgroundColor: obtenerPlantillaActiva(configuracionCatalogo).colorAcento }]} />
+            <View style={styles.personalizarTextos}>
+              <Text style={styles.personalizarTitulo}>Personalizar catálogo</Text>
+              <Text style={styles.personalizarSubtitulo}>
+                {PLANTILLAS_CATALOGO[configuracionCatalogo.estiloBase].nombre}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
 
           <View style={styles.botonCompleto}>
             <Button
@@ -228,7 +234,6 @@ export default function CatalogoScreen({ navigation }) {
                 item={item}
                 servicio={servicio}
                 onQuitar={() => quitarDelCatalogo(item.servicioId)}
-                onCambiarPlantilla={(clave) => actualizarItemCatalogo(item.servicioId, { plantilla: clave })}
                 onAgregarFotos={() => handleAgregarFotos(item.servicioId)}
                 onGenerarFicha={() => handleGenerarFicha(item, servicio)}
                 generando={generando === servicio.id}
@@ -260,48 +265,37 @@ const styles = StyleSheet.create({
   miniForm: {
     marginBottom: 4,
   },
-  label: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  plantillasFila: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  plantillaChip: {
+  personalizarBoton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingVertical: 12,
+    marginBottom: 16,
   },
-  plantillaChipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+  personalizarSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
-  swatch: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  personalizarTextos: {
+    flex: 1,
   },
-  plantillaTexto: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  plantillaTextoSeleccionado: {
+  personalizarTitulo: {
     fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  personalizarSubtitulo: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
   },
   botonCompleto: {
     marginBottom: 8,
@@ -353,14 +347,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
     alignItems: "center",
     justifyContent: "center",
-  },
-  itemLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 11,
-    color: colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 8,
   },
   fotosContador: {
     fontFamily: fonts.body,

@@ -6,6 +6,14 @@ import { escapeHtml } from "./pdf";
 
 export { generarYCompartirPdf } from "./pdf";
 
+// <link> a Google Fonts por CDN (plan A, más simple que embeber el archivo
+// de fuente en base64). Si en la práctica con expo-print/Expo Go no carga
+// bien (timing o sin conexión al generar), el plan B es @font-face con la
+// fuente embebida en base64 — no implementado todavía, ver aviso a Augusto.
+function bloqueFuentes(plantilla) {
+  return plantilla.googleFontsHref ? `<link rel="stylesheet" href="${plantilla.googleFontsHref}" />` : "";
+}
+
 function formatearPrecioCatalogo(precio, monedaCobro) {
   const numero = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(precio ?? 0);
   return `${monedaCobro ?? "ARS $"} ${numero}`;
@@ -140,6 +148,12 @@ function estilosBase(plantilla) {
       object-fit: cover;
       margin-bottom: 24px;
     }
+    .portada img.portada-foto {
+      width: 100%;
+      height: 320px;
+      border-radius: 16px;
+      margin-bottom: 32px;
+    }
     .portada-nombre {
       font-family: ${plantilla.fontTitulo};
       font-size: 38px;
@@ -246,6 +260,7 @@ export function construirHtmlFicha(servicio, taller, datosOperativos, plantilla,
     <html>
       <head>
         <meta charset="utf-8" />
+        ${bloqueFuentes(plantilla)}
         <style>${estilosBase(plantilla)}</style>
       </head>
       <body>
@@ -258,7 +273,21 @@ export function construirHtmlFicha(servicio, taller, datosOperativos, plantilla,
 }
 
 // HTML multi-página: portada, índice, y una sección por servicio.
-export function construirHtmlCatalogoCompleto(itemsCatalogo, servicios, taller, datosOperativos, plantilla) {
+// `personalizacion` ({ fotoPortada, textoLibre1, textoLibre2 }) viene del
+// Editor de Catálogo (ver CatalogoContext.js/EditorCatalogoScreen.js) — solo
+// se usa en la portada, las fichas individuales no la reciben porque no
+// tienen portada. `itemsCatalogo` debe llegar ya filtrado por
+// serviciosOcultos y ordenado por ordenServicios (lo hace CatalogoScreen.js
+// antes de llamar a esta función, no responsabilidad de este archivo).
+export function construirHtmlCatalogoCompleto(
+  itemsCatalogo,
+  servicios,
+  taller,
+  datosOperativos,
+  plantilla,
+  personalizacion
+) {
+  const { fotoPortada, textoLibre1, textoLibre2 } = personalizacion ?? {};
   const contacto = medioDeContacto(taller?.misDatos);
 
   const itemsConServicio = itemsCatalogo
@@ -291,16 +320,20 @@ export function construirHtmlCatalogoCompleto(itemsCatalogo, servicios, taller, 
     <html>
       <head>
         <meta charset="utf-8" />
+        ${bloqueFuentes(plantilla)}
         <style>${estilosBase(plantilla)}</style>
       </head>
       <body>
         <div class="pagina portada">
+          ${fotoPortada ? `<img class="portada-foto" src="${fotoPortada}" />` : ""}
           ${taller?.logoTaller ? `<img src="${taller.logoTaller}" />` : ""}
           <div class="portada-nombre">${escapeHtml(taller?.nombreTaller)}</div>
           <div class="portada-info">
+            ${textoLibre1 ? `<div>${escapeHtml(textoLibre1)}</div>` : ""}
             ${taller?.misDatos?.ubicacion ? `<div>${escapeHtml(taller.misDatos.ubicacion)}</div>` : ""}
             ${contacto ? `<div>${contacto}</div>` : ""}
             ${datosOperativos?.formaTrabajo ? `<div>Forma de trabajo: ${escapeHtml(datosOperativos.formaTrabajo)}</div>` : ""}
+            ${textoLibre2 ? `<div>${escapeHtml(textoLibre2)}</div>` : ""}
           </div>
         </div>
 
