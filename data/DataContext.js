@@ -294,6 +294,29 @@ export function DataProvider({ children }) {
     );
   }
 
+  // Corrige a mano cuánto queda de un insumo YA cargado, arrastrando el
+  // medidor visual de MoverCategoriaModal.js (MedidorNivelInsumo.js) — a
+  // diferencia de descontarInsumos (consumo real por receta, que solo mueve
+  // `nivel`) o reponerInsumo (envase nuevo, pisa capacidad/precio), acá el
+  // taller está ajustando el nivel del MISMO envase (ej. "en realidad queda
+  // menos de lo que decía"). Mantiene cantidadActual sincronizada con nivel
+  // (capacidadTotal × nivel/100) — null si el insumo no tiene capacidadTotal
+  // cargada, no hay con qué derivarla.
+  async function ajustarNivelInsumo(id, nivelNuevo) {
+    const insumo = misInsumos.find((i) => i.id === id);
+    const cantidadActual = insumo?.capacidadTotal > 0 ? insumo.capacidadTotal * (nivelNuevo / 100) : null;
+
+    const { error } = await supabase
+      .from("insumos")
+      .update({ nivel: nivelNuevo, cantidad_actual: cantidadActual })
+      .eq("id", id);
+    if (error) throw error;
+
+    setMisInsumos((actuales) =>
+      actuales.map((i) => (i.id === id ? { ...i, nivel: nivelNuevo, cantidadActual } : i))
+    );
+  }
+
   async function agregarCostoFijo({ nombre, monto }) {
     const { data, error } = await supabase
       .from("costos_fijos")
@@ -343,6 +366,7 @@ export function DataProvider({ children }) {
       eliminarInsumo,
       descontarInsumos,
       reponerInsumo,
+      ajustarNivelInsumo,
       insumosParaRenovar,
       descartarRenovacion,
       agregarCostoFijo,

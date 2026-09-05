@@ -1,27 +1,43 @@
 import { useEffect, useState } from "react";
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
+import MedidorNivelInsumo from "./MedidorNivelInsumo";
 import { useData } from "../data/DataContext";
 import { CATEGORIAS } from "../data/mockInsumos";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
-// Modal chico (bottom sheet) para mover un insumo ya cargado en "Mis
-// Insumos" a otra categoría de la estantería, o eliminarlo del todo. Se abre
-// desde un ProductoCasillero (ver MisInsumosScreen.js y
-// CategoriaInsumosModal.js).
+// Modal chico (bottom sheet) para ver/ajustar el nivel de un insumo ya
+// cargado en "Mis Insumos" (medidor de bidón, ver MedidorNivelInsumo.js),
+// moverlo a otra categoría, o eliminarlo del todo. Se abre desde un
+// ProductoCasillero (ver MisInsumosScreen.js y CategoriaInsumosModal.js).
 export default function MoverCategoriaModal({ visible, insumo, onClose }) {
-  const { moverInsumoDeCategoria, eliminarInsumo } = useData();
+  const { moverInsumoDeCategoria, eliminarInsumo, ajustarNivelInsumo } = useData();
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [ajustando, setAjustando] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (visible) setError(null);
   }, [visible, insumo?.id]);
 
+  async function handleCambiarNivel(nivelNuevo) {
+    if (!insumo || nivelNuevo === insumo.nivel) return;
+    setAjustando(true);
+    setError(null);
+    try {
+      await ajustarNivelInsumo(insumo.id, nivelNuevo);
+    } catch (err) {
+      setError("No se pudo actualizar el nivel del insumo. Probá de nuevo.");
+    } finally {
+      setAjustando(false);
+    }
+  }
+
   async function handleElegir(clave) {
-    if (!insumo || clave === insumo.categoria || guardando || eliminando) return;
+    if (!insumo || clave === insumo.categoria || guardando || eliminando || ajustando) return;
     setGuardando(true);
     setError(null);
     try {
@@ -60,16 +76,38 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      {/* react-native-gesture-handler no llega adentro de un <Modal> nativo a
+      través del GestureHandlerRootView de App.js (el modal abre su propia
+      jerarquía nativa) — mismo detalle que TrabajoNuevoWizard.js, hace falta
+      este wrapper propio para que el gesto de arrastre de
+      MedidorNivelInsumo.js funcione. */}
+      <GestureHandlerRootView style={styles.gestureRoot}>
       <View style={styles.fondo}>
         <View style={styles.contenedor}>
           <Text style={styles.titulo}>Mover a otra categoría</Text>
-          {insumo ? (
-            <Text style={styles.subtitulo} numberOfLines={1}>
-              {insumo.nombre}
-            </Text>
-          ) : null}
 
+          {/* Único scroll para todo el contenido variable (antes solo
+          scrolleaba la lista de categorías) — con el medidor nuevo sumando
+          ~200px, el contenido puede superar el maxHeight del bottom sheet;
+          así "Eliminar insumo"/"Cancelar" (fijos, fuera de este scroll)
+          siguen siempre alcanzables. */}
           <ScrollView style={styles.lista} showsVerticalScrollIndicator={false}>
+            {insumo ? (
+              <Text style={styles.subtitulo} numberOfLines={1}>
+                {insumo.nombre}
+              </Text>
+            ) : null}
+
+            {insumo && (
+              <View style={styles.medidorContenedor}>
+                <MedidorNivelInsumo
+                  insumo={insumo}
+                  onCambiarNivel={handleCambiarNivel}
+                  deshabilitado={guardando || eliminando || ajustando}
+                />
+              </View>
+            )}
+
             {Object.entries(CATEGORIAS).map(([clave, datos]) => {
               const esActual = insumo?.categoria === clave;
               return (
@@ -77,7 +115,7 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
                   key={clave}
                   style={[styles.opcion, esActual && styles.opcionActual]}
                   onPress={() => handleElegir(clave)}
-                  disabled={esActual || guardando || eliminando}
+                  disabled={esActual || guardando || eliminando || ajustando}
                   activeOpacity={0.8}
                 >
                   <View style={styles.opcionIcono}>
@@ -99,7 +137,7 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
           <TouchableOpacity
             style={styles.eliminarBoton}
             onPress={handleEliminar}
-            disabled={guardando || eliminando}
+            disabled={guardando || eliminando || ajustando}
             activeOpacity={0.85}
           >
             <Ionicons name="trash-outline" size={16} color={colors.error} />
@@ -108,18 +146,31 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
             </Text>
           </TouchableOpacity>
 
-          <Button title="Cancelar" variant="secondary" onPress={onClose} disabled={guardando || eliminando} />
+          <Button
+            title="Cancelar"
+            variant="secondary"
+            onPress={onClose}
+            disabled={guardando || eliminando || ajustando}
+          />
         </View>
       </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+  },
   fondo: {
     flex: 1,
     backgroundColor: "rgba(4, 3, 3, 0.7)",
     justifyContent: "flex-end",
+  },
+  medidorContenedor: {
+    marginTop: 4,
+    marginBottom: 4,
   },
   contenedor: {
     backgroundColor: colors.surface,
