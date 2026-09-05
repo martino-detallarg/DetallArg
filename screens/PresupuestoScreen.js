@@ -46,6 +46,7 @@ export default function PresupuestoScreen({ navigation }) {
   const [descripcionCliente, setDescripcionCliente] = useState("");
   const [tipoDescuento, setTipoDescuento] = useState("monto");
   const [valorDescuentoTexto, setValorDescuentoTexto] = useState("");
+  const [valorRecargoTexto, setValorRecargoTexto] = useState("");
   const [generandoPdf, setGenerandoPdf] = useState(false);
 
   function toggleServicio(id) {
@@ -64,7 +65,14 @@ export default function PresupuestoScreen({ navigation }) {
       : tipoDescuento === "porcentaje"
         ? totalServicios * (Math.min(valorDescuento, 100) / 100)
         : Math.min(valorDescuento, totalServicios);
-  const precioFinal = Math.max(0, totalServicios - montoDescuento);
+
+  // Recargo: mismo criterio que el descuento en %, pero sumando en vez de
+  // restando — sin tope superior (a diferencia del descuento, un recargo no
+  // tiene un máximo natural que respetar).
+  const valorRecargo = Math.max(0, Number(String(valorRecargoTexto).replace(",", ".")) || 0);
+  const montoRecargo = valorRecargo > 0 ? totalServicios * (valorRecargo / 100) : 0;
+
+  const precioFinal = Math.max(0, totalServicios + montoRecargo - montoDescuento);
 
   const costoInsumosTotal = serviciosElegidos.reduce((suma, s) => suma + costoInsumosServicio(s, getInsumoById), 0);
   const margenAbsoluto = precioFinal - costoInsumosTotal;
@@ -79,6 +87,7 @@ export default function PresupuestoScreen({ navigation }) {
         descripcionCliente: descripcion,
         servicios: serviciosElegidos,
         totalServicios,
+        recargo: montoRecargo > 0 ? { valor: valorRecargo, monto: montoRecargo } : null,
         descuento: montoDescuento > 0 ? { tipo: tipoDescuento, valor: valorDescuento, monto: montoDescuento } : null,
         precioFinal,
       });
@@ -157,6 +166,15 @@ export default function PresupuestoScreen({ navigation }) {
               </View>
             </View>
 
+            <Text style={styles.seccionTitulo}>Recargo (opcional)</Text>
+            <Text style={styles.recargoAyuda}>Por mayor tamaño, suciedad o complejidad del trabajo</Text>
+            <Input
+              value={valorRecargoTexto}
+              onChangeText={setValorRecargoTexto}
+              placeholder="0%"
+              keyboardType="numeric"
+            />
+
             <View style={styles.resultadoTarjeta}>
               <Text style={styles.resultadoTitulo}>Uso interno del taller</Text>
 
@@ -164,6 +182,13 @@ export default function PresupuestoScreen({ navigation }) {
                 <Text style={styles.resultadoLabel}>Subtotal</Text>
                 <Text style={styles.resultadoValor}>{formatearPesos(totalServicios)}</Text>
               </View>
+
+              {montoRecargo > 0 && (
+                <View style={styles.resultadoFila}>
+                  <Text style={styles.resultadoLabel}>Recargo</Text>
+                  <Text style={styles.resultadoValorRecargo}>+{formatearPesos(montoRecargo)}</Text>
+                </View>
+              )}
 
               {montoDescuento > 0 && (
                 <View style={styles.resultadoFila}>
@@ -295,6 +320,13 @@ const styles = StyleSheet.create({
   descuentoInputWrap: {
     flex: 1,
   },
+  recargoAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: -6,
+    marginBottom: 8,
+  },
   resultadoTarjeta: {
     backgroundColor: colors.surface,
     borderRadius: radii.card,
@@ -337,6 +369,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
     color: colors.accentLight,
+  },
+  resultadoValorRecargo: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.amber,
   },
   resultadoValorNegativo: {
     color: colors.error,

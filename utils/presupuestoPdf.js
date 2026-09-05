@@ -12,6 +12,7 @@ const COLOR_PRIMARIO = "#16232A";
 const COLOR_TEXTO_SECUNDARIO = "#5B6B72";
 const COLOR_ACENTO = "#3178A6";
 const COLOR_BORDE = "#DDE3E6";
+const COLOR_AMBER = "#D9A441";
 
 function estilos() {
   return `
@@ -103,6 +104,9 @@ function estilos() {
     .totales-fila.descuento {
       color: ${COLOR_ACENTO};
     }
+    .totales-fila.recargo {
+      color: ${COLOR_AMBER};
+    }
     .totales-fila.final {
       border-top: 2px solid ${COLOR_PRIMARIO};
       margin-top: 6px;
@@ -163,7 +167,16 @@ function bloqueServicios(servicios) {
   `;
 }
 
-function bloqueTotales({ totalServicios, descuento, precioFinal }) {
+function bloqueTotales({ totalServicios, recargo, descuento, precioFinal }) {
+  const filaRecargo = recargo
+    ? `
+      <div class="totales-fila recargo">
+        <span>Recargo (${recargo.valor}%)</span>
+        <span>+${formatearPesos(recargo.monto)}</span>
+      </div>
+    `
+    : "";
+
   const filaDescuento = descuento
     ? `
       <div class="totales-fila descuento">
@@ -179,6 +192,7 @@ function bloqueTotales({ totalServicios, descuento, precioFinal }) {
         <span>Subtotal</span>
         <span>${formatearPesos(totalServicios)}</span>
       </div>
+      ${filaRecargo}
       ${filaDescuento}
       <div class="totales-fila final">
         <span>Total</span>
@@ -203,9 +217,18 @@ function bloqueFooter(taller) {
 // datos son solo para la pantalla (uso interno del taller), nunca para este
 // documento. `descripcionCliente` es texto libre (no un Cliente real, ver
 // screens/PresupuestoScreen.js) y se omite del todo si no se cargó.
-// `descuento` es `{ tipo: "monto" | "porcentaje", valor, monto }` o `null`
-// si no se aplicó ninguno.
-export function construirHtmlPresupuesto({ taller, descripcionCliente, servicios, totalServicios, descuento, precioFinal }) {
+// `recargo` es `{ valor, monto }` (siempre %, ver PresupuestoScreen.js) o
+// `null` si no se aplicó ninguno. `descuento` es `{ tipo: "monto" |
+// "porcentaje", valor, monto }` o `null` si no se aplicó ninguno.
+export function construirHtmlPresupuesto({
+  taller,
+  descripcionCliente,
+  servicios,
+  totalServicios,
+  recargo,
+  descuento,
+  precioFinal,
+}) {
   return `
     <html>
       <head>
@@ -220,7 +243,7 @@ export function construirHtmlPresupuesto({ taller, descripcionCliente, servicios
 
           ${bloqueCliente(descripcionCliente)}
           ${bloqueServicios(servicios)}
-          ${bloqueTotales({ totalServicios, descuento, precioFinal })}
+          ${bloqueTotales({ totalServicios, recargo, descuento, precioFinal })}
           ${bloqueFooter(taller)}
         </div>
       </body>
