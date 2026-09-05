@@ -66,6 +66,7 @@ export function TallerProvider({ children }) {
   const [logoTaller, setLogoTaller] = useState(null);
   const [misDatos, setMisDatos] = useState(MIS_DATOS_VACIOS);
   const [plan, setPlan] = useState("basico");
+  const [onboardingCompletado, setOnboardingCompletado] = useState(true);
   const [horarios, setHorarios] = useState(horariosIniciales);
   const [cargandoTaller, setCargandoTaller] = useState(true);
   const [errorCargaTaller, setErrorCargaTaller] = useState(null);
@@ -113,6 +114,11 @@ export function TallerProvider({ children }) {
         situacionFiscal: data.situacion_fiscal ?? null,
       });
       setPlan(data.plan ?? "basico");
+      // ?? true: fallback seguro para el ratito entre que se pushea este
+      // código y Nico corre alter_talleres_onboarding.sql — hasta entonces
+      // la columna no existe, data.onboarding_completado viene undefined y
+      // no hay que mostrarle el wizard a nadie por error.
+      setOnboardingCompletado(data.onboarding_completado ?? true);
       setCargandoTaller(false);
     }
 
@@ -278,6 +284,15 @@ export function TallerProvider({ children }) {
     );
   }
 
+  // Wizard de bienvenida de 4 pasos (screens/onboarding/OnboardingWizard.js)
+  // — se llama una sola vez, al terminar el último paso (sea completándolo
+  // o salteándolo, ningún paso es obligatorio).
+  async function marcarOnboardingCompletado() {
+    const { error } = await supabase.from("talleres").update({ onboarding_completado: true }).eq("id", user.id);
+    if (error) throw error;
+    setOnboardingCompletado(true);
+  }
+
   // Sin pagos reales conectados: hoy solo lo llama el panel de pruebas de
   // MiEquipoScreen.js. El día que haya un flujo de compra real, este sigue
   // siendo el punto de entrada para actualizar el plan.
@@ -297,6 +312,8 @@ export function TallerProvider({ children }) {
       plan,
       limiteEmpleados,
       cambiarPlan,
+      onboardingCompletado,
+      marcarOnboardingCompletado,
       horarios,
       actualizarHorario,
       cargandoTaller,
@@ -312,6 +329,7 @@ export function TallerProvider({ children }) {
       misDatos,
       plan,
       limiteEmpleados,
+      onboardingCompletado,
       horarios,
       cargandoTaller,
       errorCargaTaller,

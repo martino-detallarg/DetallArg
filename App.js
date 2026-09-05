@@ -28,9 +28,10 @@ import VerifyEmailScreen from "./screens/VerifyEmailScreen";
 import OlvidePasswordScreen from "./screens/OlvidePasswordScreen";
 import RestablecerPasswordScreen from "./screens/RestablecerPasswordScreen";
 import DashboardNavigator from "./navigation/DashboardNavigator";
+import OnboardingWizard from "./screens/onboarding/OnboardingWizard";
 import { AuthProvider, useAuth } from "./data/AuthContext";
 import { DataProvider } from "./data/DataContext";
-import { TallerProvider } from "./data/TallerContext";
+import { TallerProvider, useTaller } from "./data/TallerContext";
 import { PedidoProvider } from "./data/PedidoContext";
 import { ClienteProvider } from "./data/ClienteContext";
 import { TurnoProvider } from "./data/TurnoContext";
@@ -166,9 +167,7 @@ function FlujoApp() {
                     <EquipoProvider>
                       <CatalogoProvider>
                         <FinanzasProvider>
-                          <NavigationContainer>
-                            <DashboardNavigator />
-                          </NavigationContainer>
+                          <ContenidoApp />
                         </FinanzasProvider>
                       </CatalogoProvider>
                     </EquipoProvider>
@@ -180,5 +179,28 @@ function FlujoApp() {
         </DataProvider>
       )}
     </>
+  );
+}
+
+// Vive DENTRO de todos los providers de la rama "app" (necesita useTaller())
+// y decide entre el wizard de bienvenida (screens/onboarding/OnboardingWizard.js,
+// una sola vez por taller nuevo) y la navegación real. No hace falta setear
+// ningún estado local al terminar el wizard: en cuanto
+// marcarOnboardingCompletado() actualiza onboardingCompletado a true (desde
+// adentro del wizard), este componente re-renderiza solo y cae a la rama de
+// abajo.
+function ContenidoApp() {
+  const { cargandoTaller, onboardingCompletado } = useTaller();
+
+  if (cargandoTaller) return null;
+
+  if (!onboardingCompletado) {
+    return <OnboardingWizard onTerminar={() => {}} />;
+  }
+
+  return (
+    <NavigationContainer>
+      <DashboardNavigator />
+    </NavigationContainer>
   );
 }
