@@ -15,9 +15,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
+import MedidorNivelInsumo from "./MedidorNivelInsumo";
 import { CATEGORIAS, UNIDADES_CAPACIDAD, catalogoInsumos } from "../data/mockInsumos";
 import { useData } from "../data/DataContext";
 import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
@@ -90,11 +92,33 @@ function CamposStock({
   onCambiarCantidadActual,
   tamanosEnvase,
   bloqueada = false,
+  idParaMedidor,
 }) {
   const precioFormateado = formatearMiles(precioDigitos);
 
   function handleCambiarPrecio(texto) {
     onCambiarPrecioDigitos(texto.replace(/\D/g, ""));
+  }
+
+  // El medidor solo tiene sentido una vez que hay una capacidad de envase
+  // válida cargada (necesita capacidadTotal/capacidadUnidad para dibujar las
+  // proporciones) — antes de eso no se muestra. Es una forma alternativa de
+  // fijar "cuánto tenés ahora": el nivel se deriva de cantidadActual en cada
+  // render (no hay todavía un insumo guardado con su propio `nivel`), así que
+  // tipear en el input numérico también mueve el medidor y viceversa.
+  const capacidadNumericaMedidor = Number(capacidadTotal.replace(",", "."));
+  const hayCapacidadValida =
+    capacidadTotal.trim() !== "" && !Number.isNaN(capacidadNumericaMedidor) && capacidadNumericaMedidor > 0;
+  const cantidadActualNumericaMedidor = Number(cantidadActual.replace(",", "."));
+  const nivelParaMedidor = hayCapacidadValida
+    ? Math.max(
+        0,
+        Math.min(100, Math.round(((cantidadActualNumericaMedidor || 0) / capacidadNumericaMedidor) * 100))
+      )
+    : 0;
+
+  function handleCambiarNivelMedidor(nivelNuevo) {
+    onCambiarCantidadActual(String(Math.round(capacidadNumericaMedidor * (nivelNuevo / 100))));
   }
 
   return (
@@ -168,6 +192,21 @@ function CamposStock({
           />
         </View>
       </View>
+
+      {hayCapacidadValida && (
+        <View style={styles.medidorContenedor}>
+          <MedidorNivelInsumo
+            insumo={{
+              id: idParaMedidor,
+              nivel: nivelParaMedidor,
+              capacidadTotal: capacidadNumericaMedidor,
+              capacidadUnidad,
+            }}
+            onCambiarNivel={handleCambiarNivelMedidor}
+            deshabilitado={bloqueada}
+          />
+        </View>
+      )}
     </>
   );
 }
@@ -353,6 +392,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
           onCambiarCantidadActual={setCantidadActual}
           tamanosEnvase={producto.tamanosEnvase}
           bloqueada={bloqueada}
+          idParaMedidor={producto.id}
         />
         {error && <Text style={styles.filaError}>{error}</Text>}
       </View>
@@ -546,6 +586,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
         cantidadActual={cantidadActual}
         onCambiarCantidadActual={setCantidadActual}
         bloqueada={guardando}
+        idParaMedidor="personalizado"
       />
 
       {error && <Text style={styles.filaError}>{error}</Text>}
@@ -650,6 +691,12 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleCerrar}>
+      {/* react-native-gesture-handler no llega adentro de un <Modal> nativo a
+      través del GestureHandlerRootView de App.js (el modal abre su propia
+      jerarquía nativa) — mismo detalle que MoverCategoriaModal.js, hace falta
+      este wrapper propio para que el gesto de arrastre de
+      MedidorNivelInsumo.js funcione acá también. */}
+      <GestureHandlerRootView style={styles.flexUno}>
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
           <KeyboardAvoidingView
@@ -717,6 +764,7 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
           </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -725,6 +773,10 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  medidorContenedor: {
+    marginTop: 4,
+    marginBottom: 4,
   },
   flexUno: {
     flex: 1,
