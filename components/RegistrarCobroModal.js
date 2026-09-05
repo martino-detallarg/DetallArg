@@ -21,6 +21,7 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState("");
   const [formaPago, setFormaPago] = useState(null);
+  const [facturado, setFacturado] = useState(false);
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -31,6 +32,7 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
       setMonto(turno?.precio != null ? String(turno.precio) : "");
       setFecha(formatearFechaDDMMAAAA(new Date()));
       setFormaPago(null);
+      setFacturado(false);
       setError(null);
     }
   }, [visible, turno]);
@@ -48,7 +50,7 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
     setCargando(true);
     setError(null);
     try {
-      await registrarCobro({ turnoId: turno.id, monto: montoNumerico, fecha, formaPago });
+      await registrarCobro({ turnoId: turno.id, monto: montoNumerico, fecha, formaPago, facturado });
       onClose();
     } catch (err) {
       setError("No se pudo registrar el cobro. Probá de nuevo.");
@@ -120,6 +122,25 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
                       <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
                         {FORMAS_PAGO[clave].etiqueta}
                       </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.label}>¿Facturado?</Text>
+              <View style={styles.chips}>
+                {[
+                  { valor: true, etiqueta: "Sí" },
+                  { valor: false, etiqueta: "No" },
+                ].map(({ valor, etiqueta }) => {
+                  const activo = facturado === valor;
+                  return (
+                    <TouchableOpacity
+                      key={etiqueta}
+                      style={[styles.chip, activo && styles.chipSeleccionado]}
+                      onPress={() => setFacturado(valor)}
+                    >
+                      <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>{etiqueta}</Text>
                     </TouchableOpacity>
                   );
                 })}

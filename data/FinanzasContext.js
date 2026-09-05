@@ -16,6 +16,7 @@ function filaACobro(fila) {
     monto: fila.monto,
     fecha: convertirFechaDesdeISO(fila.fecha),
     formaPago: fila.forma_pago,
+    facturado: fila.facturado,
   };
 }
 
@@ -26,11 +27,13 @@ function filaAGastoVariable(fila) {
     categoria: fila.categoria,
     fecha: convertirFechaDesdeISO(fila.fecha),
     descripcion: fila.descripcion ?? "",
+    facturado: fila.facturado,
+    comprobantePath: fila.comprobante_storage_path,
   };
 }
 
-const COLUMNAS_COBRO = "id, turno_id, monto, fecha, forma_pago";
-const COLUMNAS_GASTO_VARIABLE = "id, monto, categoria, fecha, descripcion";
+const COLUMNAS_COBRO = "id, turno_id, monto, fecha, forma_pago, facturado";
+const COLUMNAS_GASTO_VARIABLE = "id, monto, categoria, fecha, descripcion, facturado, comprobante_storage_path";
 
 // Fase A de Finanzas: registrar cobros de trabajos y cargar gastos variables
 // (tablas `cobros` y `gastos_variables`, ver supabase/schema.sql). Mismo
@@ -126,7 +129,7 @@ export function FinanzasProvider({ children }) {
   // Un turno = un cobro en v1 (sin pagos parciales) — TrabajoDetalleModal es
   // quien decide si ya existe un cobro para este turno antes de mostrar el
   // botón "Registrar cobro", esta función no lo valida de nuevo.
-  async function registrarCobro({ turnoId, monto, fecha, formaPago }) {
+  async function registrarCobro({ turnoId, monto, fecha, formaPago, facturado }) {
     const { data, error } = await supabase
       .from("cobros")
       .insert({
@@ -135,6 +138,7 @@ export function FinanzasProvider({ children }) {
         monto,
         fecha: convertirFechaAISO(fecha),
         forma_pago: formaPago,
+        facturado,
       })
       .select(COLUMNAS_COBRO)
       .single();
@@ -145,7 +149,7 @@ export function FinanzasProvider({ children }) {
     return nuevoCobro;
   }
 
-  async function agregarGastoVariable({ monto, categoria, fecha, descripcion }) {
+  async function agregarGastoVariable({ monto, categoria, fecha, descripcion, facturado, comprobantePath }) {
     const { data, error } = await supabase
       .from("gastos_variables")
       .insert({
@@ -154,6 +158,8 @@ export function FinanzasProvider({ children }) {
         categoria,
         fecha: convertirFechaAISO(fecha),
         descripcion: descripcion || null,
+        facturado,
+        comprobante_storage_path: comprobantePath || null,
       })
       .select(COLUMNAS_GASTO_VARIABLE)
       .single();
