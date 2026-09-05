@@ -25,6 +25,7 @@ import { useServicios } from "../data/ServicioContext";
 import { usePedido } from "../data/PedidoContext";
 import { UMBRAL_STOCK_BAJO } from "../data/mockInsumos";
 import { calcularRecordatoriosVencidos } from "../utils/recordatorios";
+import { calcularSaldoPendienteTurno } from "../utils/calculosFinanzas";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const CANTIDAD_PAGINAS = 3;
@@ -54,9 +55,11 @@ export default function NotificacionesScreen({ navigation }) {
   // sin ningún cobro asociado todavía.
   const cargandoTrabajos = cargandoTurnos || cargandoCobros;
   const errorTrabajos = errorCargaTurnos || errorCargaCobros;
-  const trabajosPendientesCobro = turnos.filter(
-    (turno) => ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado) && !cobros.some((c) => c.turnoId === turno.id)
-  );
+  const trabajosPendientesCobro = turnos.filter((turno) => {
+    if (!ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado)) return false;
+    const saldo = calcularSaldoPendienteTurno(turno, cobros);
+    return saldo === null || saldo > 0;
+  });
 
   const cargandoRecordatorios = cargandoTurnos || cargandoServicios;
   const errorRecordatorios = errorCargaTurnos || errorCargaServicios;
@@ -144,6 +147,7 @@ export default function NotificacionesScreen({ navigation }) {
                 turno={turno}
                 cliente={getClienteById(turno.clienteId)}
                 auto={getVehiculoById(turno.autoId)}
+                saldo={calcularSaldoPendienteTurno(turno, cobros)}
                 onPress={() => setTurnoParaCobrar(turno)}
               />
             ))
@@ -172,6 +176,10 @@ export default function NotificacionesScreen({ navigation }) {
       <RegistrarCobroModal
         visible={!!turnoParaCobrar}
         turno={turnoParaCobrar}
+        saldoPendiente={turnoParaCobrar ? calcularSaldoPendienteTurno(turnoParaCobrar, cobros) : undefined}
+        montoYaCobrado={
+          turnoParaCobrar ? cobros.filter((c) => c.turnoId === turnoParaCobrar.id).reduce((suma, c) => suma + c.monto, 0) : undefined
+        }
         onClose={() => setTurnoParaCobrar(null)}
       />
     </SafeAreaView>

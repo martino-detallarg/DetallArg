@@ -1,13 +1,18 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 // Tarjeta de la página "Trabajos" de Notificaciones: un turno ya
 // Finalizado/Entregado (ver ESTADOS_QUE_PERMITEN_COBRO en
-// NotificacionesScreen.js) que todavía no tiene un cobro registrado. Tocar
-// la tarjeta entera abre RegistrarCobroModal para ese turno — mismo modal
-// que ya usa TrabajoDetalleModal.js.
-export default function TrabajoPendienteCobroCard({ turno, cliente, auto, onPress }) {
+// NotificacionesScreen.js) con saldo pendiente (cero, parcial o ningún
+// cobro todavía — ver calcularSaldoPendienteTurno). Tocar la tarjeta entera
+// abre RegistrarCobroModal para ese turno — mismo modal que ya usa
+// TrabajoDetalleModal.js. `saldo` es opcional: si ya hay un cobro parcial
+// cargado (saldo < turno.precio), se avisa "Faltan $X" en vez del genérico
+// "Registrar cobro".
+export default function TrabajoPendienteCobroCard({ turno, cliente, auto, saldo, onPress }) {
+  const hayPagoParcial = saldo != null && turno.precio != null && saldo < turno.precio;
   return (
     <TouchableOpacity style={styles.tarjeta} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.encabezado}>
@@ -26,7 +31,7 @@ export default function TrabajoPendienteCobroCard({ turno, cliente, auto, onPres
 
       <View style={styles.cobroFila}>
         <Ionicons name="cash-outline" size={16} color={colors.accentLight} />
-        <Text style={styles.cobroTexto}>Registrar cobro</Text>
+        <Text style={styles.cobroTexto}>{hayPagoParcial ? `Faltan ${formatearPesos(saldo)}` : "Registrar cobro"}</Text>
       </View>
     </TouchableOpacity>
   );
