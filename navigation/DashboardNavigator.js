@@ -13,6 +13,7 @@ import PresupuestoScreen from "../screens/PresupuestoScreen";
 import MiEquipoScreen from "../screens/MiEquipoScreen";
 import FinanzasScreen from "../screens/FinanzasScreen";
 import CostosFijosScreen from "../screens/CostosFijosScreen";
+import CuentasPorCobrarScreen from "../screens/CuentasPorCobrarScreen";
 import NotificacionesScreen from "../screens/NotificacionesScreen";
 import SoporteScreen from "../screens/SoporteScreen";
 import MisHorariosScreen from "../screens/MisHorariosScreen";
@@ -65,6 +66,7 @@ function FinanzasStackNavigator() {
     <FinanzasStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <FinanzasStack.Screen name="Finanzas" component={FinanzasScreen} />
       <FinanzasStack.Screen name="CostosFijos" component={CostosFijosScreen} />
+      <FinanzasStack.Screen name="CuentasPorCobrar" component={CuentasPorCobrarScreen} />
     </FinanzasStack.Navigator>
   );
 }

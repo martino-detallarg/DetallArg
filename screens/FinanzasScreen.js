@@ -41,6 +41,7 @@ import {
   calcularProyeccionCierreMes,
   calcularPorcentajeInsumosSobreFacturacion,
   calcularDesgloseFacturado,
+  calcularCuentasPorCobrar,
   claveMes,
   claveMesDeFecha,
   costoInsumosTurno,
@@ -100,8 +101,8 @@ export default function FinanzasScreen({ navigation }) {
     errorCargaGastosVariables,
     eliminarGastoVariable,
   } = useFinanzas();
-  const { cargandoTurnos, errorCargaTurnos, getTurnoById } = useTurnos();
-  const { cargandoClientes, errorCargaClientes, getClienteById } = useClientes();
+  const { turnos, cargandoTurnos, errorCargaTurnos, getTurnoById } = useTurnos();
+  const { cargandoClientes, errorCargaClientes, getClienteById, getVehiculoById } = useClientes();
   const { nombreTaller, logoTaller, misDatos } = useTaller();
   const [paginaActiva, setPaginaActiva] = useState(0);
   const [modalGastoVisible, setModalGastoVisible] = useState(false);
@@ -110,6 +111,11 @@ export default function FinanzasScreen({ navigation }) {
   const anchoGrafico = width - PADDING_PANTALLA * 2 - 32;
 
   const totalCostosFijos = costosFijos.reduce((suma, c) => suma + c.monto, 0);
+
+  // Turnos ya terminados con saldo pendiente (sin cobro, o con un pago
+  // parcial que todavía no cubre el precio) — ver Cuentas por Cobrar.
+  const cuentasPorCobrar = calcularCuentasPorCobrar(turnos, cobros, getClienteById, getVehiculoById);
+  const totalCuentasPorCobrar = cuentasPorCobrar.reduce((suma, item) => suma + (item.saldo ?? 0), 0);
 
   const claveMesActual = claveMesDeFecha(new Date());
   const gastosVariablesDelMes = gastosVariables.filter((g) => claveMes(g.fecha) === claveMesActual);
@@ -385,6 +391,23 @@ export default function FinanzasScreen({ navigation }) {
           contentContainerStyle={styles.pagina}
           showsVerticalScrollIndicator={false}
         >
+          <TouchableOpacity
+            style={styles.cuentasPorCobrarTarjeta}
+            onPress={() => navigation.navigate("CuentasPorCobrar")}
+            activeOpacity={0.85}
+          >
+            <View style={styles.cuentasPorCobrarIcono}>
+              <Ionicons name="time-outline" size={20} color={colors.accentLight} />
+            </View>
+            <View style={styles.cuentasPorCobrarTextos}>
+              <Text style={styles.cuentasPorCobrarTitulo}>Cuentas por Cobrar</Text>
+              {totalCuentasPorCobrar > 0 && (
+                <Text style={styles.cuentasPorCobrarMonto}>{formatearPesos(totalCuentasPorCobrar)} adeudado</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+
           <View style={styles.tarjeta}>
             <View style={styles.tarjetaHeaderFila}>
               <Text style={styles.tarjetaTitulo}>Costos del mes</Text>
@@ -703,6 +726,41 @@ const styles = StyleSheet.create({
   pagina: {
     paddingHorizontal: PADDING_PANTALLA,
     paddingBottom: 20,
+  },
+  cuentasPorCobrarTarjeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 14,
+    marginBottom: 16,
+  },
+  cuentasPorCobrarIcono: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    backgroundColor: colors.accentDark,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cuentasPorCobrarTextos: {
+    flex: 1,
+  },
+  cuentasPorCobrarTitulo: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  cuentasPorCobrarMonto: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
   },
   tarjeta: {
     backgroundColor: colors.surface,
