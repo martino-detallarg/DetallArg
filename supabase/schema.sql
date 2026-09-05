@@ -158,7 +158,7 @@ create table insumos (
 
   -- Diluciones reales que puede usar el taller para este producto (array:
   -- reemplaza a la vieja columna `dilucion`, singular — ver AgregarInsumoModal.js).
-  diluciones        text[] not null default '{}',
+  diluciones        jsonb not null default '[]',
 
   -- Cuánto tiene el taller ahora mismo, en la unidad de `capacidad_unidad`.
   -- Se persiste tal cual (para poder recalcular/auditar después) además de
