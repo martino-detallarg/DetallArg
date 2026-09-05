@@ -8133,6 +8133,148 @@ export const catalogoInsumos = [
     "prioridadSugerida": null
   },
   {
+    "id": "gyeon-bathe-restart-wash",
+    "marca": "Gyeon",
+    "categoria": "lavado_exterior",
+    "nombre": "Bathe (Restart Wash)",
+    "descripcion": "Shampoo de mantenimiento descontaminante para autos con recubrimiento cerámico.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "gyeon-apc",
+    "marca": "Gyeon",
+    "categoria": "apc_desengrasante",
+    "nombre": "APC",
+    "descripcion": "Limpiador multiuso concentrado para uso exterior e interior.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "1L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "gyeon-bug-grime",
+    "marca": "Gyeon",
+    "categoria": "lavado_exterior",
+    "nombre": "Bug & Grime",
+    "descripcion": "Removedor de insectos y suciedad pesada.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "gyeon-total-remover",
+    "marca": "Gyeon",
+    "categoria": "pulido_correccion",
+    "nombre": "Total Remover",
+    "descripcion": "Removedor de ceras y selladores previos, para preparar la superficie antes de pulir o encerar de nuevo.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "gyeon-primer",
+    "marca": "Gyeon",
+    "categoria": "pulido_correccion",
+    "nombre": "Primer",
+    "descripcion": "Pulido y preparación de la pintura en un solo paso.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "120ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "gyeon-prep",
+    "marca": "Gyeon",
+    "categoria": "pulido_correccion",
+    "nombre": "Prep",
+    "descripcion": "Desengrasante de preparación previo a la aplicación de un recubrimiento cerámico.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "4L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "gyeon-odor-remover",
+    "marca": "Gyeon",
+    "categoria": "interior",
+    "nombre": "Odor Remover",
+    "descripcion": "Eliminador de olores para el interior del vehículo.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "gyeon-cure",
+    "marca": "Gyeon",
+    "categoria": "proteccion_sellado",
+    "nombre": "Cure",
+    "descripcion": "Booster/realzador para selladores cerámicos.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "gyeon-leather-shield-q2",
+    "marca": "Gyeon",
+    "categoria": "interior",
+    "nombre": "Leather Shield Q2",
+    "descripcion": "Sellador protector para cuero.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
     "id": "vintex-alumax",
     "marca": "Vintex",
     "categoria": "apc_desengrasante",
@@ -8307,6 +8449,309 @@ export const catalogoInsumos = [
     "rendimientoEstimado": null,
     "tamanosEnvase": [
       "250ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-shampoo-lava-autos-rojo-ph-neutro",
+    "marca": "Full Car",
+    "categoria": "lavado_exterior",
+    "nombre": "Shampoo Lava Autos Rojo pH Neutro",
+    "descripcion": "Shampoo pH neutro para lavado exterior, con buen poder espumígeno y desengrasante; no deja marcas en la pintura.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "480cc",
+      "5L",
+      "20L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-shampoo-espuma-activa-snow-foam-ph-neutro",
+    "marca": "Full Car",
+    "categoria": "lavado_exterior",
+    "nombre": "Shampoo Espuma Activa Snow Foam pH Neutro",
+    "descripcion": "Snow foam pH neutro de alto poder espumígeno, apto para máquina de espuma automática y agua dura.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "1L",
+      "5L",
+      "20L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-shampoo-lava-autos-verde",
+    "marca": "Full Car",
+    "categoria": "lavado_exterior",
+    "nombre": "Shampoo Lava Autos Verde",
+    "descripcion": "Shampoo para lavado exterior de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-limpia-tapizados-ecologico",
+    "marca": "Full Car",
+    "categoria": "interior",
+    "nombre": "Limpia Tapizados Ecológico",
+    "descripcion": "Limpiador ecológico para tapizados, se aplica con pulverizador.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "480cc"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-flash-wax",
+    "marca": "Full Car",
+    "categoria": "ceras",
+    "nombre": "Flash Wax (Cera de Acabado Ultra Brillo)",
+    "descripcion": "Cera de acabado de ultra brillo de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-brillo-express",
+    "marca": "Full Car",
+    "categoria": "ceras",
+    "nombre": "Brillo Express",
+    "descripcion": "Producto de brillo rápido de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-brillo-express-ptfe",
+    "marca": "Full Car",
+    "categoria": "ceras",
+    "nombre": "Brillo Express P.T.F.E.",
+    "descripcion": "Versión con P.T.F.E. del Brillo Express de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-removedor-de-insectos-x5l",
+    "marca": "Full Car",
+    "categoria": "lavado_exterior",
+    "nombre": "Removedor de Insectos x5L",
+    "descripcion": "Removedor de insectos para lavado exterior.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "5L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-motorlimp-tradicional",
+    "marca": "Full Car",
+    "categoria": "apc_desengrasante",
+    "nombre": "Motorlimp Tradicional",
+    "descripcion": "Desengrasante de motor de la línea Full Car, versión tradicional.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-motorlimp-a",
+    "marca": "Full Car",
+    "categoria": "apc_desengrasante",
+    "nombre": "Motorlimp A",
+    "descripcion": "Desengrasante de motor de la línea Full Car, versión A.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-motorlimp-plus",
+    "marca": "Full Car",
+    "categoria": "apc_desengrasante",
+    "nombre": "Motorlimp Plus",
+    "descripcion": "Desengrasante de motor de la línea Full Car, versión Plus.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-desengrasante-carrera",
+    "marca": "Full Car",
+    "categoria": "apc_desengrasante",
+    "nombre": "Desengrasante Carrera",
+    "descripcion": "Desengrasante de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "10L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-apc-all-purpose-cleaner",
+    "marca": "Full Car",
+    "categoria": "apc_desengrasante",
+    "nombre": "APC All Purpose Cleaner",
+    "descripcion": "Limpiador multiuso (all purpose cleaner) de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-revividor-de-gomas-eco-gel",
+    "marca": "Full Car",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Revividor de Gomas Eco-Gel",
+    "descripcion": "Revividor de gomas/llantas en gel de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-pasaruedas-dressing-exterior",
+    "marca": "Full Car",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Pasaruedas Dressing Exterior",
+    "descripcion": "Dressing exterior para pasaruedas de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-revividor-de-neumaticos-water-resistant",
+    "marca": "Full Car",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Revividor de Neumáticos Water Resistant",
+    "descripcion": "Revividor de neumáticos resistente al agua de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "full-car-revividor-neumaticos-tire-wet",
+    "marca": "Full Car",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Revividor Neumáticos Tire Wet",
+    "descripcion": "Revividor de neumáticos con efecto mojado (\"tire wet\") de la línea Full Car.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": null,
+    "prioridadSugerida": null
+  },
+  {
+    "id": "3d-wash-n-wax",
+    "marca": "3D",
+    "categoria": "lavado_exterior",
+    "nombre": "Wash N Wax",
+    "descripcion": "Shampoo con cera 2 en 1, pH balanceado, para lavado y encerado de la pintura en un solo paso.",
+    "diluciones": [
+      "2oz (~60ml) por galón de agua (~3,8L)"
+    ],
+    "dilucionRecomendada": "2oz (~60ml) por galón de agua (~3,8L)",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "16oz",
+      "1 galón"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "3d-orange-degreaser",
+    "marca": "3D",
+    "categoria": "apc_desengrasante",
+    "nombre": "Orange Degreaser",
+    "descripcion": "Limpiador cítrico multiuso biodegradable para grasa, aceite y adhesivos; se aplica directo sobre la superficie.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "16oz",
+      "1 galón"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "3d-yellow-degreaser-wheel-cleaner",
+    "marca": "3D",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Yellow Degreaser Wheel Cleaner",
+    "descripcion": "Limpiador de llantas heavy-duty no ácido, disuelve polvo de freno.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "16oz",
+      "1 galón"
     ],
     "prioridadSugerida": null
   }
