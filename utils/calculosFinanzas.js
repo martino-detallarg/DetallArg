@@ -48,8 +48,52 @@ export function costoInsumosServicio(servicio, getInsumoById) {
 // de insumos como 0 (el margen queda igual al monto cobrado completo) — no
 // hay forma de reconstruir qué insumos se usaron en un trabajo que ya no
 // existe, y es preferible a inventar un costo.
+//
+// Antes de permitir pagos parciales, un cobro = el 100% del turno, así que
+// restar el costo de insumos completo por cobro era correcto. Ahora que un
+// turno puede tener varios cobros (seña + resto, ver Cuentas por Cobrar), el
+// costo de insumos se prorratea según qué proporción del precio representa
+// ESTE cobro puntual — así, sumando todos los cobros de un mismo turno, el
+// costo de insumos se descuenta una sola vez en total, nunca una vez por
+// cobro. Sin `turno.precio` cargado no hay con qué prorratear: se le
+// asigna el costo completo a este cobro (mismo criterio conservador que
+// antes de este cambio).
 export function margenBrutoTrabajo(cobro, turno) {
-  return cobro.monto - costoInsumosTurno(turno);
+  const costoTotal = costoInsumosTurno(turno);
+  if (!turno?.precio || turno.precio <= 0) return cobro.monto - costoTotal;
+  const proporcion = cobro.monto / turno.precio;
+  return cobro.monto - costoTotal * proporcion;
+}
+
+// Saldo pendiente de un turno ya facturable (Finalizado/Entregado), sumando
+// TODOS sus cobros (no solo el primero — ver Cuentas por Cobrar). `null` si
+// el turno no tiene precio cargado (no hay con qué comparar, no es que
+// deba $0) — mismo criterio de "sin dato" que el resto de este archivo.
+export function calcularSaldoPendienteTurno(turno, cobros) {
+  if (turno.precio == null) return null;
+  const totalCobrado = cobros
+    .filter((c) => c.turnoId === turno.id)
+    .reduce((suma, c) => suma + c.monto, 0);
+  return turno.precio - totalCobrado;
+}
+
+const ESTADOS_TRABAJO_COBRABLE = ["Finalizado", "Entregado"];
+
+// Turnos ya terminados con saldo pendiente > 0 (o sin precio cargado, mismo
+// criterio de calcularSaldoPendienteTurno), ordenados por fecha del turno
+// ascendente (los más viejos = más atrasados, primero).
+export function calcularCuentasPorCobrar(turnos, cobros, getClienteById, getVehiculoById) {
+  return turnos
+    .filter((turno) => ESTADOS_TRABAJO_COBRABLE.includes(turno.estado))
+    .map((turno) => ({ turno, saldo: calcularSaldoPendienteTurno(turno, cobros) }))
+    .filter(({ saldo }) => saldo === null || saldo > 0)
+    .map(({ turno, saldo }) => ({
+      turno,
+      saldo,
+      cliente: getClienteById(turno.clienteId),
+      vehiculo: getVehiculoById(turno.autoId),
+    }))
+    .sort((a, b) => parsearFechaDDMMAAAA(a.turno.fecha) - parsearFechaDDMMAAAA(b.turno.fecha));
 }
 
 // Nombre a mostrar para el trabajo de un cobro, con el mismo fallback que
