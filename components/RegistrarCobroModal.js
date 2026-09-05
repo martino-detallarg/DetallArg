@@ -10,13 +10,17 @@ import Button from "./Button";
 import { useFinanzas } from "../data/FinanzasContext";
 import { ORDEN_FORMAS_PAGO, FORMAS_PAGO } from "../data/mockFinanzas";
 import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../utils/fecha";
+import { formatearPesos } from "../utils/formato";
 import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 // Registra el cobro de un turno ya Finalizado/Entregado (ver
-// TrabajoDetalleModal.js). Un turno = un cobro en v1: este modal solo se
-// abre cuando el turno todavía no tiene ninguno.
-export default function RegistrarCobroModal({ visible, turno, onClose }) {
+// TrabajoDetalleModal.js). Ahora admite pagos parciales (Cuentas por
+// Cobrar): `saldoPendiente`/`montoYaCobrado` son opcionales (undefined
+// cuando se abre desde un lugar que todavía no los calcula) — cuando vienen,
+// prefillean el monto con lo que falta en vez del precio completo del turno
+// y avisan cuánto ya se cobró, sin bloquear un pago distinto a mano.
+export default function RegistrarCobroModal({ visible, turno, saldoPendiente, montoYaCobrado, onClose }) {
   const { registrarCobro } = useFinanzas();
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState("");
@@ -29,7 +33,7 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
 
   useEffect(() => {
     if (visible) {
-      setMonto(turno?.precio != null ? String(turno.precio) : "");
+      setMonto(saldoPendiente != null ? String(saldoPendiente) : turno?.precio != null ? String(turno.precio) : "");
       setFecha(formatearFechaDDMMAAAA(new Date()));
       setFormaPago(null);
       setFacturado(false);
@@ -67,6 +71,12 @@ export default function RegistrarCobroModal({ visible, turno, onClose }) {
             <WizardHeader titulo="Registrar Cobro" paso={1} totalPasos={1} onAtras={onClose} />
 
             <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+              {montoYaCobrado > 0 && (
+                <Text style={styles.avisoParcial}>
+                  Ya cobraste {formatearPesos(montoYaCobrado)} de este trabajo. Este pago se suma como un abono más.
+                </Text>
+              )}
+
               <Input
                 label="Monto cobrado"
                 value={monto}
@@ -173,6 +183,17 @@ const styles = StyleSheet.create({
   contenido: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  avisoParcial: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.accentLight,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    padding: 12,
+    marginBottom: 16,
   },
   label: {
     fontFamily: fonts.bodySemiBold,

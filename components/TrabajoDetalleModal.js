@@ -7,6 +7,7 @@ import TelefonoConAcciones from "./TelefonoConAcciones";
 import { ESTADOS_TRABAJO } from "../data/mockData";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useServicios } from "../data/ServicioContext";
+import { calcularSaldoPendienteTurno } from "../utils/calculosFinanzas";
 import { formatearDuracion, formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
@@ -50,7 +51,9 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
 
   if (!turno || !cliente) return null;
 
-  const cobro = cobros.find((c) => c.turnoId === turno.id);
+  const cobrosDelTurno = cobros.filter((c) => c.turnoId === turno.id);
+  const totalCobrado = cobrosDelTurno.reduce((suma, c) => suma + c.monto, 0);
+  const saldoPendiente = calcularSaldoPendienteTurno(turno, cobros);
   const puedeCobrar = ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado);
   const hayCambioSinGuardar = estadoLocal !== turno.estado;
 
@@ -234,20 +237,26 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
             {puedeCobrar && (
               <View style={styles.tarjetaSeccion}>
                 <Text style={styles.tituloTarjeta}>Cobro</Text>
-                {cobro ? (
-                  <>
-                    <Text style={styles.campoLabel}>Monto cobrado</Text>
-                    <Text style={styles.campoValor}>{formatearPesos(cobro.monto)}</Text>
-                  </>
+                {totalCobrado > 0 && (
+                  <Text style={styles.campoValor}>
+                    Cobrado hasta ahora: {formatearPesos(totalCobrado)} de {formatearPesos(turno.precio)}
+                  </Text>
+                )}
+                {saldoPendiente === 0 ? (
+                  <Text style={styles.campoValor}>Cobrado por completo</Text>
                 ) : (
-                  <TouchableOpacity
-                    style={styles.cobroBoton}
-                    onPress={() => setModalCobroVisible(true)}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="cash-outline" size={16} color={colors.bg} />
-                    <Text style={styles.cobroBotonTexto}>Registrar cobro</Text>
-                  </TouchableOpacity>
+                  (saldoPendiente === null || saldoPendiente > 0) && (
+                    <TouchableOpacity
+                      style={styles.cobroBoton}
+                      onPress={() => setModalCobroVisible(true)}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="cash-outline" size={16} color={colors.bg} />
+                      <Text style={styles.cobroBotonTexto}>
+                        {totalCobrado > 0 ? "Registrar otro pago" : "Registrar cobro"}
+                      </Text>
+                    </TouchableOpacity>
+                  )
                 )}
               </View>
             )}
@@ -279,7 +288,13 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
       </View>
     </Modal>
 
-    <RegistrarCobroModal visible={modalCobroVisible} turno={turno} onClose={() => setModalCobroVisible(false)} />
+    <RegistrarCobroModal
+      visible={modalCobroVisible}
+      turno={turno}
+      saldoPendiente={saldoPendiente}
+      montoYaCobrado={totalCobrado}
+      onClose={() => setModalCobroVisible(false)}
+    />
     </>
   );
 }
