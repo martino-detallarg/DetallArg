@@ -20,17 +20,22 @@
 --   - Límite 5MB por archivo (vs. 2MB del logo — son fotos reales, no un
 --     logo chico, aunque el picker ya comprime con quality: 0.6), mismos
 --     mime types permitidos que logos.
+--
+-- Correr cada bloque por separado en el SQL Editor de Supabase, confirmando
+-- que cada uno terminó bien antes de seguir con el siguiente (ver
+-- [[feedback_sql_bloques_chicos_supabase]] — no agrupar nada en un
+-- begin;/commit;: agrupar el insert del bucket + las create policy fue lo
+-- que causó un rollback silencioso corriendo este mismo patrón).
 -- ============================================================================
 
-begin;
-
+-- 1) Bucket
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('fotos-danios', 'fotos-danios', false, 5242880, array['image/jpeg', 'image/png'])
 on conflict (id) do nothing;
 
--- Sin policy "to public": el bucket es privado, hace falta sesión + ser el
--- dueño de la carpeta (primer segmento de la ruta = auth.uid()) para leer o
--- subir.
+-- 2) Policy de lectura — sin "to public": el bucket es privado, hace falta
+-- sesión + ser el dueño de la carpeta (primer segmento de la ruta =
+-- auth.uid()) para leer o subir.
 drop policy if exists "fotos_danios_select_propio" on storage.objects;
 create policy "fotos_danios_select_propio"
   on storage.objects for select to authenticated
@@ -39,6 +44,7 @@ create policy "fotos_danios_select_propio"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+-- 3) Policy de inserción
 drop policy if exists "fotos_danios_insert_propio" on storage.objects;
 create policy "fotos_danios_insert_propio"
   on storage.objects for insert to authenticated
@@ -46,5 +52,3 @@ create policy "fotos_danios_insert_propio"
     bucket_id = 'fotos-danios'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
-
-commit;
