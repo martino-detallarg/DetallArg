@@ -51,7 +51,14 @@ create table talleres (
                        )),
 
   created_at         timestamptz not null default now(),
-  updated_at         timestamptz not null default now()
+  updated_at         timestamptz not null default now(),
+
+  -- Wizard de bienvenida de 4 pasos (screens/onboarding/OnboardingWizard.js).
+  -- Default true a propósito (ver alter_talleres_onboarding.sql): las
+  -- cuentas ya existentes al correr el ALTER quedan con el wizard saltado;
+  -- handle_new_user() la inserta en false explícitamente para altas nuevas.
+  -- ALTER corrido y verificado contra la base real el 2026-09-08.
+  onboarding_completado boolean not null default true
 );
 
 comment on table talleres is 'Un taller = un usuario logueado (auth.users). Fusiona datos del taller y "Mis Datos" del titular.';
@@ -298,6 +305,11 @@ create table turno_danios (
   id          uuid primary key default gen_random_uuid(),
   turno_id    uuid not null references turnos (id) on delete cascade,
   zona_id     text not null,
+  -- 'rasgada' (Auto/Camioneta/SUV) + 'grasa'/'quemado'/'trizado' (Moto) se
+  -- sumaron después de la versión original de este CHECK (ver
+  -- alter_turno_danios_tipos_moto.sql) — confirmado corrido contra la base
+  -- real el 2026-09-08 vía pg_get_constraintdef(oid) sobre pg_constraint,
+  -- no solo por estar documentado acá.
   tipos       text[] not null default '{}'
                 check (tipos <@ array[
                   'rayon', 'abolladura', 'oxido', 'repintado',
