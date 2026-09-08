@@ -1,8 +1,28 @@
 // Catálogo de referencia de insumos de detailing: la lista definitiva
 // investigada marca por marca (Vonixx, Vintex, Sonax, Meguiar's, Soft99,
-// Koch-Chemie, Chemical Guys, Menzerna, Gyeon — 489 productos), curada y
-// aprobada por Augusto. Reemplaza la lista de fantasía anterior.
+// Koch-Chemie, Chemical Guys, Menzerna, Gyeon, Full Car, 3D Car Care, CarPro,
+// Fireball, Infinity, XPEL, SunTek, STEK, 3M, Llumar, Ultra Fit, InvisiShield
+// — 631 productos), curada y aprobada por Augusto. Reemplaza la lista de
+// fantasía anterior.
 //
+// Actualización 07/09/2026: se sumaron CarPro (catálogo completo, 60
+// productos), Fireball (19 productos, marca argentina) e Infinity (9
+// productos, marca argentina de selladores cerámicos — no confundir con
+// "Infinity Wax" de UK, marca distinta no incluida). Detalle completo con
+// fuentes en claude/catalogo-insumos-referencia.md del proyecto.
+//
+// Actualización 08/09/2026: se sumó categoría nueva `ppf` con 7 marcas de
+// Paint Protection Film (XPEL, SunTek, STEK, 3M, Llumar, Ultra Fit,
+// InvisiShield — 2-3 líneas insignia por marca, 16 productos en total; carga
+// rápida a pedido de Augusto, sin research exhaustivo por marca ni
+// verificación de metrajes/tamaños de rollo por SKU — todos marcados "No
+// publicado" a propósito). Son productos FÍSICOS EN ROLLO, no líquidos: no
+// alimentan el costeo por envase/dilución del resto del catálogo, están acá
+// como referencia para cuando se construya la calculadora de presupuesto de
+// PPF (matriz m²/panel + costo del rollo — ver `claude/decisiones-mi-taller.md`,
+// sección PPF). Se sumaron también 9 lijas al agua (grano 400 a 7000, marca
+// "Genérica") en `accesorios_consumibles`, para pulido/restauración de
+// ópticas y corrección de pintura.
 // IMPORTANTE — de dónde sale cada campo y cómo se usa:
 // - `diluciones`: todas las opciones de dilución que publica la marca para
 //   ese producto (["Puro"] si se usa sin diluir). `dilucionRecomendada` es
@@ -41,6 +61,7 @@ export const CATEGORIAS = {
   llantas_neumaticos: { etiqueta: "Llantas y Neumáticos", icono: "ellipse-outline" },
   apc_desengrasante: { etiqueta: "APC / Desengrasante", icono: "sync-outline" },
   ceramicos: { etiqueta: "Cerámicos", icono: "diamond-outline" },
+  ppf: { etiqueta: "PPF (Paint Protection Film)", icono: "film-outline" },
 };
 
 // Agrupación en 4 páginas para la estantería de "Mis Insumos" (antes eran 2
@@ -55,7 +76,7 @@ export const PAGINAS_ESTANTERIA = [
   ["lavado_exterior", "apc_desengrasante"],
   ["interior", "proteccion_sellado"],
   ["pulido_correccion", "ceras", "ceramicos"],
-  ["vidrios", "llantas_neumaticos", "accesorios_consumibles"],
+  ["vidrios", "llantas_neumaticos", "accesorios_consumibles", "ppf"],
 ];
 
 export const ORDEN_CATEGORIAS = PAGINAS_ESTANTERIA.flat();
@@ -8753,6 +8774,1747 @@ export const catalogoInsumos = [
       "16oz",
       "1 galón"
     ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-lite-2-0",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "Cquartz Lite 2.0",
+    "descripcion": "Recubrimiento cerámico fácil de aplicar (wipe-on/wipe-off), interior o exterior, sol o sombra. Durabilidad reclamada 6-12+ meses.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No confirmado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-3-0",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "Cquartz 3.0 (CQ.UK 3.0)",
+    "descripcion": "Recubrimiento cerámico de la línea CQUARTZ, resistencia química pH 3-14 y tolerancia térmica extrema. Durabilidad real-world reclamada 18-24 meses.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "30ml",
+      "50ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-professional",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "Cquartz Professional (solo acreditados)",
+    "descripcion": "Recubrimiento cerámico de curado rápido para pintura y plásticos, solo para instaladores acreditados. Mejorada resistencia a sal e inviernos duros.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-sic",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "Cquartz SiC",
+    "descripcion": "Recubrimiento con Carburo de Silicio (SiC) para mayor resistencia química (pH 3-12), gloss y facilidad de aplicación.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "30ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-finest",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "Cquartz Finest (solo acreditados)",
+    "descripcion": "Recubrimiento insignia de última generación, blend epoxi + SiO2, solo para instaladores más capacitados.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-dquartz-g-force",
+    "marca": "CarPro",
+    "categoria": "vidrios",
+    "nombre": "DQ GForce (Dquartz G Force)",
+    "descripcion": "Recubrimiento de vidrio hidrofóbico de alta claridad basado en nanodiamante DQUARTZ.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-dquartz-go",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "Dquartz GO",
+    "descripcion": "Versión DIY del recubrimiento nanodiamante DQUARTZ, pensada para aplicación casera fácil.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-dquartz-pro",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "Dquartz PRO (solo acreditados)",
+    "descripcion": "Recubrimiento nanodiamante funcionalizado, usable como base bajo CQUARTZ Professional o standalone.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No confirmado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-gliss-2-0",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "CQUARTZ Gliss 2.0",
+    "descripcion": "Topcoat \"superslick\" para pintura, ángulo de contacto de agua >110°, oleofóbico. Standalone o topcoat sobre CQUARTZ/DQUARTZ.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "30ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-fabric-2-0",
+    "marca": "CarPro",
+    "categoria": "interior",
+    "nombre": "Cquartz Fabric 2.0",
+    "descripcion": "Recubrimiento hidrofóbico/antimanchas para telas y capotas de convertibles; no altera tacto ni look de la tela.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "100ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-leather-2-0",
+    "marca": "CarPro",
+    "categoria": "interior",
+    "nombre": "Cquartz Leather 2.0",
+    "descripcion": "Recubrimiento hidrofóbico para cuero (incl. Nappa) y vinilo; resistencia UV, manchas de jean, abrasión.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "30ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-dlux",
+    "marca": "CarPro",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Cquartz Dlux",
+    "descripcion": "Recubrimiento para llantas de aleación, plástico y goma desteñidos; capa más gruesa, 50% sílice.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "30ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-skin",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "Cquartz Skin",
+    "descripcion": "Recubrimiento para PPF, vinilos, clear bra y molduras plásticas; bloqueadores UV pesados.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-dlight",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "CQUARTZ DLight",
+    "descripcion": "Recubrimiento bloqueador UV (260-360nm) para faros, PPF y plásticos; hasta 3 años de durabilidad reclamada.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cquartz-blackout-2-0",
+    "marca": "CarPro",
+    "categoria": "llantas_neumaticos",
+    "nombre": "CQUARTZ BlackOut 2.0",
+    "descripcion": "Recubrimiento para neumáticos/goma con acabado satinado \"rugged\", resistente a sal/químicos/UV.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-nautik-2025",
+    "marca": "CarPro",
+    "categoria": "ceramicos",
+    "nombre": "NAUTIK 2025",
+    "descripcion": "Recubrimiento cerámico nano-epoxi marino para embarcaciones; resistencia a corrosión salina, UV, diésel, algas.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-reload-2-0",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "Reload 2.0",
+    "descripcion": "Sellador spray de sílice/siloxano para mantenimiento de recubrimientos CQUARTZ; standalone o topper. Hasta 3 meses de protección.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml",
+      "100ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-hydro2",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "HydrO2",
+    "descripcion": "Sellador de sílice spray-on con tecnología de fibra de vidrio nano; standalone o sobre CQUARTZ. Hasta 6+ meses.",
+    "diluciones": [
+      "1:6 (mínimo)"
+    ],
+    "dilucionRecomendada": "1:6 (mínimo)",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml (muestra)",
+      "500ml",
+      "1L",
+      "4L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-hydro2-lite",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "HydrO2 Lite",
+    "descripcion": "Versión lista para usar de HydrO2; mejora gloss/profundidad al instante, +3 meses de repelencia.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml",
+      "1L",
+      "4L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-hydro2-foam",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "HydrO2 Foam",
+    "descripcion": "Surfactante pH-neutro que lava y sella en un paso; protección hidrofóbica hasta 3 meses.",
+    "diluciones": [
+      "Cañón de espuma 1:9",
+      "Balde a mano 1:20"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml (muestra)"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-madmatte",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "MadMatte",
+    "descripcion": "Sellador spray de sílice específico para superficies mate/satinadas, PPF, wraps de vinilo y llantas.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml",
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-release",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "Release",
+    "descripcion": "Sellador nano a base de cera para proteger recubrimientos cerámicos frescos durante el curado; también QD standalone.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-elixir",
+    "marca": "CarPro",
+    "categoria": "proteccion_sellado",
+    "nombre": "EliXir",
+    "descripcion": "Quick detailer con nanotecnología cerámica; brillo y energía hidrofóbica extrema, rápido de aplicar.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-darkside",
+    "marca": "CarPro",
+    "categoria": "llantas_neumaticos",
+    "nombre": "DarkSide",
+    "descripcion": "Sellador concentrado listo para usar para neumáticos/goma, 60% polidimetilsiloxano, acabado satinado. +3 meses.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "50ml (muestra)",
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-perl",
+    "marca": "CarPro",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Perl",
+    "descripcion": "Dressing acuoso a base de SiO2 para plásticos/goma/cuero interior y exterior, acabado mate a semi-brillo.",
+    "diluciones": [
+      "Plásticos externos 1:3",
+      "Motor 1:1-1:3",
+      "Neumáticos/goma 1:0-1:1",
+      "Interior/tablero/cuero 1:5"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-retyre",
+    "marca": "CarPro",
+    "categoria": "llantas_neumaticos",
+    "nombre": "ReTyre",
+    "descripcion": "Limpiador de neumáticos/goma, alta espuma alcalina; remueve contaminación y dressing viejo, quita oxidación marrón.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-wheelx",
+    "marca": "CarPro",
+    "categoria": "llantas_neumaticos",
+    "nombre": "WheelX",
+    "descripcion": "Limpiador de llantas en un paso, rompe partículas ferrosas y suciedad de freno. No usar en aluminio sin recubrir.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-ironx",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "IronX",
+    "descripcion": "Removedor de contaminación ferrosa (frenos, riel, construcción), pH-7, libre de ácido. Cambia a rojo-púrpura al reaccionar.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml",
+      "4L/1gal"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-iron-x-lemon-scent",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "Iron-X Lemon Scent",
+    "descripcion": "Misma fórmula IronX, variante con aroma a limón.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-ironx-paste",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "IronX Paste",
+    "descripcion": "Versión pasta de IronX, se adhiere más tiempo a la superficie; misma fórmula pH-7.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-ironx-snow-soap",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "IronX Snow Soap",
+    "descripcion": "Descontaminante ferroso usable como snow foam, shampoo o lubricante de clay.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-ironx-lime-scale",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "IronX Lime Scale",
+    "descripcion": "Híbrido: remueve contaminación ferrosa y sarro/depósitos minerales (calcio/magnesio) en un solo paso. Advertencia: puede dañar recubrimientos cerámicos.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "4L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-trix",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "TriX",
+    "descripcion": "2 en 1 hierro + alquitrán, pH-7; ideal para llantas de aleación.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "100ml",
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-tarx",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "TarX",
+    "descripcion": "Removedor de alquitrán/adhesivo con ingredientes naturales, sin frotado agresivo.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-tarx-low-voc",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "TarX Low-VOC",
+    "descripcion": "Reformulación de TarX para cumplir regulaciones ambientales, misma potencia de limpieza.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-spotless-2-0",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "Spotless 2.0",
+    "descripcion": "Removedor de manchas de agua/depósitos minerales con ácidos más fuertes; evita pulido correctivo. No usar al sol ni sobre superficie caliente.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-descale",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "Descale",
+    "descripcion": "Shampoo ácido para suciedad difícil/agua dura; restaura propiedades del recubrimiento cerámico.",
+    "diluciones": [
+      "Balde 1:100",
+      "Espuma/spray 1:10"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-lift",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "Lift",
+    "descripcion": "Espumante de pre-lavado altamente concentrado, alcalino (pH 12), sin contacto; se usa antes de Reset.",
+    "diluciones": [
+      "1:10"
+    ],
+    "dilucionRecomendada": "1:10",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-bugout",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "BugOut",
+    "descripcion": "Removedor de insectos; ablanda enzimas proteicas antes de limpiar. No dejar más de 5 min ni al sol.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-ech2o",
+    "marca": "CarPro",
+    "categoria": "lavado_exterior",
+    "nombre": "ECH2O",
+    "descripcion": "Lavado en seco (waterless) + quick detailer + lubricante de clay, concentrado.",
+    "diluciones": [
+      "Lavado en seco 1:10-1:15",
+      "Quick detailer 1:15-1:25",
+      "Lubricante de clay 1:40",
+      "Rinseless ~2-3oz/3 gal"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": "500ml rinde hasta 2 gal (1:15, waterless), hasta 3.25 gal (1:25, QD) o hasta 5.25 gal (1:40, clay)",
+    "tamanosEnvase": [
+      "50ml (muestra)",
+      "500ml",
+      "1L",
+      "1 galón"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-eraser",
+    "marca": "CarPro",
+    "categoria": "pulido_correccion",
+    "nombre": "Eraser",
+    "descripcion": "Limpiador intensivo pre-coating: remueve aceites, siliconas y polvo de pulido; también fluido de inspección post-pulido.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-clearcut",
+    "marca": "CarPro",
+    "categoria": "pulido_correccion",
+    "nombre": "ClearCut",
+    "descripcion": "Compuesto de corte rápido, poco polvo; corrige rayas hasta P1000. Sin cera, filler ni silicona.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-ultracut",
+    "marca": "CarPro",
+    "categoria": "pulido_correccion",
+    "nombre": "UltraCut",
+    "descripcion": "Compuesto de corte extremo, abrasivos autodiminuyentes para defectos severos.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500gr"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-fixer",
+    "marca": "CarPro",
+    "categoria": "pulido_correccion",
+    "nombre": "Fixer",
+    "descripcion": "Compuesto pulidor de corte medio con nanotecnología y abrasivos autodiminuyentes; de rayas de lija a acabado final.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500gr"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-reflect",
+    "marca": "CarPro",
+    "categoria": "pulido_correccion",
+    "nombre": "Reflect",
+    "descripcion": "Pulido de acabado súper fino, \"mirror polish\" previo a aplicar recubrimientos CQUARTZ.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500gr"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-metallicut",
+    "marca": "CarPro",
+    "categoria": "pulido_correccion",
+    "nombre": "MetalliCut",
+    "descripcion": "Pulido de metal (acero inoxidable, aluminio, cromo) con polvos abrasivos de diamante.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500gr"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-essence",
+    "marca": "CarPro",
+    "categoria": "pulido_correccion",
+    "nombre": "Essence",
+    "descripcion": "Primer de brillo con cuarzo nanotecnológico, resinas y abrasivos finos; fillers semi-permanentes + protección SiO2.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500gr"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-essence-plus",
+    "marca": "CarPro",
+    "categoria": "pulido_correccion",
+    "nombre": "Essence+",
+    "descripcion": "Recubrimiento SiO2 nano que repara recubrimientos cerámicos existentes mejorando brillo (\"jeweling coat\").",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No confirmado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-ceriglass",
+    "marca": "CarPro",
+    "categoria": "vidrios",
+    "nombre": "CeriGlass",
+    "descripcion": "Pulido de vidrio con abrasivos cerámicos + óxido de cerio; remueve manchas de agua severas y rayas leves. Sin ácidos ni solventes fuertes.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-clarify",
+    "marca": "CarPro",
+    "categoria": "vidrios",
+    "nombre": "Clarify",
+    "descripcion": "Limpiavidrios dedicado que no daña recubrimientos hidrofóbicos de vidrio.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-clarify-phobic",
+    "marca": "CarPro",
+    "categoria": "vidrios",
+    "nombre": "Clarify PHOBIC",
+    "descripcion": "Limpiavidrios hidrofóbico streak-free; reduce chatter del limpiaparabrisas y mejora visibilidad.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-gofx",
+    "marca": "CarPro",
+    "categoria": "vidrios",
+    "nombre": "GoFX",
+    "descripcion": "Limpiador/restaurador de vidrio con fórmula química-abrasiva; remueve film oleoso, insectos, sellador viejo.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-claylube",
+    "marca": "CarPro",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Claylube",
+    "descripcion": "Lubricante para lijado/pulido/clay bar; fórmula deslizante sin polímeros ni realzadores de brillo.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-mfx",
+    "marca": "CarPro",
+    "categoria": "accesorios_consumibles",
+    "nombre": "MFX",
+    "descripcion": "Limpiador de microfibras y pads de pulido; remueve aceites/ceras/suciedad.",
+    "diluciones": [
+      "Microfibras: 50ml en el dispensador de detergente",
+      "Pads: 1:200 (50ml en 10L)"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-immogel",
+    "marca": "CarPro",
+    "categoria": "accesorios_consumibles",
+    "nombre": "ImmoGel",
+    "descripcion": "Lubricante concentrado de posicionamiento para instalación de PPF Immortal.",
+    "diluciones": [
+      "1:100"
+    ],
+    "dilucionRecomendada": "1:100",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-multix",
+    "marca": "CarPro",
+    "categoria": "apc_desengrasante",
+    "nombre": "MultiX",
+    "descripcion": "Limpiador multiuso concentrado, pre-lavado o limpieza profunda de fin de ciclo. No usar en cuero, aluminio sin recubrir ni metales sin recubrir.",
+    "diluciones": [
+      "1:20 (uso estándar)",
+      "hasta 1:100 (lavado a presión)"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-cleanse",
+    "marca": "CarPro",
+    "categoria": "interior",
+    "nombre": "Cleanse",
+    "descripcion": "Limpiador de cuero: limpia poros y superficie para preparar el acondicionado.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml",
+      "1L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-lotion",
+    "marca": "CarPro",
+    "categoria": "interior",
+    "nombre": "Lotion",
+    "descripcion": "Acondicionador de cuero: restaura suavidad, protege de UV.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-inside",
+    "marca": "CarPro",
+    "categoria": "interior",
+    "nombre": "Inside",
+    "descripcion": "Limpiador de interior para vinilo, plástico y cuero terminado; alta espuma. No dejar más de 5 min.",
+    "diluciones": [
+      "Limpieza liviana/plásticos 1:5",
+      "Alcantara 1:10"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "carpro-innerqd",
+    "marca": "CarPro",
+    "categoria": "interior",
+    "nombre": "InnerQD",
+    "descripcion": "Spray antiestático y antimicrobiano diario para interior; protección hasta 4 semanas.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-reborn",
+    "marca": "Fireball",
+    "categoria": "apc_desengrasante",
+    "nombre": "Reborn",
+    "descripcion": "Preparador de superficie / desengrasante IPA que elimina impurezas oleosas antes de aplicar ceras o sellados.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-angel-tears",
+    "marca": "Fireball",
+    "categoria": "ceramicos",
+    "nombre": "Angel Tears",
+    "descripcion": "Sellador/coating cerámico de instalación fácil, alta hidrofobicidad y brillo profesional. Durabilidad publicada de 24 a 36 meses.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "35ml",
+      "50ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-nano-coat",
+    "marca": "Fireball",
+    "categoria": "ceramicos",
+    "nombre": "Nano Coat",
+    "descripcion": "Coating cerámico DIY, capa superhidrofóbica sobre pintura, llantas y plásticos, con realce de brillo y color. Durabilidad publicada de 6 meses a 3 años según versión.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "35ml",
+      "50ml",
+      "250ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-maui",
+    "marca": "Fireball",
+    "categoria": "ceramicos",
+    "nombre": "Maui",
+    "descripcion": "Sellador cerámico en spray, aporta suavidad, brillo y repelencia al agua. Durabilidad publicada hasta 12 meses.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "30ml",
+      "200ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-pirouette",
+    "marca": "Fireball",
+    "categoria": "proteccion_sellado",
+    "nombre": "Pirouette",
+    "descripcion": "Booster/sellador spray con SiO2, microsílica y polímeros sintéticos; efecto \"vidrio\" húmedo o seco, con o sin coating previo.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-tank-2024",
+    "marca": "Fireball",
+    "categoria": "proteccion_sellado",
+    "nombre": "Tank 2024",
+    "descripcion": "Sellador SiO2 con grafeno, capa hidrofóbica, aumenta brillo y ayuda a disimular micro-imperfecciones.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": "1 botella de 400ml rinde para hasta 20 vehículos (según uso)",
+    "tamanosEnvase": [
+      "400ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-iron-burn",
+    "marca": "Fireball",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Iron Burn",
+    "descripcion": "Descontaminante/limpiador férrico para llantas; cambia de color al actuar, extrae hierro y ayuda a prevenir oxidación.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-tire-sio2",
+    "marca": "Fireball",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Tire SiO2",
+    "descripcion": "Acondicionador de cubiertas con SiO2, acabado satinado, resiste el lavado, repele polvo/agua y evita el blanqueo por UV.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-nappa-cleaner",
+    "marca": "Fireball",
+    "categoria": "apc_desengrasante",
+    "nombre": "Nappa Cleaner",
+    "descripcion": "Limpiador multipropósito biodegradable y no inflamable, quita grasa, tierra y manchas rebeldes.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-nappa-coat",
+    "marca": "Fireball",
+    "categoria": "interior",
+    "nombre": "Nappa Coat",
+    "descripcion": "Acondicionador/coating \"2 en 1\" para plástico, vinilo, cuero y tela; deja terminación mate, con bloqueadores UV y neutralizador de olores.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-bug-cleaner",
+    "marca": "Fireball",
+    "categoria": "apc_desengrasante",
+    "nombre": "Bug Cleaner",
+    "descripcion": "Limpiador quita insectos/bichos, deja acabado brillante sin marcas.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-tropical-shampoo",
+    "marca": "Fireball",
+    "categoria": "lavado_exterior",
+    "nombre": "Tropical Shampoo",
+    "descripcion": "Shampoo de lavado concentrado, pH neutro (7.5), alta lubricidad, apto para pintura y PPF.",
+    "diluciones": [
+      "1:1000",
+      "1:1500"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": "Más de 64 baldes de lavado por botella de 500ml",
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-esmerald-green-shampoo",
+    "marca": "Fireball",
+    "categoria": "lavado_exterior",
+    "nombre": "Esmerald Green Shampoo",
+    "descripcion": "Shampoo concentrado, pH neutro, gran espuma y efecto deslizante, apto para superficies enceradas/con cerámico.",
+    "diluciones": [
+      "1:1000"
+    ],
+    "dilucionRecomendada": "1:1000",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-hydro-shampoo",
+    "marca": "Fireball",
+    "categoria": "lavado_exterior",
+    "nombre": "Hydro Shampoo",
+    "descripcion": "Shampoo \"2 en 1\", lava y aporta protección hidrofóbica con SiO2; revitaliza coatings cerámicos existentes.",
+    "diluciones": [
+      "1:300",
+      "1:500"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": "30-60ml alcanzan para lavar un auto completo",
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-super-star-shampoo",
+    "marca": "Fireball",
+    "categoria": "lavado_exterior",
+    "nombre": "Super Star Shampoo",
+    "descripcion": "Shampoo concentrado pH neutro, seguro para PPF y vinilos, pensado para el método de 3 baldes.",
+    "diluciones": [
+      "1:700"
+    ],
+    "dilucionRecomendada": "1:700",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "1L"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-ghost-wax",
+    "marca": "Fireball",
+    "categoria": "ceras",
+    "nombre": "Ghost Wax",
+    "descripcion": "Cera en pasta premium, carnauba + polímeros, acabado satinado con brillo intenso e hidrofobicidad.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-fusion-wax",
+    "marca": "Fireball",
+    "categoria": "ceras",
+    "nombre": "Fusion Wax",
+    "descripcion": "Cera en pasta, 45% carnauba brasileña T1 + partículas SiO2, terminación satinada con brillo e hidrofobicidad intensos; base para el coating Tourbillion de Fireball.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": "Protección de 6 a 8 semanas",
+    "tamanosEnvase": [
+      "150ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-sexy-lady-wax",
+    "marca": "Fireball",
+    "categoria": "ceras",
+    "nombre": "Sexy Lady Wax",
+    "descripcion": "Cera en pasta, 35% carnauba brasileña T1 pura, acabado brillante intenso e hidrofóbico.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": "Protección de 6 a 8 semanas",
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "fireball-graphene-show-car-wax",
+    "marca": "Fireball",
+    "categoria": "ceras",
+    "nombre": "Graphene Show Car Wax",
+    "descripcion": "Cera en pasta con grafeno, 34% carnauba brasileña T1 + partículas SiO2, brillo profundo y color intenso.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": "Protección de 6 a 8 semanas",
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-ceramic-coat-premium",
+    "marca": "Infinity",
+    "categoria": "ceramicos",
+    "nombre": "Ceramic Coat Premium",
+    "descripcion": "Sellador cerámico a base de óxido de silicio (SiO2); forma matriz tridimensional con dureza, brillo e hidrofobia. Protección publicada hasta 12 meses. Apto pintura, plásticos sin pintar, metal y cromados.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": "1-2 autos por envase",
+    "tamanosEnvase": [
+      "50ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-ceramic-coat-eco",
+    "marca": "Infinity",
+    "categoria": "ceramicos",
+    "nombre": "Ceramic Coat Eco",
+    "descripcion": "Sellador cerámico, línea \"eco\" de Infinity. Sin descripción técnica detallada publicada por los distribuidores relevados.",
+    "diluciones": [
+      "No publicada"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-ceramic-spray-sealant",
+    "marca": "Infinity",
+    "categoria": "ceramicos",
+    "nombre": "Ceramic Spray Sealant SiO2",
+    "descripcion": "Sellador cerámico en spray a base de SiO2, protección publicada hasta 12 meses, brillo e hidrofobia; usable solo o como potenciador de un coating ya instalado.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "100ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-polymer-spray-sealant",
+    "marca": "Infinity",
+    "categoria": "proteccion_sellado",
+    "nombre": "Polymer Spray Sealant",
+    "descripcion": "Sellador sintético en spray, aplicable en pintura, llantas, vidrios, metal y plástico; capa gruesa de polímeros, brillo profundo e hidrofobia.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": "Durabilidad hasta 3 meses (aplicación rápida) o hasta 6 meses (con preparación previa usando Infinity Degreaser)",
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-paste-wax",
+    "marca": "Infinity",
+    "categoria": "ceras",
+    "nombre": "Paste Wax (Cera Híbrida de Carnauba y Polímeros)",
+    "descripcion": "Cera en pasta: mezcla de 3 ceras naturales (incl. carnauba) + polímero híbrido. Mejora brillo, profundidad de color y perlado de agua; también usable sobre coating cerámico.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "150g"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-tire-car-gel",
+    "marca": "Infinity",
+    "categoria": "llantas_neumaticos",
+    "nombre": "Tire Car Gel (High Gloss Tire)",
+    "descripcion": "Gel acondicionador para cubiertas y gomas, efecto mojado/alto brillo, resistente a UV, absorción profunda, bajo consumo por aplicación.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-interior-dressing-matte",
+    "marca": "Infinity",
+    "categoria": "interior",
+    "nombre": "Interior Dressing Matte",
+    "descripcion": "Recubrimiento reactivo para plásticos interiores, sin silicona, acabado mate, forma unión directa con el plástico, protección UV.",
+    "diluciones": [
+      "Puro"
+    ],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "500ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-degreaser",
+    "marca": "Infinity",
+    "categoria": "apc_desengrasante",
+    "nombre": "Degreaser (Inspector Degreaser)",
+    "descripcion": "Desengrasante no abrasivo: remueve aceites, residuos de pulido, rellenos y grasa para mejorar el anclaje de selladores/coatings. Listado también como \"Inspector Degreaser\" en algún distribuidor — mismo producto, no confirmado si son dos SKU distintos.",
+    "diluciones": [
+      "1:10",
+      "hasta 1:300 según necesidad"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "200ml"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "infinity-shampoo-neutral",
+    "marca": "Infinity",
+    "categoria": "lavado_exterior",
+    "nombre": "Shampoo Neutral",
+    "descripcion": "Shampoo pH neutro y biodegradable, alta espuma, capacidad lubricante para reducir microrayado durante el lavado.",
+    "diluciones": [
+      "hasta 1:1000"
+    ],
+    "dilucionRecomendada": "Sin recomendación oficial",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": [
+      "No publicado"
+    ],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "xpel-ultimate-plus",
+    "marca": "XPEL",
+    "categoria": "ppf",
+    "nombre": "Ultimate Plus",
+    "descripcion": "Línea insignia de PPF (film de protección de pintura) de XPEL, acabado brillante, autoadherente. Producto físico en rollo, no líquido — se usa con la calculadora de presupuesto de PPF (a construir): el taller carga precio y metraje real del rollo comprado al agregarlo al stock.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "xpel-stealth",
+    "marca": "XPEL",
+    "categoria": "ppf",
+    "nombre": "Stealth",
+    "descripcion": "PPF de XPEL con acabado mate. Mismo criterio de carga que el resto de PPF: precio y metraje del rollo se cargan al agregarlo al stock.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "xpel-fusion-plus",
+    "marca": "XPEL",
+    "categoria": "ppf",
+    "nombre": "Fusion Plus",
+    "descripcion": "PPF de XPEL más flexible, pensado para paneles de curvas cerradas y ópticas/faros. Mismo criterio de carga que el resto de PPF.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "suntek-ultra",
+    "marca": "SunTek",
+    "categoria": "ppf",
+    "nombre": "Ultra",
+    "descripcion": "Línea insignia de PPF de SunTek, acabado brillante. Mismo criterio de carga que el resto de PPF: precio y metraje del rollo se cargan al agregarlo al stock.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "suntek-ultra-matte",
+    "marca": "SunTek",
+    "categoria": "ppf",
+    "nombre": "Ultra Matte",
+    "descripcion": "PPF de SunTek con acabado mate. Mismo criterio de carga que el resto de PPF.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "stek-dynoshield",
+    "marca": "STEK",
+    "categoria": "ppf",
+    "nombre": "DYNOshield",
+    "descripcion": "Línea insignia de PPF de STEK (TPU), acabado brillante. Mismo criterio de carga que el resto de PPF: precio y metraje del rollo se cargan al agregarlo al stock.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "stek-dynomatte",
+    "marca": "STEK",
+    "categoria": "ppf",
+    "nombre": "DYNOmatte",
+    "descripcion": "PPF de STEK con acabado mate. Mismo criterio de carga que el resto de PPF.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "3m-scotchgard-pro-series",
+    "marca": "3M",
+    "categoria": "ppf",
+    "nombre": "Scotchgard Pro Series",
+    "descripcion": "Línea insignia actual de PPF de 3M, acabado brillante. Mismo criterio de carga que el resto de PPF: precio y metraje del rollo se cargan al agregarlo al stock.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "3m-scotchgard-pro-series-matte",
+    "marca": "3M",
+    "categoria": "ppf",
+    "nombre": "Scotchgard Pro Series Matte",
+    "descripcion": "PPF de 3M con acabado mate. Mismo criterio de carga que el resto de PPF.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "llumar-ppf-platinum",
+    "marca": "Llumar",
+    "categoria": "ppf",
+    "nombre": "PPF Platinum",
+    "descripcion": "Línea clásica de PPF de Llumar, acabado brillante. Mismo criterio de carga que el resto de PPF: precio y metraje del rollo se cargan al agregarlo al stock.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "llumar-fusion-ppf",
+    "marca": "Llumar",
+    "categoria": "ppf",
+    "nombre": "Fusion PPF",
+    "descripcion": "Línea más reciente de PPF de Llumar, mayor capacidad autorreparable. Mismo criterio de carga que el resto de PPF.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "ultrafit-evo",
+    "marca": "Ultra Fit",
+    "categoria": "ppf",
+    "nombre": "Ultrafit EVO",
+    "descripcion": "Línea insignia de PPF (TPU) de Ultra Fit, acabado brillante. Mismo criterio de carga que el resto de PPF: precio y metraje del rollo se cargan al agregarlo al stock.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "ultrafit-carbon-ppf",
+    "marca": "Ultra Fit",
+    "categoria": "ppf",
+    "nombre": "Carbon PPF",
+    "descripcion": "PPF de Ultra Fit con textura carbono. Mismo criterio de carga que el resto de PPF.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "ultrafit-color-ppf",
+    "marca": "Ultra Fit",
+    "categoria": "ppf",
+    "nombre": "Color PPF",
+    "descripcion": "PPF de Ultra Fit con color. Mismo criterio de carga que el resto de PPF.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "invisishield-ppf-gloss",
+    "marca": "InvisiShield",
+    "categoria": "ppf",
+    "nombre": "PPF Gloss",
+    "descripcion": "PPF de InvisiShield, acabado brillante. Mismo criterio de carga que el resto de PPF: precio y metraje del rollo se cargan al agregarlo al stock.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "invisishield-ppf-matte",
+    "marca": "InvisiShield",
+    "categoria": "ppf",
+    "nombre": "PPF Matte",
+    "descripcion": "PPF de InvisiShield con acabado mate. Mismo criterio de carga que el resto de PPF.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["No publicado — se carga el metraje real del rollo al comprarlo"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-400",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 400",
+    "descripcion": "Lija al agua (wet sanding) grano 400, usada para corrección de pintura pesada y preparación de superficie antes de compound.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-600",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 600",
+    "descripcion": "Lija al agua (wet sanding) grano 600, usada para corrección de pintura y preparación de superficie antes de compound.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-800",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 800",
+    "descripcion": "Lija al agua (wet sanding) grano 800, usada en pulido/restauración de ópticas (faros) y corrección de pintura.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-1000",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 1000",
+    "descripcion": "Lija al agua (wet sanding) grano 1000, usada en pulido/restauración de ópticas (faros) y corrección de pintura.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-1500",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 1500",
+    "descripcion": "Lija al agua (wet sanding) grano 1500, usada en pulido/restauración de ópticas (faros) y corrección de pintura fina.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-2000",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 2000",
+    "descripcion": "Lija al agua (wet sanding) grano 2000, usada en pulido/restauración de ópticas (faros) y corrección de pintura fina.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-3000",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 3000",
+    "descripcion": "Lija al agua (wet sanding) grano 3000, usada en pulido/restauración de ópticas (faros), grano fino para acabado.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-5000",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 5000",
+    "descripcion": "Lija al agua (wet sanding) grano 5000, grano muy fino para pulido de ópticas (faros) previo a compound de acabado.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
+    "prioridadSugerida": null
+  },
+  {
+    "id": "lija-agua-grano-7000",
+    "marca": "Genérica",
+    "categoria": "accesorios_consumibles",
+    "nombre": "Lija al agua grano 7000",
+    "descripcion": "Lija al agua (wet sanding) grano 7000, grano ultra fino para pulido de ópticas (faros) previo a compound de acabado.",
+    "diluciones": ["Puro"],
+    "dilucionRecomendada": "Puro",
+    "rendimientoEstimado": null,
+    "tamanosEnvase": ["Hoja individual"],
     "prioridadSugerida": null
   }
 ];
