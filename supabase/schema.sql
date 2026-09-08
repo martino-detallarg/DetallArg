@@ -360,11 +360,18 @@ comment on table turno_receta_aplicada is
 -- 7. FINANZAS (FinanzasContext) — Fase A: cobros de trabajos y gastos
 -- variables. Sin cambios a insumos/servicios/turnos — son dos tablas nuevas,
 -- pensadas para no pisar la migración de Nico.
+--
+-- cobros y gastos_variables + su RLS quedaron documentadas acá desde el
+-- commit ab974fe pero recién se corrieron contra la base real y se
+-- verificaron el 2026-09-07 (ver supabase/crear_cobros_y_gastos_variables.sql
+-- — confirmado con information_schema y PostgREST, 5 policies verificadas).
+-- Hasta esa fecha, Finanzas Fase A completa estuvo rota en producción.
 -- ----------------------------------------------------------------------------
 
--- Cobro de un trabajo ya realizado. Un turno = un cobro en v1 (sin pagos
--- parciales): la UI (TrabajoDetalleModal) no deja registrar un segundo cobro
--- si el turno ya tiene uno asociado.
+-- Cobro de un trabajo ya realizado. Admite pagos parciales: un turno puede
+-- tener varios cobros asociados (ver RegistrarCobroModal.js/
+-- calcularSaldoPendienteTurno en utils/calculosFinanzas.js) — ya no es "un
+-- turno = un cobro" como en la v1 original de este comentario.
 create table cobros (
   id           uuid primary key default gen_random_uuid(),
   taller_id    uuid not null references talleres (id) on delete cascade,
@@ -376,7 +383,12 @@ create table cobros (
   monto        numeric(12, 2) not null check (monto > 0),
   fecha        date not null,
   forma_pago   text check (forma_pago in ('efectivo', 'transferencia', 'tarjeta', 'otro')),
-  created_at   timestamptz not null default now()
+  created_at   timestamptz not null default now(),
+
+  -- Con comprobante fiscal formal o no — distinto de "cobrado" (ver
+  -- alter_finanzas_facturado_comprobante.sql). Default false: no asumir
+  -- retroactivamente que lo cargado antes de este ALTER tuvo comprobante.
+  facturado    boolean not null default false
 );
 
 -- Gastos variables cargados a mano (comisiones, imprevistos — todo lo que no
@@ -384,13 +396,25 @@ create table cobros (
 -- acá: ya se cuenta una vez al comprar el insumo (insumos.precio_compra) —
 -- sumarlo de nuevo acá sería doble conteo (ver FinanzasScreen.js).
 create table gastos_variables (
-  id           uuid primary key default gen_random_uuid(),
-  taller_id    uuid not null references talleres (id) on delete cascade,
-  monto        numeric(12, 2) not null check (monto > 0),
-  categoria    text not null check (categoria in ('personal_comisiones', 'otro')),
-  fecha        date not null,
-  descripcion  text,
-  created_at   timestamptz not null default now()
+  id                       uuid primary key default gen_random_uuid(),
+  taller_id                uuid not null references talleres (id) on delete cascade,
+  monto                    numeric(12, 2) not null check (monto > 0),
+
+  -- 'insumo_perdido' (alter_gastos_variables_insumo_perdido.sql): categoría
+  -- 100% automática, se inserta sola cuando el taller ajusta a mano el nivel
+  -- de un insumo hacia abajo y ese insumo tiene precio_compra cargado — a
+  -- propósito no aparece como chip elegible a mano en GastoVariableModal.js.
+  categoria                text not null
+                             check (categoria in ('personal_comisiones', 'otro', 'insumo_perdido')),
+  fecha                    date not null,
+  descripcion              text,
+  created_at               timestamptz not null default now(),
+
+  -- Mismo criterio que cobros.facturado.
+  facturado                boolean not null default false,
+  -- Ruta en el bucket privado comprobantes-gastos (ticket/factura), null si
+  -- el gasto no tiene comprobante cargado.
+  comprobante_storage_path text
 );
 
 commit;
