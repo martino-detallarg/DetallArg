@@ -56,6 +56,25 @@ function formatearMiles(digitos) {
   return digitos.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
+// Extrae el X de una dilución real del catálogo (ej. "Snow Foam 1:20",
+// "Hasta 1:10 (grasa/aceite)", "1:50 (general — paneles, puertas, cuero)").
+// Hay entradas reales del catálogo SIN ninguna proporción numérica ("No
+// publicada", "Sin recomendación oficial") — para esas no hay nada que
+// calcular y se sigue pidiendo el ml a mano más abajo.
+function extraerRatioDilucion(opcion) {
+  const match = opcion.match(/1\s*:\s*(\d+(?:[.,]\d+)?)/);
+  if (!match) return null;
+  return Number(match[1].replace(",", "."));
+}
+
+// Convención del rubro: ml de producto puro necesarios para preparar 1
+// litro de mezcla lista para usar, dada una dilución 1:X. Decisión de
+// Augusto (9/9): la base del cálculo es "por litro de mezcla final", no
+// "por uso/vehículo" (que hubiera necesitado un campo extra).
+function calcularMlPorLitro(x) {
+  return Math.round((1000 / (x + 1)) * 10) / 10;
+}
+
 // Validación de capacidad/precio/cantidad actual: compartida entre cada fila
 // del catálogo y el formulario de insumo personalizado para que ambos
 // acepten/rechacen exactamente los mismos valores.
@@ -266,12 +285,19 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
     try {
       await onAgregar({
         diluciones: tieneDilucion
-          ? dilucionesSeleccionadas.map((texto) => ({
-              texto,
-              mlPorUso: mlPorUsoPorDilucion[texto]?.trim()
-                ? Number(mlPorUsoPorDilucion[texto].replace(",", "."))
-                : null,
-            }))
+          ? dilucionesSeleccionadas.map((texto) => {
+              const ratioX = extraerRatioDilucion(texto);
+              const mlCalculado = ratioX != null ? calcularMlPorLitro(ratioX) : null;
+              return {
+                texto,
+                mlPorUso:
+                  mlCalculado != null
+                    ? mlCalculado
+                    : mlPorUsoPorDilucion[texto]?.trim()
+                    ? Number(mlPorUsoPorDilucion[texto].replace(",", "."))
+                    : null,
+              };
+            })
           : [],
         rendimiento: tieneDilucion ? null : rendimientoTexto.trim(),
         capacidadTotal: capacidadNumerica,
@@ -334,25 +360,41 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
             </View>
             {dilucionesSeleccionadas.length > 0 ? (
               <View style={styles.mlPorUsoLista}>
-                {dilucionesSeleccionadas.map((opcion) => (
-                  <View key={opcion} style={styles.mlPorUsoFila}>
-                    <Text style={styles.mlPorUsoLabel} numberOfLines={1}>
-                      {etiquetaCortaDilucion(opcion)}
-                    </Text>
-                    <TextInput
-                      style={styles.mlPorUsoInput}
-                      value={mlPorUsoPorDilucion[opcion] ?? ""}
-                      onChangeText={(texto) =>
-                        setMlPorUsoPorDilucion((actuales) => ({ ...actuales, [opcion]: texto.replace(/[^\d.,]/g, "") }))
-                      }
-                      placeholder="ml por uso"
-                      placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
-                      editable={!bloqueada}
-                      {...PROPS_NUMERICO_DONE}
-                    />
-                  </View>
-                ))}
+                {dilucionesSeleccionadas.map((opcion) => {
+                  // Si la dilución trae una proporción real (la inmensa
+                  // mayoría del catálogo), el ml sale solo — no se le pide
+                  // al taller que lo calcule a mano. Solo las pocas
+                  // entradas sin proporción publicada ("No publicada", etc.)
+                  // siguen con el input manual de siempre.
+                  const ratioX = extraerRatioDilucion(opcion);
+                  const mlCalculado = ratioX != null ? calcularMlPorLitro(ratioX) : null;
+                  return (
+                    <View key={opcion} style={styles.mlPorUsoFila}>
+                      <Text style={styles.mlPorUsoLabel} numberOfLines={1}>
+                        {etiquetaCortaDilucion(opcion)}
+                      </Text>
+                      {mlCalculado != null ? (
+                        <Text style={styles.mlPorUsoCalculado}>{mlCalculado} ml/L</Text>
+                      ) : (
+                        <TextInput
+                          style={styles.mlPorUsoInput}
+                          value={mlPorUsoPorDilucion[opcion] ?? ""}
+                          onChangeText={(texto) =>
+                            setMlPorUsoPorDilucion((actuales) => ({
+                              ...actuales,
+                              [opcion]: texto.replace(/[^\d.,]/g, ""),
+                            }))
+                          }
+                          placeholder="ml/L (sin dato)"
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="numeric"
+                          editable={!bloqueada}
+                          {...PROPS_NUMERICO_DONE}
+                        />
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             ) : null}
             <View style={styles.dilucionCustomFila}>
@@ -377,14 +419,17 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
           </View>
         ) : esRollo ? null : (
           <View style={styles.campo}>
-            <Text style={styles.campoLabel}>Rendimiento</Text>
+            <Text style={styles.campoPuroTexto}>Se utiliza puro</Text>
+            <Text style={styles.campoLabel}>Rendimiento (cantidad de vehículos)</Text>
             <TextInput
               style={styles.campoInput}
               value={rendimientoTexto}
-              onChangeText={setRendimientoTexto}
-              placeholder="Ej. 200 lavados/L"
+              onChangeText={(texto) => setRendimientoTexto(texto.replace(/[^0-9]/g, "").slice(0, 3))}
+              placeholder="Ej. 50"
               placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
               editable={!bloqueada}
+              {...PROPS_NUMERICO_DONE}
             />
           </View>
         )}
@@ -429,8 +474,9 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
   const [categoria, setCategoria] = useState(claveCategoriaInicial);
   const esRollo = categoria === "ppf";
   const [seDiluye, setSeDiluye] = useState(false);
-  const [dilucionTexto, setDilucionTexto] = useState("");
-  const [mlPorUsoTexto, setMlPorUsoTexto] = useState("");
+  // Solo el X: el "1:" es fijo, no se tipea — mismo criterio que patente.js
+  // (normalizar en el momento, no aceptar cualquier formato libre).
+  const [dilucionX, setDilucionX] = useState("");
   const [rendimientoTexto, setRendimientoTexto] = useState("");
 
   const [capacidadTotal, setCapacidadTotal] = useState("");
@@ -456,7 +502,11 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
     precioDigitos,
     cantidadActual,
   });
-  const puedeAgregar = nombre.trim() !== "" && marca.trim() !== "" && stockValido;
+  const puedeAgregar =
+    nombre.trim() !== "" &&
+    marca.trim() !== "" &&
+    (!seDiluye || dilucionX.trim() !== "") &&
+    stockValido;
   const onLayoutBoton = useScrollAlHabilitar(scrollRef, puedeAgregar);
 
   async function handleConfirmar() {
@@ -468,11 +518,11 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
         marca: marca.trim(),
         categoria,
         diluciones:
-          seDiluye && dilucionTexto.trim()
+          seDiluye && dilucionX.trim()
             ? [
                 {
-                  texto: dilucionTexto.trim(),
-                  mlPorUso: mlPorUsoTexto.trim() ? Number(mlPorUsoTexto.replace(",", ".")) : null,
+                  texto: `1:${dilucionX.trim()}`,
+                  mlPorUso: calcularMlPorLitro(Number(dilucionX)),
                 },
               ]
             : [],
@@ -559,40 +609,38 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
       {seDiluye ? (
         <View style={styles.campo}>
           <Text style={styles.campoLabel}>Dilución</Text>
-          <TextInput
-            style={styles.campoInput}
-            value={dilucionTexto}
-            onChangeText={setDilucionTexto}
-            placeholder="Ej. 1:200"
-            placeholderTextColor={colors.textMuted}
-            editable={!guardando}
-          />
+          <View style={styles.dilucionRatioFila}>
+            <Text style={styles.dilucionRatioPrefijo}>1 :</Text>
+            <TextInput
+              style={styles.dilucionRatioInput}
+              value={dilucionX}
+              onChangeText={(texto) => setDilucionX(texto.replace(/[^0-9]/g, "").slice(0, 3))}
+              placeholder="200"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              editable={!guardando}
+              {...PROPS_NUMERICO_DONE}
+            />
+          </View>
+          {dilucionX.trim() !== "" && (
+            <Text style={styles.dilucionCalculoTexto}>
+              ≈ {calcularMlPorLitro(Number(dilucionX))} ml de producto puro por litro de mezcla
+            </Text>
+          )}
         </View>
-      ) : null}
-      {seDiluye ? (
+      ) : (
         <View style={styles.campo}>
-          <Text style={styles.campoLabel}>Ml por uso</Text>
+          <Text style={styles.campoPuroTexto}>Se utiliza puro</Text>
+          <Text style={styles.campoLabel}>Rendimiento (cantidad de vehículos)</Text>
           <TextInput
             style={styles.campoInput}
-            value={mlPorUsoTexto}
-            onChangeText={(texto) => setMlPorUsoTexto(texto.replace(/[^\d.,]/g, ""))}
+            value={rendimientoTexto}
+            onChangeText={(texto) => setRendimientoTexto(texto.replace(/[^0-9]/g, "").slice(0, 3))}
             placeholder="Ej. 50"
             placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             editable={!guardando}
             {...PROPS_NUMERICO_DONE}
-          />
-        </View>
-      ) : (
-        <View style={styles.campo}>
-          <Text style={styles.campoLabel}>Rendimiento</Text>
-          <TextInput
-            style={styles.campoInput}
-            value={rendimientoTexto}
-            onChangeText={setRendimientoTexto}
-            placeholder="Ej. 200 lavados/L"
-            placeholderTextColor={colors.textMuted}
-            editable={!guardando}
           />
         </View>
       )}
@@ -640,7 +688,23 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
   const [idsAgregados, setIdsAgregados] = useState(new Set());
   const [filaExpandidaId, setFilaExpandidaId] = useState(null);
   const [vistaPersonalizado, setVistaPersonalizado] = useState(false);
+  // Modo de búsqueda del catálogo: "todos" mantiene el buscador de texto
+  // libre de siempre (nombre/marca/categoría mezclados); "marca"/"categoria"
+  // agregan una fila de chips para elegir un valor puntual de ESE campo,
+  // sobre la cual el texto libre sigue filtrando también si se escribe algo.
+  const [modoFiltro, setModoFiltro] = useState("todos");
+  const [filtroSeleccionado, setFiltroSeleccionado] = useState(null);
   const formularioScrollRef = useRef(null);
+
+  const marcasDisponibles = useMemo(
+    () => [...new Set(catalogoInsumos.map((p) => p.marca))].sort((a, b) => a.localeCompare(b)),
+    []
+  );
+
+  function handleCambiarModoFiltro(nuevoModo) {
+    setModoFiltro(nuevoModo);
+    setFiltroSeleccionado(null);
+  }
 
   // Cuando se abre desde el estado vacío de una categoría (CategoriaInsumosModal),
   // arranca con esa categoría ya buscada en vez de la lista completa de 478 productos.
@@ -651,9 +715,16 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
   }, [visible, busquedaInicial]);
 
   const filtrados = useMemo(() => {
+    let base = catalogoInsumos;
+    if (modoFiltro === "marca" && filtroSeleccionado) {
+      base = base.filter((producto) => producto.marca === filtroSeleccionado);
+    } else if (modoFiltro === "categoria" && filtroSeleccionado) {
+      base = base.filter((producto) => producto.categoria === filtroSeleccionado);
+    }
+
     const termino = busqueda.trim().toLowerCase();
-    if (!termino) return catalogoInsumos;
-    return catalogoInsumos.filter((producto) => {
+    if (!termino) return base;
+    return base.filter((producto) => {
       const etiquetaCategoria = CATEGORIAS[producto.categoria]?.etiqueta ?? "";
       return (
         producto.nombre.toLowerCase().includes(termino) ||
@@ -661,13 +732,15 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
         etiquetaCategoria.toLowerCase().includes(termino)
       );
     });
-  }, [busqueda]);
+  }, [busqueda, modoFiltro, filtroSeleccionado]);
 
   function handleCerrar() {
     setBusqueda("");
     setIdsAgregados(new Set());
     setFilaExpandidaId(null);
     setVistaPersonalizado(false);
+    setModoFiltro("todos");
+    setFiltroSeleccionado(null);
     onClose();
   }
 
@@ -751,6 +824,57 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
                   />
                 </View>
 
+                <View style={styles.modoFiltroFila}>
+                  {[
+                    { id: "todos", etiqueta: "Todos" },
+                    { id: "marca", etiqueta: "Por marca" },
+                    { id: "categoria", etiqueta: "Por categoría" },
+                  ].map((opcion) => {
+                    const activo = modoFiltro === opcion.id;
+                    return (
+                      <TouchableOpacity
+                        key={opcion.id}
+                        style={[styles.modoFiltroChip, activo && styles.modoFiltroChipActivo]}
+                        onPress={() => handleCambiarModoFiltro(opcion.id)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.modoFiltroChipTexto, activo && styles.modoFiltroChipTextoActivo]}>
+                          {opcion.etiqueta}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {modoFiltro !== "todos" && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.valorFiltroScroll}
+                    contentContainerStyle={styles.valorFiltroContenido}
+                  >
+                    {(modoFiltro === "marca" ? marcasDisponibles : Object.keys(CATEGORIAS)).map((valor) => {
+                      const etiqueta = modoFiltro === "marca" ? valor : CATEGORIAS[valor]?.etiqueta ?? valor;
+                      const activo = filtroSeleccionado === valor;
+                      return (
+                        <TouchableOpacity
+                          key={valor}
+                          style={[styles.valorFiltroChip, activo && styles.valorFiltroChipActivo]}
+                          onPress={() => setFiltroSeleccionado(activo ? null : valor)}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={[styles.valorFiltroChipTexto, activo && styles.valorFiltroChipTextoActivo]}
+                            numberOfLines={1}
+                          >
+                            {etiqueta}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+
                 <TouchableOpacity
                   style={styles.bannerPersonalizado}
                   onPress={() => setVistaPersonalizado(true)}
@@ -805,6 +929,63 @@ const styles = StyleSheet.create({
   },
   buscador: {
     paddingHorizontal: 20,
+  },
+  modoFiltroFila: {
+    flexDirection: "row",
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 10,
+  },
+  modoFiltroChip: {
+    flex: 1,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface2,
+    borderRadius: 999,
+    paddingVertical: 8,
+  },
+  modoFiltroChipActivo: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  modoFiltroChipTexto: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  modoFiltroChipTextoActivo: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.bg,
+  },
+  valorFiltroScroll: {
+    marginBottom: 12,
+  },
+  valorFiltroContenido: {
+    paddingHorizontal: 20,
+    gap: 6,
+  },
+  valorFiltroChip: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface2,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginRight: 6,
+  },
+  valorFiltroChipActivo: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  valorFiltroChipTexto: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  valorFiltroChipTextoActivo: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.bg,
   },
   bannerPersonalizado: {
     flexDirection: "row",
@@ -901,6 +1082,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 4,
   },
+  campoPuroTexto: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.accentLight,
+    marginBottom: 6,
+  },
   campoInput: {
     fontFamily: fonts.body,
     fontSize: 12,
@@ -977,6 +1164,42 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     paddingHorizontal: 10,
     paddingVertical: 6,
+  },
+  mlPorUsoCalculado: {
+    width: 90,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: colors.accentLight,
+    textAlign: "right",
+  },
+  dilucionRatioFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  dilucionRatioPrefijo: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  dilucionRatioInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  dilucionCalculoTexto: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    color: colors.accentLight,
+    marginTop: 6,
   },
   unidadChip: {
     borderWidth: 1,
