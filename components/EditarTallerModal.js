@@ -84,9 +84,16 @@ export default function EditarTallerModal({ visible, onClose }) {
               ) : (
                 <Ionicons name="storefront-outline" size={36} color={colors.accentLight} />
               )}
-              <View style={styles.logoEditIcono}>
-                <Ionicons name="camera-outline" size={16} color={colors.bg} />
-              </View>
+              {/* El badge de cámara solo tiene sentido como affordance de "acá va
+                  una foto" cuando todavía no hay logo. Con un logo ya cargado,
+                  el círculo azul quedaba tapando la esquina de la imagen sin
+                  aportar nada nuevo (el texto de abajo ya explica que se puede
+                  tocar para cambiarlo) — molestaba más de lo que ayudaba. */}
+              {!logo && (
+                <View style={styles.logoEditIcono}>
+                  <Ionicons name="camera-outline" size={16} color={colors.bg} />
+                </View>
+              )}
             </TouchableOpacity>
             <Text style={styles.logoAyuda}>Tocá el logo para cambiarlo</Text>
 
