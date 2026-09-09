@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
 import RegistrarCobroModal from "./RegistrarCobroModal";
 import TelefonoConAcciones from "./TelefonoConAcciones";
+import TourAnchor from "./tour/TourAnchor";
 import { ESTADOS_TRABAJO } from "../data/mockData";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useServicios } from "../data/ServicioContext";
@@ -247,16 +248,18 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                   <Text style={styles.campoValor}>Cobrado por completo</Text>
                 ) : (
                   (saldoPendiente === null || saldoPendiente > 0) && (
-                    <TouchableOpacity
-                      style={styles.cobroBoton}
-                      onPress={() => setModalCobroVisible(true)}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name="cash-outline" size={16} color={colors.bg} />
-                      <Text style={styles.cobroBotonTexto}>
-                        {totalCobrado > 0 ? "Registrar otro pago" : "Registrar cobro"}
-                      </Text>
-                    </TouchableOpacity>
+                    <TourAnchor id="trabajoDetalle.cobrar">
+                      <TouchableOpacity
+                        style={styles.cobroBoton}
+                        onPress={() => setModalCobroVisible(true)}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons name="cash-outline" size={16} color={colors.bg} />
+                        <Text style={styles.cobroBotonTexto}>
+                          {totalCobrado > 0 ? "Registrar otro pago" : "Registrar cobro"}
+                        </Text>
+                      </TouchableOpacity>
+                    </TourAnchor>
                   )
                 )}
               </View>

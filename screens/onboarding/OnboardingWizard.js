@@ -8,6 +8,7 @@ import EditarTallerModal from "../../components/EditarTallerModal";
 import AgregarInsumoModal from "../../components/AgregarInsumoModal";
 import ServicioModal from "../../components/ServicioModal";
 import { useTaller } from "../../data/TallerContext";
+import { useTour } from "../../data/TourContext";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
 
 const TOTAL_PASOS = 5;
@@ -33,6 +34,7 @@ const TITULOS_PASO = {
 // paso 4 (Mis Servicios) venga recién después, ya con algo para elegir.
 export default function OnboardingWizard({ onTerminar }) {
   const { marcarOnboardingCompletado } = useTaller();
+  const { iniciarTour } = useTour();
   const [paso, setPaso] = useState(1);
   const [editarTallerVisible, setEditarTallerVisible] = useState(false);
   const [agregarInsumoVisible, setAgregarInsumoVisible] = useState(false);
@@ -47,6 +49,7 @@ export default function OnboardingWizard({ onTerminar }) {
     setFinalizando(true);
     try {
       await marcarOnboardingCompletado();
+      iniciarTour();
       onTerminar();
     } catch (err) {
       Alert.alert("No se pudo continuar", "Probá de nuevo en unos segundos.");

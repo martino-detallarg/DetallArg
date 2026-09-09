@@ -4,6 +4,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import { useTaller } from "../data/TallerContext";
+import { useTour } from "../data/TourContext";
 import { useAuth } from "../data/AuthContext";
 import { PLANES } from "../data/mockTaller";
 import { colors, continuousCorner, fonts, radii } from "../theme";
@@ -14,6 +15,7 @@ const VERSION_APP = "1.0.0";
 
 export default function ConfiguracionScreen({ navigation }) {
   const { plan, misDatos, nombreTaller } = useTaller();
+  const { iniciarTour } = useTour();
   const { user, signOut } = useAuth();
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [errorCierre, setErrorCierre] = useState(null);
@@ -88,6 +90,14 @@ export default function ConfiguracionScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.filaTexto}>Política de privacidad</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.seccionLabel}>Ayuda</Text>
+        <View style={styles.tarjeta}>
+          <TouchableOpacity style={styles.fila} onPress={iniciarTour} activeOpacity={0.8}>
+            <Text style={styles.filaTexto}>Ver tutorial de nuevo</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>

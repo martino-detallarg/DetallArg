@@ -18,6 +18,7 @@ import GraficoTrabajosDelMes from "../components/GraficoTrabajosDelMes";
 import GraficoTendenciaMensual from "../components/GraficoTendenciaMensual";
 import RankingLista from "../components/RankingLista";
 import GastoVariableModal from "../components/GastoVariableModal";
+import TourAnchor from "../components/tour/TourAnchor";
 import { useData } from "../data/DataContext";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useTurnos } from "../data/TurnoContext";
@@ -341,17 +342,19 @@ export default function FinanzasScreen({ navigation }) {
       )}
 
       <View style={styles.resumenContenedor}>
-        <View style={styles.tarjeta}>
-          <Text style={styles.resumenLabel}>Ganancia neta del mes</Text>
-          <Text style={[styles.resumenMonto, gananciaNetaDelMes < 0 && styles.resumenMontoNegativo]}>
-            {formatearPesos(gananciaNetaDelMes)}
-          </Text>
-          <Text style={styles.proyeccionTexto}>
-            {proyeccionGananciaNeta !== null
-              ? `A este ritmo, vas a cerrar el mes con ~${formatearPesos(proyeccionGananciaNeta)} de ganancia neta.`
-              : "Todavía es pronto en el mes para proyectar cómo vas a cerrar."}
-          </Text>
-        </View>
+        <TourAnchor id="finanzas.info">
+          <View style={styles.tarjeta}>
+            <Text style={styles.resumenLabel}>Ganancia neta del mes</Text>
+            <Text style={[styles.resumenMonto, gananciaNetaDelMes < 0 && styles.resumenMontoNegativo]}>
+              {formatearPesos(gananciaNetaDelMes)}
+            </Text>
+            <Text style={styles.proyeccionTexto}>
+              {proyeccionGananciaNeta !== null
+                ? `A este ritmo, vas a cerrar el mes con ~${formatearPesos(proyeccionGananciaNeta)} de ganancia neta.`
+                : "Todavía es pronto en el mes para proyectar cómo vas a cerrar."}
+            </Text>
+          </View>
+        </TourAnchor>
 
         <View style={styles.tarjeta}>
           <Text style={styles.resumenLabel}>Punto de equilibrio</Text>

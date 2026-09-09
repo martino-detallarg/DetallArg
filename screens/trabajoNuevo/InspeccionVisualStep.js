@@ -15,6 +15,7 @@ import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Button from "../../components/Button";
 import DiagramaDanios from "../../components/wizard/DiagramaDanios";
+import TourAnchor from "../../components/tour/TourAnchor";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
@@ -121,53 +122,57 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
       siente en conflicto en el borde izquierdo, achicar ANCHO_BORDE en
       SwipeVolver.js o sacarlo de este paso puntual. */}
       <SwipeVolver onAtras={onAtras}>
-      {esMotoSinDiagrama ? (
-        <View style={styles.proximamente}>
-          <Text style={styles.proximamenteTitulo}>Próximamente</Text>
-          <Text style={styles.proximamenteTexto}>
-            Todavía estamos preparando el diagrama de esta categoría de moto. Mientras tanto podés sacarle una
-            foto al daño y guardar el trabajo igual.
-          </Text>
-        </View>
-      ) : (
-        <>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handleScrollFin}
-            style={styles.pager}
-          >
-            {vistas.map((vista) => (
+      <TourAnchor id="trabajoNuevo.inspeccionVisual">
+        <View style={styles.diagramaArea}>
+          {esMotoSinDiagrama ? (
+            <View style={styles.proximamente}>
+              <Text style={styles.proximamenteTitulo}>Próximamente</Text>
+              <Text style={styles.proximamenteTexto}>
+                Todavía estamos preparando el diagrama de esta categoría de moto. Mientras tanto podés sacarle una
+                foto al daño y guardar el trabajo igual.
+              </Text>
+            </View>
+          ) : (
+            <>
               <ScrollView
-                key={vista.id}
-                style={{ width }}
-                contentContainerStyle={styles.pagina}
-                showsVerticalScrollIndicator={false}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={handleScrollFin}
+                style={styles.pager}
               >
-                <Text style={styles.vistaTitulo}>Vista: {vista.etiqueta}</Text>
-                <DiagramaDanios
-                  claveVehiculo={claveDiagrama}
-                  vista={vista.id}
-                  danios={datos.danios}
-                  onCambiarZona={handleCambiarZona}
-                  ancho={anchoDiagrama}
-                  tipoVehiculo={datos.tipoVehiculo}
-                  diagramaRef={(el) => {
-                    refsDiagrama.current[vista.id] = el;
-                  }}
-                />
+                {vistas.map((vista) => (
+                  <ScrollView
+                    key={vista.id}
+                    style={{ width }}
+                    contentContainerStyle={styles.pagina}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <Text style={styles.vistaTitulo}>Vista: {vista.etiqueta}</Text>
+                    <DiagramaDanios
+                      claveVehiculo={claveDiagrama}
+                      vista={vista.id}
+                      danios={datos.danios}
+                      onCambiarZona={handleCambiarZona}
+                      ancho={anchoDiagrama}
+                      tipoVehiculo={datos.tipoVehiculo}
+                      diagramaRef={(el) => {
+                        refsDiagrama.current[vista.id] = el;
+                      }}
+                    />
+                  </ScrollView>
+                ))}
               </ScrollView>
-            ))}
-          </ScrollView>
 
-          <View style={styles.puntos}>
-            {vistas.map((vista, indice) => (
-              <View key={vista.id} style={[styles.punto, indice === vistaActiva && styles.puntoActivo]} />
-            ))}
-          </View>
-        </>
-      )}
+              <View style={styles.puntos}>
+                {vistas.map((vista, indice) => (
+                  <View key={vista.id} style={[styles.punto, indice === vistaActiva && styles.puntoActivo]} />
+                ))}
+              </View>
+            </>
+          )}
+        </View>
+      </TourAnchor>
 
       <View style={styles.acciones}>
         <TouchableOpacity
@@ -201,6 +206,9 @@ const styles = StyleSheet.create({
   pantalla: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  diagramaArea: {
+    flex: 1,
   },
   pager: {
     flex: 1,

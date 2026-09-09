@@ -11,6 +11,7 @@ import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
 import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
 import ConfirmarTrabajoModal from "../components/ConfirmarTrabajoModal";
 import EstadoCarga from "../components/EstadoCarga";
+import TourAnchor from "../components/tour/TourAnchor";
 import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
 import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
 import { useClientes } from "../data/ClienteContext";
@@ -208,21 +209,25 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.vacio}>Todavía no hay turnos cargados para hoy.</Text>
           }
           ListFooterComponent={
-            <TouchableOpacity
-              onPress={() => navigation.navigate("HistorialClientes")}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              style={styles.linkHistorialWrap}
-            >
-              <Text style={styles.linkHistorial}>Ver historial de clientes</Text>
-            </TouchableOpacity>
+            <TourAnchor id="home.historial">
+              <TouchableOpacity
+                onPress={() => navigation.navigate("HistorialClientes")}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                style={styles.linkHistorialWrap}
+              >
+                <Text style={styles.linkHistorial}>Ver historial de clientes</Text>
+              </TouchableOpacity>
+            </TourAnchor>
           }
         />
       </EstadoCarga>
 
       {!cargandoTurnos && !errorCargaTurnos && (
-        <TouchableOpacity style={styles.fab} onPress={() => setOpcionesVisibles(true)}>
-          <Text style={styles.fabTexto}>+</Text>
-        </TouchableOpacity>
+        <TourAnchor id="home.fab">
+          <TouchableOpacity style={styles.fab} onPress={() => setOpcionesVisibles(true)}>
+            <Text style={styles.fabTexto}>+</Text>
+          </TouchableOpacity>
+        </TourAnchor>
       )}
 
       <OpcionesNuevoModal
