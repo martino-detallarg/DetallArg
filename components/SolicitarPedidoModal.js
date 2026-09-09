@@ -10,26 +10,23 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const DURACION_CONFIRMACION_COPIADO = 2000;
 
-function FilaPedido({ item, onQuitar }) {
+// Fila de solo lectura: quitar un producto del pedido ya NO se hace desde
+// acá con un botón de borrar aparte — se hace tocando "No" en la tarjeta de
+// stock bajo (NotificacionStockBajoCard.js), que es la misma decisión de
+// sí/no que lo agregó. Un solo lugar para decidir qué entra al mensaje, no
+// dos mecanismos que se puedan pisar entre sí.
+function FilaPedido({ item }) {
   return (
     <View style={styles.fila}>
       <Text style={styles.filaNombre} numberOfLines={2}>
         {item.nombre}
       </Text>
-      <TouchableOpacity
-        style={styles.quitarBoton}
-        onPress={onQuitar}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="trash-outline" size={16} color={colors.error} />
-      </TouchableOpacity>
     </View>
   );
 }
 
 export default function SolicitarPedidoModal({ visible, onClose }) {
-  const { pedido, quitarDelPedido } = usePedido();
+  const { pedido } = usePedido();
   const { nombreTaller } = useTaller();
   const [copiado, setCopiado] = useState(false);
   const timeoutRef = useRef(null);
@@ -60,7 +57,7 @@ export default function SolicitarPedidoModal({ visible, onClose }) {
               <>
                 <View style={styles.lista}>
                   {pedido.map((item) => (
-                    <FilaPedido key={item.id} item={item} onQuitar={() => quitarDelPedido(item.id)} />
+                    <FilaPedido key={item.id} item={item} />
                   ))}
                 </View>
 
@@ -102,8 +99,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   fila: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: radii.card,
     ...continuousCorner,
@@ -112,21 +107,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     marginBottom: 10,
-    gap: 10,
   },
   filaNombre: {
-    flex: 1,
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     color: colors.textPrimary,
-  },
-  quitarBoton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.surface2,
-    alignItems: "center",
-    justifyContent: "center",
   },
   mensajeLabel: {
     fontFamily: fonts.bodySemiBold,

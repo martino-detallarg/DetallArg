@@ -14,14 +14,25 @@ function calcularUsosRestantes(nivel) {
 }
 
 export default function NotificacionStockBajoCard({ insumo }) {
-  const { agregarAlPedido } = usePedido();
-  const [respuesta, setRespuesta] = useState(null);
+  const { agregarAlPedido, quitarDelPedido, estaEnPedido } = usePedido();
+  // Si el taller ya había tocado "Sí" antes (ej. volvió a esta pantalla),
+  // el chip lo refleja en vez de arrancar en blanco.
+  const [respuesta, setRespuesta] = useState(() => (estaEnPedido(insumo.id) ? "si" : null));
 
   const usosRestantes = calcularUsosRestantes(insumo.nivel);
 
   function handleSi() {
     setRespuesta("si");
     agregarAlPedido({ id: insumo.id, nombre: insumo.nombre });
+  }
+
+  // El Sí/No de esta tarjeta es la ÚNICA forma de decidir si el insumo entra
+  // al mensaje para el proveedor (SolicitarPedidoModal.js ya no tiene un
+  // botón de borrar aparte) — tocar "No" tiene que sacarlo del pedido si ya
+  // se había agregado con un "Sí" previo, no solo marcar el chip local.
+  function handleNo() {
+    setRespuesta("no");
+    quitarDelPedido(insumo.id);
   }
 
   return (
@@ -43,7 +54,7 @@ export default function NotificacionStockBajoCard({ insumo }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.opcion, respuesta === "no" && styles.opcionSeleccionada]}
-          onPress={() => setRespuesta("no")}
+          onPress={handleNo}
           activeOpacity={0.8}
         >
           <Text style={[styles.opcionTexto, respuesta === "no" && styles.opcionTextoSeleccionado]}>
