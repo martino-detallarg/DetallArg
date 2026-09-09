@@ -146,6 +146,15 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
                           onPress={() => elegirSubdivision(g.grupo, opcion)}
                           activeOpacity={0.8}
                         >
+                          {/* Mismo ícono "básico" del tipo padre (Auto/Camioneta/SUV/Moto)
+                          repetido en cada subdivisión — no hay un glyph distinto por
+                          carrocería en MaterialCommunityIcons, así que se repite el de
+                          arriba en vez de forzar un ícono que no exista. */}
+                          <MaterialCommunityIcons
+                            name={tipoInfo.icono}
+                            size={14}
+                            color={seleccionada ? colors.bg : colors.textSecondary}
+                          />
                           <Text
                             style={[
                               styles.bloqueSubdivisionTexto,
@@ -294,6 +303,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   bloqueSubdivision: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: colors.surface2,
     borderRadius: radii.card,
     ...continuousCorner,
