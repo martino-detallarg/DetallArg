@@ -240,6 +240,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                 {totalCobrado > 0 && (
                   <Text style={styles.campoValor}>
                     Cobrado hasta ahora: {formatearPesos(totalCobrado)} de {formatearPesos(turno.precio)}
+                    {turno.precio > 0 && ` (${Math.round((totalCobrado / turno.precio) * 100)}%)`}
                   </Text>
                 )}
                 {saldoPendiente === 0 ? (
