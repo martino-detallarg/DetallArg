@@ -7,8 +7,9 @@ import { colors, fonts, shadowSubtle } from "../../theme";
 const ALTO_BARRA = 14;
 const DIAMETRO_THUMB = 24;
 
-// 5 posiciones fijas ("click-stops"), no porcentaje libre — el thumb solo
-// puede encastrar en una de estas.
+// 5 etiquetas fijas debajo de la barra — siguen siendo solo los cuartos,
+// a propósito (ver PASOS_NAFTA de abajo para el detalle de por qué el
+// encastre real tiene un escalón más).
 const POSICIONES_NAFTA = [
   { valor: 0, etiqueta: "R" },
   { valor: 25, etiqueta: "1/4" },
@@ -17,10 +18,18 @@ const POSICIONES_NAFTA = [
   { valor: 100, etiqueta: "Lleno" },
 ];
 
+// Grilla real de "click-stops" al arrastrar: un escalón más fino que las
+// etiquetas de arriba (octavos en vez de cuartos), para poder marcar "un
+// poco más de 1/4" sin forzarlo a la etiqueta de cuarto más cercana. Los
+// valores intermedios (12.5, 37.5, 62.5, 87.5) simplemente no encienden
+// ningún punto de POSICIONES_NAFTA — a propósito, ese selector de abajo
+// sigue mostrando solo cuartos.
+const PASOS_NAFTA = [0, 12.5, 25, 37.5, 50, 62.5, 75, 87.5, 100];
+
 function posicionMasCercana(valorCrudo) {
-  return POSICIONES_NAFTA.reduce((mejor, p) =>
-    Math.abs(p.valor - valorCrudo) < Math.abs(mejor.valor - valorCrudo) ? p : mejor
-  ).valor;
+  return PASOS_NAFTA.reduce((mejor, p) =>
+    Math.abs(p - valorCrudo) < Math.abs(mejor - valorCrudo) ? p : mejor
+  );
 }
 
 export default function FuelGauge({ nivel, onCambiar }) {
