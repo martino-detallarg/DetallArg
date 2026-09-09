@@ -24,6 +24,7 @@ function filaAServicio(fila) {
     tieneRecordatorio: fila.tiene_recordatorio,
     duraMeses: fila.dura_meses,
     recordarCadaMeses: fila.recordar_cada_meses,
+    esPpf: fila.es_ppf ?? false,
     receta: fila.servicio_receta_items.map((item) =>
       item.insumo_id
         ? { insumoId: item.insumo_id, cantidad: item.cantidad }
@@ -34,7 +35,7 @@ function filaAServicio(fila) {
 
 const COLUMNAS_SERVICIO =
   "id, nombre, descripcion, precio, duracion_valor, duracion_unidad, " +
-  "tiene_recordatorio, dura_meses, recordar_cada_meses, " +
+  "tiene_recordatorio, dura_meses, recordar_cada_meses, es_ppf, " +
   "servicio_receta_items(id, insumo_id, cantidad, nombre_libre, costo_estimado)";
 
 // Reconcilia servicio_receta_items contra una receta nueva ([{ insumoId,
@@ -159,6 +160,7 @@ export function ServicioProvider({ children }) {
     tieneRecordatorio,
     duraMeses,
     recordarCadaMeses,
+    esPpf = false,
   }) {
     const { data, error } = await supabase
       .from("servicios")
@@ -172,9 +174,10 @@ export function ServicioProvider({ children }) {
         tiene_recordatorio: tieneRecordatorio ?? false,
         dura_meses: duraMeses ?? null,
         recordar_cada_meses: recordarCadaMeses ?? null,
+        es_ppf: esPpf,
       })
       .select(
-        "id, nombre, descripcion, precio, duracion_valor, duracion_unidad, tiene_recordatorio, dura_meses, recordar_cada_meses"
+        "id, nombre, descripcion, precio, duracion_valor, duracion_unidad, tiene_recordatorio, dura_meses, recordar_cada_meses, es_ppf"
       )
       .single();
     if (error) throw error;
@@ -190,7 +193,18 @@ export function ServicioProvider({ children }) {
 
   async function editarServicio(
     id,
-    { nombre, descripcion, precio, duracionValor, duracionUnidad, receta = [], tieneRecordatorio, duraMeses, recordarCadaMeses }
+    {
+      nombre,
+      descripcion,
+      precio,
+      duracionValor,
+      duracionUnidad,
+      receta = [],
+      tieneRecordatorio,
+      duraMeses,
+      recordarCadaMeses,
+      esPpf = false,
+    }
   ) {
     const { error } = await supabase
       .from("servicios")
@@ -203,6 +217,7 @@ export function ServicioProvider({ children }) {
         tiene_recordatorio: tieneRecordatorio ?? false,
         dura_meses: duraMeses ?? null,
         recordar_cada_meses: recordarCadaMeses ?? null,
+        es_ppf: esPpf,
       })
       .eq("id", id);
     if (error) throw error;
@@ -223,6 +238,7 @@ export function ServicioProvider({ children }) {
               tieneRecordatorio: tieneRecordatorio ?? false,
               duraMeses: duraMeses ?? null,
               recordarCadaMeses: recordarCadaMeses ?? null,
+              esPpf,
             }
           : s
       )

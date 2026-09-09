@@ -28,6 +28,7 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
   const [tieneRecordatorio, setTieneRecordatorio] = useState(false);
   const [duraMeses, setDuraMeses] = useState("");
   const [recordarCadaMeses, setRecordarCadaMeses] = useState("");
+  const [esPpf, setEsPpf] = useState(false);
   const [receta, setReceta] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -46,6 +47,7 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
       setTieneRecordatorio(item?.tieneRecordatorio ?? false);
       setDuraMeses(item?.duraMeses != null ? String(item.duraMeses) : "");
       setRecordarCadaMeses(item?.recordarCadaMeses != null ? String(item.recordarCadaMeses) : "");
+      setEsPpf(item?.esPpf ?? false);
       setReceta(item?.receta ?? []);
       setError(null);
     }
@@ -112,6 +114,7 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
       tieneRecordatorio,
       duraMeses: tieneRecordatorio ? duraMesesNumerico : null,
       recordarCadaMeses: tieneRecordatorio ? recordarCadaMesesNumerico : null,
+      esPpf,
     };
 
     setCargando(true);
@@ -244,8 +247,28 @@ export default function ServicioModal({ visible, item, onClose, onGuardado }) {
                   </View>
                 )}
 
+                <Text style={styles.label}>¿Es un servicio de PPF?</Text>
+                <Text style={styles.ppfAyuda}>
+                  Un servicio de PPF no usa una receta fija de insumos: el material y el costo se
+                  calculan por trabajo, según los paneles que se elijan cubrir (ver "Trabajo
+                  nuevo").
+                </Text>
+                <ChipGroup
+                  options={[
+                    { value: true, label: "Sí", selected: esPpf === true },
+                    { value: false, label: "No", selected: esPpf === false },
+                  ]}
+                  onPress={setEsPpf}
+                  style={styles.chips}
+                />
+
                 <View style={styles.boton} onLayout={onLayoutBoton}>
-                  <Button title="Continuar a receta de insumos" onPress={handleContinuar} disabled={!esValido} />
+                  <Button
+                    title={esPpf ? "Guardar servicio" : "Continuar a receta de insumos"}
+                    onPress={esPpf ? handleGuardar : handleContinuar}
+                    disabled={!esValido}
+                    loading={esPpf ? cargando : false}
+                  />
                 </View>
 
                 {error && <Text style={styles.error}>{error}</Text>}
@@ -321,6 +344,13 @@ const styles = StyleSheet.create({
   },
   chips: {
     marginBottom: 16,
+  },
+  ppfAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: -4,
+    marginBottom: 10,
   },
   boton: {
     marginTop: 12,

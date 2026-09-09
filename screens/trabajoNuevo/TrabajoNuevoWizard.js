@@ -6,10 +6,13 @@ import SeleccionarClienteStep from "../nuevoCliente/SeleccionarClienteStep";
 import SeleccionarVehiculoStep from "../nuevoCliente/SeleccionarVehiculoStep";
 import DatosServicioStep from "./DatosServicioStep";
 import TipoVehiculoStep from "./TipoVehiculoStep";
+import SeleccionPanelesPpfStep from "./SeleccionPanelesPpfStep";
+import PresupuestoPpfStep from "./PresupuestoPpfStep";
 import InspeccionVisualStep from "./InspeccionVisualStep";
 import FirmaConformidadStep from "./FirmaConformidadStep";
 import ConfirmacionTrabajoStep from "./ConfirmacionTrabajoStep";
 import { useClientes } from "../../data/ClienteContext";
+import { useServicios } from "../../data/ServicioContext";
 import { formatearFechaDDMMAAAA } from "../../utils/fecha";
 import { colors } from "../../theme";
 
@@ -39,6 +42,13 @@ function datosVacios(clienteId, autoId) {
       // null = todavía no tocó la barra (distinto de 0, que es "Reserva"
       // elegido a propósito) — ver TipoVehiculoStep.js y FuelGauge.js.
       nivelNafta: null,
+      // Solo se usa/se pisa cuando el servicio elegido es PPF (servicio.esPpf,
+      // ver ServicioContext.js) — array de ids de panel namespaced por vista
+      // ("frente__capot", ver data/ppfPanelMatrix.js), cargado en
+      // SeleccionPanelesPpfStep.js y consumido por PresupuestoPpfStep.js y,
+      // al finalizar el trabajo, por TurnoContext (turno_ppf_seleccion ->
+      // turno_ppf_paneles).
+      panelesElegidos: [],
       // Mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada zona
       // puede tener varios tipos de daño previo a la vez, no uno solo.
       danios: {},
@@ -63,8 +73,8 @@ export default function TrabajoNuevoWizard({
   autoIdInicial,
 }) {
   const { getClienteById, getVehiculoById } = useClientes();
+  const { getServicioById } = useServicios();
   const seSaltaSeleccion = !!(clienteIdInicial && autoIdInicial);
-  const totalPasos = seSaltaSeleccion ? 4 : 5;
 
   const [fase, setFase] = useState(seSaltaSeleccion ? "servicio" : "elegirCliente");
   const [datos, setDatos] = useState(datosVacios(clienteIdInicial, autoIdInicial));
@@ -133,17 +143,27 @@ export default function TrabajoNuevoWizard({
       nivelNafta: datos.inspeccion.nivelNafta,
       danios: datos.inspeccion.danios,
       fotosDano: datos.inspeccion.fotosDano,
+      panelesElegidos: datos.inspeccion.panelesElegidos,
       estado: "Pendiente",
     });
   }
+
+  // Servicio PPF (servicio.esPpf, ver ServicioContext.js): suma 2 pasos
+  // extra (Selección de paneles + Presupuesto PPF) entre "Tipo de Vehículo"
+  // e "Inspección Visual" — ver SeleccionPanelesPpfStep.js/PresupuestoPpfStep.js.
+  const servicioSeleccionado = datos.servicio.servicioId ? getServicioById(datos.servicio.servicioId) : null;
+  const esPpf = !!servicioSeleccionado?.esPpf;
+  const totalPasos = (seSaltaSeleccion ? 4 : 5) + (esPpf ? 2 : 0);
 
   const pasoActual = {
     elegirCliente: 1,
     elegirVehiculo: 1,
     servicio: seSaltaSeleccion ? 1 : 2,
     tipoVehiculo: seSaltaSeleccion ? 2 : 3,
-    inspeccionVisual: seSaltaSeleccion ? 3 : 4,
-    conformidad: seSaltaSeleccion ? 4 : 5,
+    seleccionPanelesPpf: seSaltaSeleccion ? 3 : 4,
+    presupuestoPpf: seSaltaSeleccion ? 4 : 5,
+    inspeccionVisual: (seSaltaSeleccion ? 3 : 4) + (esPpf ? 2 : 0),
+    conformidad: (seSaltaSeleccion ? 4 : 5) + (esPpf ? 2 : 0),
   }[fase];
 
   const clienteSeleccionado = datos.clienteId ? getClienteById(datos.clienteId) : null;
@@ -194,6 +214,25 @@ export default function TrabajoNuevoWizard({
               totalPasos={totalPasos}
               onCambiar={actualizarInspeccion}
               onAtras={() => setFase("servicio")}
+              onContinuar={() => setFase(esPpf ? "seleccionPanelesPpf" : "inspeccionVisual")}
+            />
+          )}
+          {fase === "seleccionPanelesPpf" && (
+            <SeleccionPanelesPpfStep
+              datos={datos.inspeccion}
+              paso={pasoActual}
+              totalPasos={totalPasos}
+              onCambiar={actualizarInspeccion}
+              onAtras={() => setFase("tipoVehiculo")}
+              onContinuar={() => setFase("presupuestoPpf")}
+            />
+          )}
+          {fase === "presupuestoPpf" && (
+            <PresupuestoPpfStep
+              datos={datos.inspeccion}
+              paso={pasoActual}
+              totalPasos={totalPasos}
+              onAtras={() => setFase("seleccionPanelesPpf")}
               onContinuar={() => setFase("inspeccionVisual")}
             />
           )}
@@ -203,7 +242,7 @@ export default function TrabajoNuevoWizard({
               paso={pasoActual}
               totalPasos={totalPasos}
               onCambiar={actualizarInspeccion}
-              onAtras={() => setFase("tipoVehiculo")}
+              onAtras={() => setFase(esPpf ? "presupuestoPpf" : "tipoVehiculo")}
               onContinuar={(imagenesDiagrama) => {
                 actualizarInspeccion({ imagenesDiagrama });
                 setFase("conformidad");

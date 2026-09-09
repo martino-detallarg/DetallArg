@@ -5,6 +5,7 @@ import { useServicios } from "./ServicioContext";
 import { useData } from "./DataContext";
 import { mensajeErrorCarga } from "../utils/errores";
 import { convertirFechaAISO, convertirFechaDesdeISO } from "../utils/fecha";
+import { obtenerClavePpf, obtenerPanelesPpf } from "../utils/calculosPpf";
 
 const TurnoContext = createContext(null);
 
@@ -46,7 +47,7 @@ const COLUMNAS_TURNO =
   "subdivision_vehiculo, kilometraje, nivel_nafta, " +
   "turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad, costo_estimado, costo_unitario_snapshot), " +
   "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado), " +
-  "turno_fotos_danio(storage_path)";
+  "turno_fotos_danio(storage_path), turno_ppf_seleccion(panel_id), turno_ppf_paneles(panel_id)";
 
 // Traduce una fila de `turnos` + sus embeds (turno_receta_aplicada,
 // turno_danios, turno_empleados, turno_fotos_danio) a la forma que espera el
@@ -80,6 +81,14 @@ function filaATurno(fila) {
       fila.turno_danios.map((d) => [d.zona_id, { tipos: d.tipos, nota: d.nota ?? "" }])
     ),
     fotosDano: fila.turno_fotos_danio.map((f) => f.storage_path),
+    // Plan de paneles PPF elegido en el wizard (ver turno_ppf_seleccion,
+    // supabase/alter_turno_ppf_seleccion.sql) — [] si el servicio no era PPF.
+    panelesPpf: fila.turno_ppf_seleccion.map((p) => p.panel_id),
+    // null (no []) hasta que actualizarEstadoTrabajo inserta el snapshot
+    // inmutable en turno_ppf_paneles al pasar a "Finalizado" — mismo criterio
+    // de guard que recetaAplicada, ver el comentario de abajo.
+    panelesPpfAplicados:
+      fila.turno_ppf_paneles.length > 0 ? fila.turno_ppf_paneles.map((p) => p.panel_id) : null,
     // null (no []) cuando todavía no hay snapshot: el guard de
     // actualizarEstadoTrabajo es `!turno.recetaAplicada`, y un array vacío
     // es truthy en JS — con null el guard se comporta igual que hoy.
@@ -225,8 +234,17 @@ export function TurnoProvider({ children }) {
       empleado_id: e.empleadoId,
       nombre_empleado: e.nombreEmpleado,
     }));
+    // Plan de paneles PPF (solo si el servicio elegido es PPF, ver
+    // SeleccionPanelesPpfStep.js) — se escribe una sola vez acá, igual que
+    // danios/empleados; turno_ppf_paneles (el snapshot con m² congelado)
+    // recién se inserta al pasar el trabajo a "Finalizado", ver
+    // actualizarEstadoTrabajo más abajo.
+    const filasPpfSeleccion = (datosTurno.panelesElegidos ?? []).map((panelId) => ({
+      turno_id: data.id,
+      panel_id: panelId,
+    }));
 
-    const [resultadoDanios, resultadoEmpleados, resultadoFotos] = await Promise.all([
+    const [resultadoDanios, resultadoEmpleados, resultadoFotos, resultadoPpfSeleccion] = await Promise.all([
       filasDanios.length > 0
         ? supabase.from("turno_danios").insert(filasDanios)
         : Promise.resolve({ error: null }),
@@ -234,8 +252,11 @@ export function TurnoProvider({ children }) {
         ? supabase.from("turno_empleados").insert(filasEmpleados)
         : Promise.resolve({ error: null }),
       subirFotosDano(data.id, datosTurno.fotosDano),
+      filasPpfSeleccion.length > 0
+        ? supabase.from("turno_ppf_seleccion").insert(filasPpfSeleccion)
+        : Promise.resolve({ error: null }),
     ]);
-    const errorHijos = resultadoDanios.error ?? resultadoEmpleados.error ?? resultadoFotos.error;
+    const errorHijos = resultadoDanios.error ?? resultadoEmpleados.error ?? resultadoFotos.error ?? resultadoPpfSeleccion.error;
     if (errorHijos) {
       await supabase.from("turnos").delete().eq("id", data.id);
       throw errorHijos;
@@ -249,6 +270,8 @@ export function TurnoProvider({ children }) {
       empleadosAsignados: datosTurno.empleadosAsignados ?? [],
       danios: datosTurno.danios ?? {},
       fotosDano: resultadoFotos.rutas,
+      panelesPpf: datosTurno.panelesElegidos ?? [],
+      panelesPpfAplicados: null,
     };
     setTurnos((actuales) => [...actuales, nuevoTurno]);
     return nuevoTurno;
@@ -264,78 +287,120 @@ export function TurnoProvider({ children }) {
 
   // Al pasar un trabajo a "Finalizado" por primera vez: descuenta stock
   // según la receta ACTUAL del servicio (DataContext, ya migrado), inserta
-  // el snapshot congelado en turno_receta_aplicada, y recién si eso confirma
-  // actualiza el estado del turno — en ese orden, sin transacción real
-  // envolviendo los 3 pasos (mismo criterio que descontarInsumos/
-  // editarServicio). El guard `!turno.recetaAplicada` evita descontar dos
-  // veces si el trabajo se vuelve a mover a Finalizado tras pasar por otro
-  // estado — a propósito no se repone stock si se revierte hacia atrás.
+  // el snapshot congelado en turno_receta_aplicada, calcula y congela el m²
+  // real de PPF en turno_ppf_paneles (si el trabajo tenía paneles elegidos,
+  // ver turno_ppf_seleccion/SeleccionPanelesPpfStep.js), y recién si todo
+  // eso confirma actualiza el estado del turno — en ese orden, sin
+  // transacción real envolviendo los pasos (mismo criterio que
+  // descontarInsumos/editarServicio). Los guards `!turno.recetaAplicada` /
+  // `!turno.panelesPpfAplicados` evitan repetir cualquiera de los dos
+  // snapshots si el trabajo se vuelve a mover a Finalizado tras pasar por
+  // otro estado — a propósito no se repone stock ni se recalcula PPF si se
+  // revierte hacia atrás.
   async function actualizarEstadoTrabajo(id, nuevoEstado) {
     const turno = getTurnoById(id);
+    let recetaAplicadaNueva = null;
+    let panelesPpfAplicadosNuevo = null;
 
-    if (nuevoEstado === "Finalizado" && turno && !turno.recetaAplicada && turno.servicioId) {
-      const servicio = getServicioById(turno.servicioId);
-      if (servicio?.receta?.length) {
-        await descontarInsumos(servicio.receta);
+    if (nuevoEstado === "Finalizado" && turno) {
+      if (!turno.recetaAplicada && turno.servicioId) {
+        const servicio = getServicioById(turno.servicioId);
+        if (servicio?.receta?.length) {
+          await descontarInsumos(servicio.receta);
 
-        // Una línea "libre" (sin ficha en Mis Insumos, ver
-        // RecetaServicioStep.js) se congela con su nombre y costo estimado
-        // tal como se cargaron, en vez de resolverla contra DataContext.
-        const filasReceta = servicio.receta.map((linea) => {
-          if (linea.libre) {
+          // Una línea "libre" (sin ficha en Mis Insumos, ver
+          // RecetaServicioStep.js) se congela con su nombre y costo estimado
+          // tal como se cargaron, en vez de resolverla contra DataContext.
+          const filasReceta = servicio.receta.map((linea) => {
+            if (linea.libre) {
+              return {
+                turno_id: id,
+                insumo_id: null,
+                nombre_insumo: linea.nombre,
+                unidad: null,
+                costo_estimado: linea.costoEstimado,
+              };
+            }
+            const insumo = getInsumoById(linea.insumoId);
+            // null si el insumo fue borrado o no tiene precio_compra/capacidadTotal
+            // cargados: no hay con qué calcular el costo real, se deja sin dato en
+            // vez de inventar un valor (ver alter_turno_receta_costo_unitario_snapshot.sql).
+            const costoUnitarioSnapshot =
+              insumo?.precioCompra != null && insumo?.capacidadTotal > 0
+                ? insumo.precioCompra * (linea.cantidad / insumo.capacidadTotal)
+                : null;
             return {
               turno_id: id,
-              insumo_id: null,
-              nombre_insumo: linea.nombre,
-              unidad: null,
-              costo_estimado: linea.costoEstimado,
+              insumo_id: linea.insumoId,
+              nombre_insumo: insumo?.nombre ?? "Insumo eliminado",
+              unidad: insumo?.capacidadUnidad ?? null,
+              cantidad: linea.cantidad,
+              costo_unitario_snapshot: costoUnitarioSnapshot,
             };
-          }
-          const insumo = getInsumoById(linea.insumoId);
-          // null si el insumo fue borrado o no tiene precio_compra/capacidadTotal
-          // cargados: no hay con qué calcular el costo real, se deja sin dato en
-          // vez de inventar un valor (ver alter_turno_receta_costo_unitario_snapshot.sql).
-          const costoUnitarioSnapshot =
-            insumo?.precioCompra != null && insumo?.capacidadTotal > 0
-              ? insumo.precioCompra * (linea.cantidad / insumo.capacidadTotal)
-              : null;
-          return {
-            turno_id: id,
-            insumo_id: linea.insumoId,
-            nombre_insumo: insumo?.nombre ?? "Insumo eliminado",
-            unidad: insumo?.capacidadUnidad ?? null,
-            cantidad: linea.cantidad,
-            costo_unitario_snapshot: costoUnitarioSnapshot,
-          };
+          });
+          const { error: errorReceta } = await supabase.from("turno_receta_aplicada").insert(filasReceta);
+          if (errorReceta) throw errorReceta;
+
+          recetaAplicadaNueva = filasReceta.map((fila) =>
+            fila.insumo_id
+              ? {
+                  insumoId: fila.insumo_id,
+                  nombreInsumo: fila.nombre_insumo,
+                  unidad: fila.unidad,
+                  cantidad: fila.cantidad,
+                  costoUnitarioSnapshot: fila.costo_unitario_snapshot,
+                }
+              : { libre: true, nombreInsumo: fila.nombre_insumo, costoEstimado: fila.costo_estimado }
+          );
+        }
+      }
+
+      // m² recalculado contra la matriz VIGENTE en este momento (data/
+      // ppfPanelMatrix.js), no contra la que estaba cargada cuando se armó
+      // el turno — mismo criterio que costoUnitarioSnapshot de arriba,
+      // recalculado contra el precio_compra vigente al finalizar.
+      if (!turno.panelesPpfAplicados && turno.panelesPpf?.length > 0) {
+        const clavePpf = obtenerClavePpf({
+          tipoVehiculo: turno.tipoVehiculo,
+          grupo: turno.grupoVehiculo,
+          subdivision: turno.subdivisionVehiculo,
         });
-        const { error: errorReceta } = await supabase.from("turno_receta_aplicada").insert(filasReceta);
-        if (errorReceta) throw errorReceta;
-
-        const { error: errorEstado } = await supabase
-          .from("turnos")
-          .update({ estado: nuevoEstado })
-          .eq("id", id);
-        if (errorEstado) throw errorEstado;
-
-        const recetaAplicada = filasReceta.map((fila) =>
-          fila.insumo_id
-            ? {
-                insumoId: fila.insumo_id,
-                nombreInsumo: fila.nombre_insumo,
-                unidad: fila.unidad,
-                cantidad: fila.cantidad,
-                costoUnitarioSnapshot: fila.costo_unitario_snapshot,
-              }
-            : { libre: true, nombreInsumo: fila.nombre_insumo, costoEstimado: fila.costo_estimado }
-        );
-        setTurnos((actuales) =>
-          actuales.map((t) => (t.id === id ? { ...t, estado: nuevoEstado, recetaAplicada } : t))
-        );
-        return;
+        const paneles = clavePpf ? obtenerPanelesPpf(clavePpf.tipoVehiculo, clavePpf.subdivision) : null;
+        if (paneles) {
+          const filasPpf = turno.panelesPpf
+            .map((panelId) => {
+              const panel = paneles[panelId];
+              // Panel elegido en su momento que ya no existe en la matriz
+              // vigente (ej. se renombró/sacó un panel) — se ignora en vez
+              // de romper el resto del snapshot.
+              if (!panel) return null;
+              return { turno_id: id, panel_id: panelId, vista: panelId.split("__")[0], m2: panel.m2ConMerma };
+            })
+            .filter(Boolean);
+          if (filasPpf.length > 0) {
+            const { error: errorPpf } = await supabase.from("turno_ppf_paneles").insert(filasPpf);
+            if (errorPpf) throw errorPpf;
+            panelesPpfAplicadosNuevo = filasPpf.map((fila) => fila.panel_id);
+          }
+        }
       }
     }
 
-    await actualizarTurno(id, { estado: nuevoEstado });
+    const { error: errorEstado } = await supabase.from("turnos").update({ estado: nuevoEstado }).eq("id", id);
+    if (errorEstado) throw errorEstado;
+
+    setTurnos((actuales) =>
+      actuales.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              estado: nuevoEstado,
+              ...(recetaAplicadaNueva ? { recetaAplicada: recetaAplicadaNueva } : {}),
+              ...(panelesPpfAplicadosNuevo ? { panelesPpfAplicados: panelesPpfAplicadosNuevo } : {}),
+            }
+          : t
+      )
+    );
   }
 
   async function eliminarTurno(id) {

@@ -93,6 +93,7 @@ function CamposStock({
   tamanosEnvase,
   bloqueada = false,
   idParaMedidor,
+  esRollo = false,
 }) {
   const precioFormateado = formatearMiles(precioDigitos);
 
@@ -125,12 +126,12 @@ function CamposStock({
     <>
       <View style={styles.camposEditables}>
         <View style={styles.campo}>
-          <Text style={styles.campoLabel}>Capacidad del envase</Text>
+          <Text style={styles.campoLabel}>{esRollo ? "m² del rollo (ancho × largo)" : "Capacidad del envase"}</Text>
           <TextInput
             style={styles.campoInput}
             value={capacidadTotal}
             onChangeText={onCambiarCapacidadTotal}
-            placeholder="Ej. 500"
+            placeholder={esRollo ? "Ej. 22.8" : "Ej. 500"}
             placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             editable={!bloqueada}
@@ -139,24 +140,30 @@ function CamposStock({
         </View>
         <View style={styles.campo}>
           <Text style={styles.campoLabel}>Unidad</Text>
-          <View style={styles.unidadChips}>
-            {UNIDADES_CAPACIDAD.map((unidad) => {
-              const activa = capacidadUnidad === unidad;
-              return (
-                <TouchableOpacity
-                  key={unidad}
-                  style={[styles.unidadChip, activa && styles.unidadChipActivo]}
-                  onPress={() => onCambiarCapacidadUnidad(unidad)}
-                  disabled={bloqueada}
-                  pointerEvents={bloqueada ? "none" : "auto"}
-                >
-                  <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}>
-                    {unidad}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {esRollo ? (
+            <View style={[styles.unidadChip, styles.unidadChipActivo]}>
+              <Text style={[styles.unidadChipTexto, styles.unidadChipTextoActivo]}>m2</Text>
+            </View>
+          ) : (
+            <View style={styles.unidadChips}>
+              {UNIDADES_CAPACIDAD.filter((unidad) => unidad !== "m2").map((unidad) => {
+                const activa = capacidadUnidad === unidad;
+                return (
+                  <TouchableOpacity
+                    key={unidad}
+                    style={[styles.unidadChip, activa && styles.unidadChipActivo]}
+                    onPress={() => onCambiarCapacidadUnidad(unidad)}
+                    disabled={bloqueada}
+                    pointerEvents={bloqueada ? "none" : "auto"}
+                  >
+                    <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}>
+                      {unidad}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
       </View>
 
@@ -213,7 +220,8 @@ function CamposStock({
 
 function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress, onAgregar }) {
   const categoria = CATEGORIAS[producto.categoria];
-  const tieneDilucion = calcularTieneDilucion(producto.diluciones);
+  const esRollo = producto.categoria === "ppf";
+  const tieneDilucion = !esRollo && calcularTieneDilucion(producto.diluciones);
 
   const [opcionesDilucion, setOpcionesDilucion] = useState(() => [...producto.diluciones]);
   const [dilucionesSeleccionadas, setDilucionesSeleccionadas] = useState(() =>
@@ -225,7 +233,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
   const [rendimientoTexto, setRendimientoTexto] = useState(producto.rendimientoEstimado ?? "");
 
   const [capacidadTotal, setCapacidadTotal] = useState("");
-  const [capacidadUnidad, setCapacidadUnidad] = useState(UNIDADES_CAPACIDAD[0]);
+  const [capacidadUnidad, setCapacidadUnidad] = useState(esRollo ? "m2" : UNIDADES_CAPACIDAD[0]);
   const [precioDigitos, setPrecioDigitos] = useState("");
   const [cantidadActual, setCantidadActual] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -367,7 +375,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
               </TouchableOpacity>
             </View>
           </View>
-        ) : (
+        ) : esRollo ? null : (
           <View style={styles.campo}>
             <Text style={styles.campoLabel}>Rendimiento</Text>
             <TextInput
@@ -382,6 +390,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
         )}
 
         <CamposStock
+          esRollo={esRollo}
           capacidadTotal={capacidadTotal}
           onCambiarCapacidadTotal={setCapacidadTotal}
           capacidadUnidad={capacidadUnidad}
@@ -418,6 +427,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
   const [nombre, setNombre] = useState("");
   const [marca, setMarca] = useState("");
   const [categoria, setCategoria] = useState(claveCategoriaInicial);
+  const esRollo = categoria === "ppf";
   const [seDiluye, setSeDiluye] = useState(false);
   const [dilucionTexto, setDilucionTexto] = useState("");
   const [mlPorUsoTexto, setMlPorUsoTexto] = useState("");
@@ -429,6 +439,17 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
   const [cantidadActual, setCantidadActual] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+
+  // Categoría "PPF" elegida a mano acá: mismo criterio que FilaProducto,
+  // fuerza la unidad a m2 (y la saca en cuanto se elige otra categoría).
+  function handleCambiarCategoria(nuevaCategoria) {
+    setCategoria(nuevaCategoria);
+    if (nuevaCategoria === "ppf") {
+      setCapacidadUnidad("m2");
+    } else if (capacidadUnidad === "m2") {
+      setCapacidadUnidad(UNIDADES_CAPACIDAD[0]);
+    }
+  }
 
   const { capacidadNumerica, precioNumerico, cantidadActualNumerica, stockValido } = validarStock({
     capacidadTotal,
@@ -503,7 +524,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
               <TouchableOpacity
                 key={clave}
                 style={[styles.unidadChip, activa && styles.unidadChipActivo]}
-                onPress={() => setCategoria(clave)}
+                onPress={() => handleCambiarCategoria(clave)}
                 disabled={guardando}
               >
                 <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}>
@@ -577,6 +598,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
       )}
 
       <CamposStock
+        esRollo={esRollo}
         capacidadTotal={capacidadTotal}
         onCambiarCapacidadTotal={setCapacidadTotal}
         capacidadUnidad={capacidadUnidad}

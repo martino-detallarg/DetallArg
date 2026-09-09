@@ -19,7 +19,15 @@ function pointsToStr(pts) {
 // componente liviano que le pasa `imageSource`/`zones`/`viewBox` ya
 // resueltos, para cumplir el contrato { danios, onPanelPress, width } que
 // espera DiagramaDanios.
-export default function ImageZoneDiagram({ imageSource, zones, viewBox, danios, onPanelPress, width = "100%" }) {
+export default function ImageZoneDiagram({
+  imageSource,
+  zones,
+  viewBox,
+  danios,
+  onPanelPress,
+  width = "100%",
+  colorMarcado = colors.error,
+}) {
   const [, , viewW, viewH] = viewBox.split(" ").map(Number);
   // aspectRatio (CSS) puede no recalcular bien la altura cuando el width
   // viene encadenado desde useWindowDimensions (InspeccionVisualStep ->
@@ -38,7 +46,7 @@ export default function ImageZoneDiagram({ imageSource, zones, viewBox, danios, 
               points={pointsToStr(zone.points)}
               fill={colors.textPrimary}
               fillOpacity={marcado ? 0.12 : 0.05}
-              stroke={marcado ? colors.error : colors.textPrimary}
+              stroke={marcado ? colorMarcado : colors.textPrimary}
               strokeOpacity={marcado ? 1 : 0.3}
               strokeWidth={marcado ? 2 : 1.25}
               strokeDasharray={marcado ? undefined : "4,4"}
@@ -75,7 +83,7 @@ export function crearVistaDesdeZonas(vistaId, imageSource, zonasJson) {
     id: `${vistaId}__${zone.id}`,
   }));
 
-  function Componente({ danios, onPanelPress, width }) {
+  function Componente({ danios, onPanelPress, width, colorMarcado }) {
     return (
       <ImageZoneDiagram
         imageSource={imageSource}
@@ -84,6 +92,7 @@ export function crearVistaDesdeZonas(vistaId, imageSource, zonasJson) {
         danios={danios}
         onPanelPress={onPanelPress}
         width={width}
+        {...(colorMarcado ? { colorMarcado } : {})}
       />
     );
   }

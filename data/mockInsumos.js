@@ -91,7 +91,11 @@ export const UMBRAL_STOCK_BAJO = 25;
 // cargando en ml/g convertidos a mano por el taller al agregar el insumo,
 // como ya funcionaba. Sumar "L" y "kg" acá es un cambio aparte a evaluar
 // (afecta también las cantidades de receta en Mis Servicios).
-export const UNIDADES_CAPACIDAD = ["ml", "g", "unidades"];
+// "m2" se suma para la categoría `ppf` (rollos, ver AgregarInsumoModal.js:
+// categoria === "ppf" carga m² real del rollo en vez de tamaño de envase de
+// líquido) — requiere sumar 'm2' al check de insumos.capacidad_unidad, ver
+// supabase/alter_insumos_capacidad_unidad_m2.sql.
+export const UNIDADES_CAPACIDAD = ["ml", "g", "unidades", "m2"];
 
 // Catálogo de referencia definitivo — 489 productos. Ver notas de campos
 // arriba. Este catálogo alimenta el buscador de "Agregar Insumo"; lo que el
