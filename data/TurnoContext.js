@@ -152,6 +152,11 @@ export function TurnoProvider({ children }) {
       if (cancelado) return;
 
       if (error) {
+        // TEMPORAL — diagnóstico del bug "Turnos no pudimos cargar" (ver
+        // prompt de bugs del 2026-09-10): mensajeErrorCarga tapa el error
+        // real de Postgres/PostgREST con un mensaje genérico. Sacar una vez
+        // confirmada la causa real.
+        console.error("cargarTurnos error real:", error);
         setErrorCargaTurnos(mensajeErrorCarga(error, "los turnos"));
         setCargandoTurnos(false);
         return;
