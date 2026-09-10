@@ -122,10 +122,11 @@ export default function TrabajoNuevoWizard({
   }
 
   // Ya no maneja "guardando"/error ni cambia de fase: eso ahora lo hace
-  // FirmaConformidadStep, que llama a esto una sola vez (recién cuando el
-  // cliente ya firmó) y decide qué mostrar/hacer con el resultado —
-  // relanza el error tal cual para que quien llama lo capture.
-  async function handleFinalizar() {
+  // FirmaConformidadStep, que llama a esto una sola vez (cuando el cliente
+  // ya firmó, o cuando elige "Firmar después" — ver conformidadEstado) y
+  // decide qué mostrar/hacer con el resultado — relanza el error tal cual
+  // para que quien llama lo capture.
+  async function handleFinalizar(conformidadEstado) {
     await onGuardarTrabajo({
       clienteId: datos.clienteId,
       autoId: datos.autoId,
@@ -145,6 +146,7 @@ export default function TrabajoNuevoWizard({
       fotosDano: datos.inspeccion.fotosDano,
       panelesElegidos: datos.inspeccion.panelesElegidos,
       estado: "Pendiente",
+      conformidadEstado,
     });
   }
 

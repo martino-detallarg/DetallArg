@@ -96,7 +96,7 @@ export default function FirmaConformidadStep({
   async function handleOK(firmaImagen) {
     setError(null);
     try {
-      await onFinalizar();
+      await onFinalizar("firmada");
     } catch (err) {
       setProcesando(false);
       setError("No se pudo guardar el trabajo. Probá de nuevo.");
@@ -143,6 +143,24 @@ export default function FirmaConformidadStep({
     setError(null);
     setProcesando(true);
     firmaRef.current?.readSignature();
+  }
+
+  // Cliente no presente (se fue sin esperar, entrega a domicilio, etc.): el
+  // trabajo se crea igual, sin firma ni PDF todavía — conformidadEstado
+  // queda 'pendiente' (ver alter_turnos_conformidad_estado.sql) y se
+  // completa después desde TrabajoDetalleModal.js -> CompletarFirmaModal.js,
+  // típicamente al retirar el vehículo con el cliente ya presente.
+  async function handleDiferir() {
+    setError(null);
+    setProcesando(true);
+    try {
+      await onFinalizar("pendiente");
+    } catch (err) {
+      setProcesando(false);
+      setError("No se pudo guardar el trabajo. Probá de nuevo.");
+      return;
+    }
+    onTerminar();
   }
 
   return (
@@ -239,6 +257,18 @@ export default function FirmaConformidadStep({
               disabled={procesando}
             />
           </View>
+          <View style={styles.boton}>
+            <Button
+              title="Firmar después"
+              variant="secondary"
+              onPress={handleDiferir}
+              disabled={procesando}
+            />
+          </View>
+          <Text style={styles.diferirAyuda}>
+            Para cuando el cliente no está presente ahora — el trabajo se guarda igual, y podés completar la
+            firma más tarde desde el detalle del trabajo.
+          </Text>
         </ScrollView>
       </SwipeVolver>
     </KeyboardAvoidingView>
@@ -361,5 +391,13 @@ const styles = StyleSheet.create({
   },
   boton: {
     marginTop: 16,
+  },
+  diferirAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: 8,
   },
 });
