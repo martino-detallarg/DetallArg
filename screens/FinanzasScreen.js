@@ -45,7 +45,7 @@ import {
   calcularCuentasPorCobrar,
   claveMes,
   claveMesDeFecha,
-  costoInsumosTurno,
+  margenBrutoTrabajo,
   nombreTrabajoCobro,
   rankingClientesPorFacturacion,
   rankingServiciosPorGanancia,
@@ -137,17 +137,24 @@ export default function FinanzasScreen({ navigation }) {
   const cargandoGananciaBruta = cargandoCostosFijos || cargandoCobros || cargandoGastosVariables;
   const errorGananciaBruta = errorCargaCostosFijos || errorCargaCobros || errorCargaGastosVariables;
 
-  // Un trabajo por cada cobro del mes actual, con su margen bruto (monto -
-  // costo de insumos) ya calculado — ver utils/calculosFinanzas.js. Ordenado
-  // por fecha para que las barras del gráfico sigan el orden cronológico.
+  // Un trabajo por cada cobro del mes actual, con su margen bruto ya
+  // calculado — ver utils/calculosFinanzas.js. `margenBrutoTrabajo`
+  // PRORRATEA el costo de insumos del turno según qué fracción de
+  // turno.precio representa ESTE cobro puntual (cobro.monto / turno.precio)
+  // — no le resta el costo COMPLETO del turno a cada cobro por separado, a
+  // propósito: con la seña (ver TrabajoDetalleModal.js/RegistrarCobroModal.js)
+  // un mismo trabajo puede tener 2+ cobros el mismo mes (seña + cobro
+  // final), y restar el costo completo en cada uno duplicaría el costo de
+  // insumos y subestimaría la ganancia bruta del mes. Ordenado por fecha
+  // para que las barras del gráfico sigan el orden cronológico.
   const trabajosDelMes = cobros
     .filter((c) => claveMes(c.fecha) === claveMesActual)
     .slice()
     .sort((a, b) => obtenerTimestamp(a.fecha) - obtenerTimestamp(b.fecha))
     .map((cobro) => {
       const turno = cobro.turnoId ? getTurnoById(cobro.turnoId) : null;
-      const costoInsumos = costoInsumosTurno(turno);
-      const margen = cobro.monto - costoInsumos;
+      const margen = margenBrutoTrabajo(cobro, turno);
+      const costoInsumos = cobro.monto - margen;
       return {
         cobro,
         nombre: nombreTrabajoCobro(turno),
