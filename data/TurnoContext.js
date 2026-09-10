@@ -30,6 +30,7 @@ const MAPEO_CAMPOS_TURNO = {
   subdivisionVehiculo: "subdivision_vehiculo",
   kilometraje: "kilometraje",
   nivelNafta: "nivel_nafta",
+  conformidadEstado: "conformidad_estado",
 };
 
 function turnoACamposDb(datos) {
@@ -44,7 +45,7 @@ function turnoACamposDb(datos) {
 const COLUMNAS_TURNO =
   "id, cliente_id, vehiculo_id, servicio_id, servicio_nombre, precio, fecha, hora, " +
   "tiempo_estimado, observaciones, estado, tipo_vehiculo, grupo_vehiculo, " +
-  "subdivision_vehiculo, kilometraje, nivel_nafta, " +
+  "subdivision_vehiculo, kilometraje, nivel_nafta, conformidad_estado, " +
   "turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad, costo_estimado, costo_unitario_snapshot), " +
   "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado), " +
   "turno_fotos_danio(storage_path), turno_ppf_seleccion(panel_id), turno_ppf_paneles(panel_id)";
@@ -73,6 +74,11 @@ function filaATurno(fila) {
     subdivisionVehiculo: fila.subdivision_vehiculo,
     kilometraje: fila.kilometraje,
     nivelNafta: fila.nivel_nafta,
+    // 'pendiente' | 'firmada' (ver alter_turnos_conformidad_estado.sql).
+    // 'pendiente' cuando se creó el turno con "Firmar después"
+    // (FirmaConformidadStep.js) — CompletarFirmaModal.js la pasa a
+    // 'firmada' al completarla, típicamente al retirar el vehículo.
+    conformidadEstado: fila.conformidad_estado,
     empleadosAsignados: fila.turno_empleados.map((e) => ({
       empleadoId: e.empleado_id,
       nombreEmpleado: e.nombre_empleado,
