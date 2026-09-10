@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
@@ -17,10 +17,10 @@ import { colors, continuousCorner, fonts, radii } from "../../theme";
 // informativo para el taller al cargar el trabajo — no se persiste nada de
 // acá: lo único que se guarda del paso anterior (panelesElegidos) es lo que
 // después se congela en turno_ppf_paneles al finalizar el trabajo.
-export default function PresupuestoPpfStep({ datos, paso, totalPasos, onAtras, onContinuar }) {
+export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
   const { misInsumos } = useData();
-  const [insumoPpfId, setInsumoPpfId] = useState(null);
-  const [manoDeObraTexto, setManoDeObraTexto] = useState("");
+  const insumoPpfId = datos.insumoPpfId ?? null;
+  const manoDeObraTexto = datos.manoDeObraTexto ?? "";
 
   const rollosPpf = useMemo(
     () =>
@@ -68,7 +68,7 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onAtras, o
                     <TouchableOpacity
                       key={rollo.id}
                       style={[styles.chip, activo && styles.chipActivo]}
-                      onPress={() => setInsumoPpfId(rollo.id)}
+                      onPress={() => onCambiar({ insumoPpfId: rollo.id })}
                       activeOpacity={0.85}
                     >
                       <Text style={[styles.chipTexto, activo && styles.chipTextoActivo]} numberOfLines={1}>
@@ -87,7 +87,7 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onAtras, o
           <Input
             label="Mano de obra estimada ($, opcional)"
             value={manoDeObraTexto}
-            onChangeText={setManoDeObraTexto}
+            onChangeText={(v) => onCambiar({ manoDeObraTexto: v })}
             placeholder="Ej: 15000"
             keyboardType="numeric"
           />

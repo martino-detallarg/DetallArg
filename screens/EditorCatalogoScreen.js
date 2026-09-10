@@ -120,6 +120,7 @@ export default function EditorCatalogoScreen({ navigation }) {
   }
 
   async function handleElegirFotoPortada() {
+    if (subiendoPortada) return;
     const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permiso.granted) return;
     setSubiendoPortada(true);
@@ -199,7 +200,12 @@ export default function EditorCatalogoScreen({ navigation }) {
               <Image source={{ uri: fotoPortada }} style={styles.portadaPreview} resizeMode="cover" />
             ) : null}
             <View style={styles.portadaBotones}>
-              <TouchableOpacity style={styles.portadaBoton} onPress={handleElegirFotoPortada} activeOpacity={0.85}>
+              <TouchableOpacity
+                style={styles.portadaBoton}
+                onPress={handleElegirFotoPortada}
+                disabled={subiendoPortada}
+                activeOpacity={0.85}
+              >
                 <Ionicons name="image-outline" size={16} color={colors.textPrimary} />
                 <Text style={styles.portadaBotonTexto}>
                   {subiendoPortada ? "Cargando..." : fotoPortada ? "Cambiar foto" : "Elegir foto"}

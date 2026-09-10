@@ -21,8 +21,13 @@ function sumarMeses(fecha, meses) {
 // base del cálculo — un tratamiento nuevo "reinicia el reloj" del anterior.
 export function calcularRecordatoriosVencidos(turnos, servicios, getClienteById, getVehiculoById) {
   const hoy = new Date();
+  // recordarCadaMeses > 0 no es solo una validación de UI (ver ServicioModal.js)
+  // -- es lo que evita que el while de más abajo (sumarMeses con paso 0 o
+  // negativo nunca supera `hoy`) quede loopeando para siempre.
   const serviciosConRecordatorio = new Map(
-    servicios.filter((s) => s.tieneRecordatorio && s.duraMeses != null && s.recordarCadaMeses != null).map((s) => [s.id, s])
+    servicios
+      .filter((s) => s.tieneRecordatorio && s.duraMeses != null && s.recordarCadaMeses > 0)
+      .map((s) => [s.id, s])
   );
   if (serviciosConRecordatorio.size === 0) return [];
 

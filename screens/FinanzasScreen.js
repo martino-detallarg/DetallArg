@@ -109,6 +109,7 @@ export default function FinanzasScreen({ navigation }) {
   const [modalGastoVisible, setModalGastoVisible] = useState(false);
   const [indiceSeleccionado, setIndiceSeleccionado] = useState(null);
   const [generandoPdf, setGenerandoPdf] = useState(false);
+  const [eliminandoGastoId, setEliminandoGastoId] = useState(null);
   const anchoGrafico = width - PADDING_PANTALLA * 2 - 32;
 
   const totalCostosFijos = costosFijos.reduce((suma, c) => suma + c.monto, 0);
@@ -260,10 +261,14 @@ export default function FinanzasScreen({ navigation }) {
   }
 
   async function handleEliminarGasto(id) {
+    if (eliminandoGastoId) return;
+    setEliminandoGastoId(id);
     try {
       await eliminarGastoVariable(id);
     } catch (err) {
       Alert.alert("No se pudo eliminar", "No se pudo eliminar el gasto. Probá de nuevo.");
+    } finally {
+      setEliminandoGastoId(null);
     }
   }
 
@@ -484,6 +489,7 @@ export default function FinanzasScreen({ navigation }) {
                     <TouchableOpacity
                       style={styles.gastoQuitarBoton}
                       onPress={() => handleEliminarGasto(gasto.id)}
+                      disabled={eliminandoGastoId === gasto.id}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
                       <Ionicons name="trash-outline" size={14} color={colors.error} />

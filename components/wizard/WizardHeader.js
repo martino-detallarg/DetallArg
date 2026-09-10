@@ -4,15 +4,20 @@ import { colors, fonts } from "../../theme";
 
 const TAMANO_ICONO = 24;
 
-export default function WizardHeader({ titulo, paso, totalPasos = 3, onAtras }) {
+export default function WizardHeader({ titulo, paso, totalPasos = 3, onAtras, disabled = false }) {
   return (
     <View style={styles.contenedor}>
       <View style={styles.fila}>
         <TouchableOpacity
           onPress={onAtras}
+          disabled={disabled}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-back" size={TAMANO_ICONO} color={colors.textPrimary} />
+          <Ionicons
+            name="chevron-back"
+            size={TAMANO_ICONO}
+            color={disabled ? colors.textMuted : colors.textPrimary}
+          />
         </TouchableOpacity>
 
         <Text style={styles.titulo} numberOfLines={1}>

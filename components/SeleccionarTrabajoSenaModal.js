@@ -3,6 +3,7 @@ import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
+import EstadoCarga from "./EstadoCarga";
 import TrabajoPendienteCobroCard from "./TrabajoPendienteCobroCard";
 import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
@@ -24,7 +25,7 @@ function coincide(campo, termino) {
 // mientras quede saldo, no solo en Pendiente/En proceso (mismo criterio
 // que puedeTomarSena en TrabajoDetalleModal.js).
 export default function SeleccionarTrabajoSenaModal({ visible, onClose, onElegirTurno }) {
-  const { turnos } = useTurnos();
+  const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos } = useTurnos();
   const { getClienteById, getVehiculoById } = useClientes();
   const { cobros } = useFinanzas();
   const [busqueda, setBusqueda] = useState("");
@@ -70,25 +71,27 @@ export default function SeleccionarTrabajoSenaModal({ visible, onClose, onElegir
             />
           </View>
 
-          <ScrollView contentContainerStyle={styles.lista} showsVerticalScrollIndicator={false}>
-            {turnosDisponibles.length === 0 ? (
-              <Text style={styles.vacio}>No hay trabajos con saldo pendiente para tomar una seña.</Text>
-            ) : filtrados.length === 0 ? (
-              <Text style={styles.vacio}>No encontramos ningún trabajo con esos datos.</Text>
-            ) : (
-              filtrados.map(({ turno, cliente, auto, saldo }) => (
-                <TrabajoPendienteCobroCard
-                  key={turno.id}
-                  turno={turno}
-                  cliente={cliente}
-                  auto={auto}
-                  saldo={saldo}
-                  textoSinPago="Tomar seña"
-                  onPress={() => onElegirTurno(turno)}
-                />
-              ))
-            )}
-          </ScrollView>
+          <EstadoCarga cargando={cargandoTurnos} error={errorCargaTurnos} onReintentar={recargarTurnos}>
+            <ScrollView contentContainerStyle={styles.lista} showsVerticalScrollIndicator={false}>
+              {turnosDisponibles.length === 0 ? (
+                <Text style={styles.vacio}>No hay trabajos con saldo pendiente para tomar una seña.</Text>
+              ) : filtrados.length === 0 ? (
+                <Text style={styles.vacio}>No encontramos ningún trabajo con esos datos.</Text>
+              ) : (
+                filtrados.map(({ turno, cliente, auto, saldo }) => (
+                  <TrabajoPendienteCobroCard
+                    key={turno.id}
+                    turno={turno}
+                    cliente={cliente}
+                    auto={auto}
+                    saldo={saldo}
+                    textoSinPago="Tomar seña"
+                    onPress={() => onElegirTurno(turno)}
+                  />
+                ))
+              )}
+            </ScrollView>
+          </EstadoCarga>
         </SafeAreaView>
       </SafeAreaProvider>
     </Modal>

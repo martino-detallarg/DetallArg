@@ -49,6 +49,12 @@ function datosVacios(clienteId, autoId) {
       // al finalizar el trabajo, por TurnoContext (turno_ppf_seleccion ->
       // turno_ppf_paneles).
       panelesElegidos: [],
+      // Rollo elegido y mano de obra estimada del paso "Presupuesto PPF"
+      // (screens/trabajoNuevo/PresupuestoPpfStep.js) — se levantan acá (en vez
+      // de useState local en el Step) para que sobrevivan si el taller vuelve
+      // a "Selección de paneles" y regresa, mismo criterio que panelesElegidos.
+      insumoPpfId: null,
+      manoDeObraTexto: "",
       // Mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada zona
       // puede tener varios tipos de daño previo a la vez, no uno solo.
       danios: {},
@@ -252,6 +258,7 @@ export default function TrabajoNuevoWizard({
               datos={datos.inspeccion}
               paso={pasoActual}
               totalPasos={totalPasos}
+              onCambiar={actualizarInspeccion}
               onAtras={() => setFase("seleccionPanelesPpf")}
               onContinuar={() => setFase("conformidad")}
             />

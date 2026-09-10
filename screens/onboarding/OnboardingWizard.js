@@ -66,6 +66,7 @@ export default function OnboardingWizard({ onTerminar }) {
         paso={paso}
         totalPasos={TOTAL_PASOS}
         onAtras={() => setPaso((p) => Math.max(1, p - 1))}
+        disabled={finalizando}
       />
 
       <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
