@@ -8,6 +8,8 @@ import WidgetCalendarioHome from "../components/WidgetCalendarioHome";
 import TurnoCard from "../components/TurnoCard";
 import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
 import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
+import SeleccionarTrabajoSenaModal from "../components/SeleccionarTrabajoSenaModal";
+import RegistrarCobroModal from "../components/RegistrarCobroModal";
 import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
 import ConfirmarTrabajoModal from "../components/ConfirmarTrabajoModal";
 import EstadoCarga from "../components/EstadoCarga";
@@ -18,7 +20,9 @@ import { useClientes } from "../data/ClienteContext";
 import { useTurnos } from "../data/TurnoContext";
 import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
+import { useFinanzas } from "../data/FinanzasContext";
 import { obtenerDiasHastaEntrega } from "../utils/entregas";
+import { calcularSaldoPendienteTurno } from "../utils/calculosFinanzas";
 import { esMismoDia, parsearFechaDDMMAAAA } from "../utils/fecha";
 import { colors, fonts, shadow } from "../theme";
 
@@ -51,6 +55,7 @@ export default function HomeScreen({ navigation }) {
     useTurnos();
   const { getServicioById } = useServicios();
   const { misDatos } = useTaller();
+  const { cobros } = useFinanzas();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
   // Cambia cada vez que Home gana/pierde foco: se usa como `key` del anillo
   // de progreso para forzar su remount (y que la animación de llenado se
@@ -65,6 +70,13 @@ export default function HomeScreen({ navigation }) {
   const [prefillTrabajo, setPrefillTrabajo] = useState(null);
   const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
   const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
+  // Acceso rápido global a "Registrar seña" (ver OpcionesNuevoModal.js): a
+  // diferencia de turnoSeleccionadoId (que abre el detalle completo del
+  // trabajo), acá el trabajo NO está implícito — primero se elige desde
+  // SeleccionarTrabajoSenaModal, y recién ahí se abre RegistrarCobroModal
+  // directo, sin pasar por TrabajoDetalleModal.
+  const [selectorSenaVisible, setSelectorSenaVisible] = useState(false);
+  const [turnoSenaId, setTurnoSenaId] = useState(null);
 
   // Esta sección es "Turnos de HOY": a diferencia de Agenda (que filtra por
   // fechaSeleccionada), acá el día es siempre el de hoy, sin selector — un
@@ -111,6 +123,10 @@ export default function HomeScreen({ navigation }) {
     return a.hora.localeCompare(b.hora);
   });
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
+  const turnoSena = turnos.find((t) => t.id === turnoSenaId) ?? null;
+  const cobrosDelTurnoSena = turnoSena ? cobros.filter((c) => c.turnoId === turnoSena.id) : [];
+  const totalCobradoSena = cobrosDelTurnoSena.reduce((suma, c) => suma + c.monto, 0);
+  const saldoPendienteSena = turnoSena ? calcularSaldoPendienteTurno(turnoSena, cobros) : null;
 
   // Solo para el anillo de progreso de la card "Turnos de hoy": cuántos de
   // los turnos de hoy ya están en un estado de cierre (Finalizado o
@@ -162,6 +178,16 @@ export default function HomeScreen({ navigation }) {
   function handleCerrarTrabajo() {
     setWizardTrabajoVisible(false);
     setPrefillTrabajo(null);
+  }
+
+  function handleAbrirSena() {
+    setOpcionesVisibles(false);
+    setSelectorSenaVisible(true);
+  }
+
+  function handleElegirTurnoSena(turno) {
+    setSelectorSenaVisible(false);
+    setTurnoSenaId(turno.id);
   }
 
   return (
@@ -235,6 +261,22 @@ export default function HomeScreen({ navigation }) {
         onClose={() => setOpcionesVisibles(false)}
         onClienteNuevo={handleAbrirClienteNuevo}
         onTrabajoNuevo={handleAbrirTrabajoNuevo}
+        onSena={handleAbrirSena}
+      />
+
+      <SeleccionarTrabajoSenaModal
+        visible={selectorSenaVisible}
+        onClose={() => setSelectorSenaVisible(false)}
+        onElegirTurno={handleElegirTurnoSena}
+      />
+
+      <RegistrarCobroModal
+        visible={turnoSenaId !== null}
+        turno={turnoSena}
+        esSena
+        saldoPendiente={saldoPendienteSena}
+        montoYaCobrado={totalCobradoSena}
+        onClose={() => setTurnoSenaId(null)}
       />
 
       <ClienteNuevoSubmenu

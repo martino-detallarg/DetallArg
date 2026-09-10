@@ -9,9 +9,11 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 // cobro todavía — ver calcularSaldoPendienteTurno). Tocar la tarjeta entera
 // abre RegistrarCobroModal para ese turno — mismo modal que ya usa
 // TrabajoDetalleModal.js. `saldo` es opcional: si ya hay un cobro parcial
-// cargado (saldo < turno.precio), se avisa "Faltan $X" en vez del genérico
-// "Registrar cobro".
-export default function TrabajoPendienteCobroCard({ turno, cliente, auto, saldo, onPress }) {
+// cargado (saldo < turno.precio), se avisa "Faltan $X" en vez del texto de
+// `textoSinPago` (default "Registrar cobro" — SeleccionarTrabajoSenaModal.js
+// reusa esta misma tarjeta para turnos Pendiente/En proceso pasándole
+// "Tomar seña").
+export default function TrabajoPendienteCobroCard({ turno, cliente, auto, saldo, textoSinPago = "Registrar cobro", onPress }) {
   const hayPagoParcial = saldo != null && turno.precio != null && saldo < turno.precio;
   return (
     <TouchableOpacity style={styles.tarjeta} onPress={onPress} activeOpacity={0.85}>
@@ -31,7 +33,7 @@ export default function TrabajoPendienteCobroCard({ turno, cliente, auto, saldo,
 
       <View style={styles.cobroFila}>
         <Ionicons name="cash-outline" size={16} color={colors.accentLight} />
-        <Text style={styles.cobroTexto}>{hayPagoParcial ? `Faltan ${formatearPesos(saldo)}` : "Registrar cobro"}</Text>
+        <Text style={styles.cobroTexto}>{hayPagoParcial ? `Faltan ${formatearPesos(saldo)}` : textoSinPago}</Text>
       </View>
     </TouchableOpacity>
   );

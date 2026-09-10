@@ -23,7 +23,7 @@ const Opcion = forwardRef(function Opcion({ icono, titulo, descripcion, onPress 
   );
 });
 
-export default function OpcionesNuevoModal({ visible, onClose, onClienteNuevo, onTrabajoNuevo }) {
+export default function OpcionesNuevoModal({ visible, onClose, onClienteNuevo, onTrabajoNuevo, onSena }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.fondo}>
@@ -47,6 +47,12 @@ export default function OpcionesNuevoModal({ visible, onClose, onClienteNuevo, o
               onPress={onTrabajoNuevo}
             />
           </TourAnchor>
+          <Opcion
+            icono="wallet-outline"
+            titulo="Seña"
+            descripcion="Registrar una seña para reservar un trabajo que ya cargaste"
+            onPress={onSena}
+          />
 
           <Button title="Cancelar" variant="secondary" onPress={onClose} />
         </View>
