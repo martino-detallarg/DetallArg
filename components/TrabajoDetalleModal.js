@@ -3,6 +3,7 @@ import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
 import RegistrarCobroModal from "./RegistrarCobroModal";
+import CompletarFirmaModal from "./CompletarFirmaModal";
 import TelefonoConAcciones from "./TelefonoConAcciones";
 import TourAnchor from "./tour/TourAnchor";
 import { ESTADOS_TRABAJO } from "../data/mockData";
@@ -43,6 +44,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   // turno, ver puedeCobrar/puedeTomarSena) — así solo hay un <Modal> nativo
   // en juego por vez, mismo criterio que ClientesScreen.js.
   const [modoRegistro, setModoRegistro] = useState(null);
+  const [firmaModalVisible, setFirmaModalVisible] = useState(false);
 
   // Estado "de prueba": tocar un chip solo cambia esto, no el turno real.
   // Se resetea al estado real del turno cada vez que el modal se vuelve a
@@ -121,7 +123,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
 
   return (
     <>
-    <Modal visible={visible && !modoRegistro} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible && !modoRegistro && !firmaModalVisible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.fondo}>
         <View style={styles.contenedor}>
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -223,6 +225,28 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                 </View>
               )}
             </View>
+
+            {/* conformidadEstado es independiente del estado del trabajo
+            (Pendiente/En proceso/Finalizado/Entregado) — se muestra sin
+            importar en cuál esté, el caso típico es completarla recién al
+            retirar el vehículo (Finalizado/Entregado), pero nada impide
+            completarla antes. */}
+            {turno.conformidadEstado === "pendiente" && (
+              <View style={[styles.tarjetaSeccion, styles.conformidadAviso]}>
+                <View style={styles.conformidadAvisoFila}>
+                  <Ionicons name="alert-circle-outline" size={18} color={colors.amber} />
+                  <Text style={styles.conformidadAvisoTexto}>Conformidad pendiente de firma</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.conformidadBoton}
+                  onPress={() => setFirmaModalVisible(true)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="create-outline" size={16} color={colors.bg} />
+                  <Text style={styles.conformidadBotonTexto}>Completar firma</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {turno.empleadosAsignados?.length > 0 && (
               <View style={styles.tarjetaSeccion}>
@@ -349,6 +373,14 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
       montoYaCobrado={totalCobrado}
       onClose={() => setModoRegistro(null)}
     />
+
+    <CompletarFirmaModal
+      visible={firmaModalVisible}
+      turno={turno}
+      cliente={cliente}
+      auto={auto}
+      onClose={() => setFirmaModalVisible(false)}
+    />
     </>
   );
 }
@@ -470,6 +502,37 @@ const styles = StyleSheet.create({
   cobroBotonTexto: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
+    color: colors.bg,
+  },
+  conformidadAviso: {
+    borderWidth: 1,
+    borderColor: colors.amber,
+    backgroundColor: colors.amberTint,
+  },
+  conformidadAvisoFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  conformidadAvisoTexto: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  conformidadBoton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 44,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    backgroundColor: colors.amber,
+  },
+  conformidadBotonTexto: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
     color: colors.bg,
   },
   historialFila: {
