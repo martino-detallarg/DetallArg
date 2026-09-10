@@ -18,6 +18,14 @@ export const TIPOS_DANIO = {
   excremento_ave: { etiqueta: "Excremento de ave", color: "#A8C43E" },
   laca_quemada: { etiqueta: "Laca quemada", color: "#A85040" },
   rasgada: { etiqueta: "Rasgada", color: "#5C7CBF" },
+  // Las dos de acá abajo no son daños reales (no implican trabajo a
+  // hacer) — son información de recubrimiento existente, por eso usan
+  // tonos celestes (familia de colors.accent en theme.js) en vez de
+  // colores de "alerta" como el resto de la lista. Se pueden combinar con
+  // cualquier daño real de arriba en la misma zona (mismo criterio de
+  // siempre: una zona admite varios tipos a la vez).
+  ppf: { etiqueta: "PPF", color: "#529CC1" },
+  ppf_viejo: { etiqueta: "PPF viejo / retirar", color: "#2D5F75" },
   otro: { etiqueta: "Otro", color: "#6B7785", notaLibre: true },
 };
 
