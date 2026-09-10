@@ -151,21 +151,26 @@ export default function TrabajoNuevoWizard({
   }
 
   // Servicio PPF (servicio.esPpf, ver ServicioContext.js): suma 2 pasos
-  // extra (Selección de paneles + Presupuesto PPF) entre "Tipo de Vehículo"
-  // e "Inspección Visual" — ver SeleccionPanelesPpfStep.js/PresupuestoPpfStep.js.
+  // extra (Selección de paneles + Presupuesto PPF) entre "Inspección
+  // Visual" y "Conformidad" — ver SeleccionPanelesPpfStep.js/
+  // PresupuestoPpfStep.js. Van DESPUÉS de la inspección (no antes) a
+  // propósito: el taller marca en Inspección Visual qué paneles ya traen
+  // PPF puesto o PPF viejo a retirar (ver data/tiposDanio.js) antes de
+  // decidir qué paneles elegir para el PPF nuevo.
   const servicioSeleccionado = datos.servicio.servicioId ? getServicioById(datos.servicio.servicioId) : null;
   const esPpf = !!servicioSeleccionado?.esPpf;
   const totalPasos = (seSaltaSeleccion ? 4 : 5) + (esPpf ? 2 : 0);
 
+  const basePaso = seSaltaSeleccion ? 2 : 3; // paso de "tipoVehiculo"
   const pasoActual = {
     elegirCliente: 1,
     elegirVehiculo: 1,
     servicio: seSaltaSeleccion ? 1 : 2,
-    tipoVehiculo: seSaltaSeleccion ? 2 : 3,
-    seleccionPanelesPpf: seSaltaSeleccion ? 3 : 4,
-    presupuestoPpf: seSaltaSeleccion ? 4 : 5,
-    inspeccionVisual: (seSaltaSeleccion ? 3 : 4) + (esPpf ? 2 : 0),
-    conformidad: (seSaltaSeleccion ? 4 : 5) + (esPpf ? 2 : 0),
+    tipoVehiculo: basePaso,
+    inspeccionVisual: basePaso + 1,
+    seleccionPanelesPpf: basePaso + 2,
+    presupuestoPpf: basePaso + 3,
+    conformidad: basePaso + 2 + (esPpf ? 2 : 0),
   }[fase];
 
   const clienteSeleccionado = datos.clienteId ? getClienteById(datos.clienteId) : null;
@@ -216,25 +221,6 @@ export default function TrabajoNuevoWizard({
               totalPasos={totalPasos}
               onCambiar={actualizarInspeccion}
               onAtras={() => setFase("servicio")}
-              onContinuar={() => setFase(esPpf ? "seleccionPanelesPpf" : "inspeccionVisual")}
-            />
-          )}
-          {fase === "seleccionPanelesPpf" && (
-            <SeleccionPanelesPpfStep
-              datos={datos.inspeccion}
-              paso={pasoActual}
-              totalPasos={totalPasos}
-              onCambiar={actualizarInspeccion}
-              onAtras={() => setFase("tipoVehiculo")}
-              onContinuar={() => setFase("presupuestoPpf")}
-            />
-          )}
-          {fase === "presupuestoPpf" && (
-            <PresupuestoPpfStep
-              datos={datos.inspeccion}
-              paso={pasoActual}
-              totalPasos={totalPasos}
-              onAtras={() => setFase("seleccionPanelesPpf")}
               onContinuar={() => setFase("inspeccionVisual")}
             />
           )}
@@ -244,11 +230,30 @@ export default function TrabajoNuevoWizard({
               paso={pasoActual}
               totalPasos={totalPasos}
               onCambiar={actualizarInspeccion}
-              onAtras={() => setFase(esPpf ? "presupuestoPpf" : "tipoVehiculo")}
+              onAtras={() => setFase("tipoVehiculo")}
               onContinuar={(imagenesDiagrama) => {
                 actualizarInspeccion({ imagenesDiagrama });
-                setFase("conformidad");
+                setFase(esPpf ? "seleccionPanelesPpf" : "conformidad");
               }}
+            />
+          )}
+          {fase === "seleccionPanelesPpf" && (
+            <SeleccionPanelesPpfStep
+              datos={datos.inspeccion}
+              paso={pasoActual}
+              totalPasos={totalPasos}
+              onCambiar={actualizarInspeccion}
+              onAtras={() => setFase("inspeccionVisual")}
+              onContinuar={() => setFase("presupuestoPpf")}
+            />
+          )}
+          {fase === "presupuestoPpf" && (
+            <PresupuestoPpfStep
+              datos={datos.inspeccion}
+              paso={pasoActual}
+              totalPasos={totalPasos}
+              onAtras={() => setFase("seleccionPanelesPpf")}
+              onContinuar={() => setFase("conformidad")}
             />
           )}
           {fase === "conformidad" && clienteSeleccionado && (
@@ -259,7 +264,7 @@ export default function TrabajoNuevoWizard({
               inspeccion={datos.inspeccion}
               paso={pasoActual}
               totalPasos={totalPasos}
-              onAtras={() => setFase("inspeccionVisual")}
+              onAtras={() => setFase(esPpf ? "presupuestoPpf" : "inspeccionVisual")}
               onFinalizar={handleFinalizar}
               onTerminar={() => setFase("confirmacion")}
             />
