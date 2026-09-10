@@ -264,6 +264,38 @@ function bloqueInspeccion(vistas) {
   return `<h2>Inspección visual</h2>${vistas.map(bloqueVista).join("")}`;
 }
 
+// `medicionMicrones` es el resultado de construirResumenMicrones
+// (utils/resumenMicrones.js) — `null` si no hay nada cargado, en cuyo caso
+// esta función no dibuja nada (ni siquiera el <h2>, para no dejar un título
+// sin contenido debajo).
+function bloqueMicrones(medicionMicrones) {
+  if (!medicionMicrones) return "";
+
+  if (medicionMicrones.modo === "promedio") {
+    return `
+      <h2>Espesor de pintura medido</h2>
+      <div class="datos">
+        <div class="dato">
+          <div class="dato-label">Promedio general</div>
+          <div class="dato-valor">${medicionMicrones.promedio} µm</div>
+        </div>
+      </div>
+    `;
+  }
+
+  const filas = medicionMicrones.porPanel
+    .map(
+      (f) => `
+      <div class="danio-zona">
+        <span class="danio-zona-nombre">${escapeHtml(f.vista)} · ${escapeHtml(f.panel)}:</span>
+        <span class="danio-tipo">${f.micrones} µm</span>
+      </div>
+    `
+    )
+    .join("");
+  return `<h2>Espesor de pintura medido</h2><div class="vista-danios">${filas}</div>`;
+}
+
 function bloqueClausula() {
   return `
     <h2>Cláusula de conformidad</h2>
@@ -289,7 +321,18 @@ function bloqueFirma({ imagen, aclaracion, fecha, hora }) {
 // danios: [{ zona, tipos: [{ etiqueta, nota }] }] }], una por vista del
 // diagrama (ver utils/resumenDanios.js). `firma` es { imagen, aclaracion,
 // fecha, hora }.
-export function construirHtmlConformidad({ taller, cliente, auto, kilometraje, fecha, hora, servicio, vistas, firma }) {
+export function construirHtmlConformidad({
+  taller,
+  cliente,
+  auto,
+  kilometraje,
+  fecha,
+  hora,
+  servicio,
+  vistas,
+  medicionMicrones,
+  firma,
+}) {
   return `
     <html>
       <head>
@@ -304,6 +347,7 @@ export function construirHtmlConformidad({ taller, cliente, auto, kilometraje, f
           ${bloqueDatos({ cliente, auto, kilometraje, fecha, hora })}
           ${bloqueServicio(servicio)}
           ${bloqueInspeccion(vistas)}
+          ${bloqueMicrones(medicionMicrones)}
           ${bloqueClausula()}
           ${bloqueFirma(firma)}
         </div>

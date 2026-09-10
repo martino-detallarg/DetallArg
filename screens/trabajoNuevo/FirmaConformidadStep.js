@@ -19,6 +19,7 @@ import TourAnchor from "../../components/tour/TourAnchor";
 import { useTaller } from "../../data/TallerContext";
 import { obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { construirResumenDanios } from "../../utils/resumenDanios";
+import { construirResumenMicrones } from "../../utils/resumenMicrones";
 import { construirHtmlConformidad, generarYCompartirPdf } from "../../utils/conformidadPdf";
 import { TEXTO_CLAUSULA_CONFORMIDAD } from "../../utils/textoLegalConformidad";
 import { formatearFechaDDMMAAAA, formatearHoraHHMM } from "../../utils/fecha";
@@ -114,6 +115,7 @@ export default function FirmaConformidadStep({
         hora: servicio.hora,
         servicio,
         vistas: vistasConDanios,
+        medicionMicrones: construirResumenMicrones(inspeccion.medicionMicrones, claveDiagrama),
         firma: {
           imagen: firmaImagen,
           aclaracion: aclaracion.trim(),
