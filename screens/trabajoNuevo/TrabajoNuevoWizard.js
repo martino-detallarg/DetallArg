@@ -59,6 +59,13 @@ function datosVacios(clienteId, autoId) {
       // puede tener varios tipos de daño previo a la vez, no uno solo.
       danios: {},
       fotosDano: [],
+      // Medición de espesor de pintura (µm), 100% opcional — ver
+      // MedicionMicronesModal.js. `modo: null` = todavía no se tocó nada,
+      // ni "Por panel" ni "Promedio general". Se persiste en
+      // turno_medicion_micrones al guardar (TurnoContext.agregarTurno) solo
+      // si `modo` terminó siendo uno de los dos y hay al menos un valor
+      // numérico válido cargado.
+      medicionMicrones: { modo: null, promedio: "", porPanel: {} },
       // [{ vistaId, etiqueta, imagen }] — capturada por InspeccionVisualStep
       // al tocar "Continuar" (react-native-view-shot), consumida por
       // FirmaConformidadStep para armar el PDF de conformidad. No se manda a
@@ -151,6 +158,7 @@ export default function TrabajoNuevoWizard({
       danios: datos.inspeccion.danios,
       fotosDano: datos.inspeccion.fotosDano,
       panelesElegidos: datos.inspeccion.panelesElegidos,
+      medicionMicrones: datos.inspeccion.medicionMicrones,
       estado: "Pendiente",
       conformidadEstado,
     });

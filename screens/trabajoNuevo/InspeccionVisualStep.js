@@ -11,10 +11,13 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { captureRef } from "react-native-view-shot";
+import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Button from "../../components/Button";
 import DiagramaDanios from "../../components/wizard/DiagramaDanios";
+import MedicionMicronesModal, { resumenMedicionMicrones } from "../../components/wizard/MedicionMicronesModal";
+import { PANEL_IDS as ZONAS_IDS, PANEL_LABELS as ZONAS_LABELS } from "../../components/wizard/DamageDiagram";
 import TourAnchor from "../../components/tour/TourAnchor";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
@@ -29,6 +32,7 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
   const { width } = useWindowDimensions();
   const [vistaActiva, setVistaActiva] = useState(0);
   const [capturando, setCapturando] = useState(false);
+  const [modalMicronesVisible, setModalMicronesVisible] = useState(false);
   // Un ref por vista (no uno solo): el carrusel de abajo mantiene montadas
   // TODAS las páginas a la vez (ScrollView, a diferencia de FlatList, no
   // virtualiza), así que al tocar "Continuar" se puede capturar cada
@@ -48,6 +52,19 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
     ? Object.entries(diagramaVehiculo.vistas).map(([id, v]) => ({ id, etiqueta: v.etiqueta }))
     : [{ id: "frente", etiqueta: "Frente" }];
   const puedeAgregarFoto = Object.keys(datos.danios).length > 0;
+  // Mismo dato de origen que DiagramaDanios.js usa por vista (panelIds/
+  // panelLabels propios de la carrocería, o el genérico de DamageDiagram si
+  // todavía no hay diagrama propio) — para la sección de espesor de pintura
+  // "Por panel", ver MedicionMicronesModal.js.
+  const panelesPorVista = vistas.map((vista) => {
+    const diagramaVista = diagramaVehiculo?.vistas?.[vista.id];
+    return {
+      vistaId: vista.id,
+      etiqueta: vista.etiqueta,
+      panelIds: diagramaVista?.panelIds ?? ZONAS_IDS,
+      panelLabels: diagramaVista?.panelLabels ?? ZONAS_LABELS,
+    };
+  });
   // Moto tiene subdivisiones que todavía no tienen diagrama propio
   // (Naked/Sport/Motocross, por ahora — ver components/diagrams/vehicles).
   // Para esas, en vez de caer al genérico de Frente (que tiene forma de
@@ -193,11 +210,35 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
           </Text>
         )}
 
+        {/* Espesor de pintura (opcional): fila resumen que abre
+        MedicionMicronesModal.js aparte — en modo "Por panel" la lista puede
+        tener una fila por panel (12+ en algunas carrocerías), y esta franja
+        fija de abajo no tiene scroll propio, así que no puede vivir inline. */}
+        <TouchableOpacity
+          style={styles.micronesFila}
+          onPress={() => setModalMicronesVisible(true)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.micronesTextos}>
+            <Text style={styles.micronesTitulo}>Espesor de pintura (opcional)</Text>
+            <Text style={styles.micronesSubtitulo}>{resumenMedicionMicrones(datos.medicionMicrones)}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+
         <View style={styles.boton}>
           <Button title="Continuar" onPress={handleContinuar} loading={capturando} disabled={capturando} />
         </View>
       </View>
       </SwipeVolver>
+
+      <MedicionMicronesModal
+        visible={modalMicronesVisible}
+        panelesPorVista={panelesPorVista}
+        medicion={datos.medicionMicrones}
+        onCambiar={(medicionMicrones) => onCambiar({ medicionMicrones })}
+        onCerrar={() => setModalMicronesVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -293,6 +334,32 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 8,
     textAlign: "center",
+  },
+  micronesFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 12,
+    marginTop: 12,
+  },
+  micronesTextos: {
+    flex: 1,
+  },
+  micronesTitulo: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  micronesSubtitulo: {
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    marginTop: 2,
   },
   boton: {
     marginTop: 14,

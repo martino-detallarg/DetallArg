@@ -48,7 +48,59 @@ const COLUMNAS_TURNO =
   "subdivision_vehiculo, kilometraje, nivel_nafta, conformidad_estado, " +
   "turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad, costo_estimado, costo_unitario_snapshot), " +
   "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado), " +
-  "turno_fotos_danio(storage_path), turno_ppf_seleccion(panel_id), turno_ppf_paneles(panel_id)";
+  "turno_fotos_danio(storage_path), turno_ppf_seleccion(panel_id), turno_ppf_paneles(panel_id), " +
+  "turno_medicion_micrones(panel_id, vista, micrones)";
+
+// Traduce las filas de turno_medicion_micrones (ver
+// supabase/alter_turno_medicion_micrones.sql) a la forma { modo, promedio,
+// porPanel } que espera MedicionMicronesModal.js — mismo shape que arma el
+// wizard antes de guardar (ver TrabajoNuevoWizard.js). `null` si el turno no
+// tiene ninguna medición cargada. Una sola fila con panel_id null = modo
+// "promedio"; cualquier fila con panel_id seteado = modo "panel" (el CHECK
+// de la tabla garantiza que panel_id y vista van siempre juntos).
+function filasMicronesAMedicion(filas) {
+  if (!filas || filas.length === 0) return null;
+
+  if (filas.length === 1 && filas[0].panel_id == null) {
+    return { modo: "promedio", promedio: String(filas[0].micrones), porPanel: {} };
+  }
+
+  const porPanel = {};
+  for (const fila of filas) {
+    if (fila.panel_id == null) continue;
+    porPanel[fila.vista] = { ...(porPanel[fila.vista] ?? {}), [fila.panel_id]: String(fila.micrones) };
+  }
+  return { modo: "panel", promedio: "", porPanel };
+}
+
+// Inversa de filasMicronesAMedicion: a partir del `medicionMicrones` del
+// wizard, arma las filas a insertar en turno_medicion_micrones — solo del
+// modo activo (nunca los dos a la vez, ver alter_turno_medicion_micrones.sql)
+// y solo los valores numéricos válidos > 0 (un campo vacío o inválido
+// simplemente no genera fila, no bloquea el guardado del resto).
+function filasMedicionMicrones(turnoId, medicion) {
+  if (!medicion?.modo) return [];
+
+  function valorValido(texto) {
+    if (!texto?.trim()) return null;
+    const numero = Number(texto.replace(",", "."));
+    return !Number.isNaN(numero) && numero > 0 ? numero : null;
+  }
+
+  if (medicion.modo === "promedio") {
+    const valor = valorValido(medicion.promedio);
+    return valor != null ? [{ turno_id: turnoId, panel_id: null, vista: null, micrones: valor }] : [];
+  }
+
+  const filas = [];
+  for (const [vistaId, panelesMap] of Object.entries(medicion.porPanel ?? {})) {
+    for (const [panelId, texto] of Object.entries(panelesMap ?? {})) {
+      const valor = valorValido(texto);
+      if (valor != null) filas.push({ turno_id: turnoId, panel_id: panelId, vista: vistaId, micrones: valor });
+    }
+  }
+  return filas;
+}
 
 // Traduce una fila de `turnos` + sus embeds (turno_receta_aplicada,
 // turno_danios, turno_empleados, turno_fotos_danio) a la forma que espera el
@@ -115,6 +167,9 @@ function filaATurno(fila) {
               : { libre: true, nombreInsumo: linea.nombre_insumo, costoEstimado: linea.costo_estimado }
           )
         : null,
+    // Medición de espesor de pintura (µm), 100% opcional — ver
+    // MedicionMicronesModal.js. `null` si el turno no tiene nada cargado.
+    medicionMicrones: filasMicronesAMedicion(fila.turno_medicion_micrones),
   };
 }
 
@@ -249,20 +304,35 @@ export function TurnoProvider({ children }) {
       turno_id: data.id,
       panel_id: panelId,
     }));
+    // Espesor de pintura (µm), 100% opcional — ver MedicionMicronesModal.js.
+    // Se escribe una sola vez acá, igual que danios/empleados/ppfSeleccion:
+    // a diferencia de turno_receta_aplicada/turno_ppf_paneles, este valor no
+    // se recalcula ni se congela después, lo tipea el taller directo al
+    // cargar el check-in.
+    const filasMicrones = filasMedicionMicrones(data.id, datosTurno.medicionMicrones);
 
-    const [resultadoDanios, resultadoEmpleados, resultadoFotos, resultadoPpfSeleccion] = await Promise.all([
-      filasDanios.length > 0
-        ? supabase.from("turno_danios").insert(filasDanios)
-        : Promise.resolve({ error: null }),
-      filasEmpleados.length > 0
-        ? supabase.from("turno_empleados").insert(filasEmpleados)
-        : Promise.resolve({ error: null }),
-      subirFotosDano(data.id, datosTurno.fotosDano),
-      filasPpfSeleccion.length > 0
-        ? supabase.from("turno_ppf_seleccion").insert(filasPpfSeleccion)
-        : Promise.resolve({ error: null }),
-    ]);
-    const errorHijos = resultadoDanios.error ?? resultadoEmpleados.error ?? resultadoFotos.error ?? resultadoPpfSeleccion.error;
+    const [resultadoDanios, resultadoEmpleados, resultadoFotos, resultadoPpfSeleccion, resultadoMicrones] =
+      await Promise.all([
+        filasDanios.length > 0
+          ? supabase.from("turno_danios").insert(filasDanios)
+          : Promise.resolve({ error: null }),
+        filasEmpleados.length > 0
+          ? supabase.from("turno_empleados").insert(filasEmpleados)
+          : Promise.resolve({ error: null }),
+        subirFotosDano(data.id, datosTurno.fotosDano),
+        filasPpfSeleccion.length > 0
+          ? supabase.from("turno_ppf_seleccion").insert(filasPpfSeleccion)
+          : Promise.resolve({ error: null }),
+        filasMicrones.length > 0
+          ? supabase.from("turno_medicion_micrones").insert(filasMicrones)
+          : Promise.resolve({ error: null }),
+      ]);
+    const errorHijos =
+      resultadoDanios.error ??
+      resultadoEmpleados.error ??
+      resultadoFotos.error ??
+      resultadoPpfSeleccion.error ??
+      resultadoMicrones.error;
     if (errorHijos) {
       await supabase.from("turnos").delete().eq("id", data.id);
       throw errorHijos;
@@ -278,6 +348,7 @@ export function TurnoProvider({ children }) {
       fotosDano: resultadoFotos.rutas,
       panelesPpf: datosTurno.panelesElegidos ?? [],
       panelesPpfAplicados: null,
+      medicionMicrones: filasMicrones.length > 0 ? datosTurno.medicionMicrones : null,
     };
     setTurnos((actuales) => [...actuales, nuevoTurno]);
     return nuevoTurno;
