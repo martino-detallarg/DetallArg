@@ -7,6 +7,7 @@ import WizardHeader from "./wizard/WizardHeader";
 import SelectorFechaModal from "./wizard/SelectorFechaModal";
 import Input from "./Input";
 import Button from "./Button";
+import ChipGroup from "./ChipGroup";
 import { useFinanzas } from "../data/FinanzasContext";
 import { ORDEN_FORMAS_PAGO, FORMAS_PAGO } from "../data/mockFinanzas";
 import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../utils/fecha";
@@ -123,41 +124,25 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
               )}
 
               <Text style={styles.label}>Forma de pago</Text>
-              <View style={styles.chips}>
-                {ORDEN_FORMAS_PAGO.map((clave) => {
-                  const activo = formaPago === clave;
-                  return (
-                    <TouchableOpacity
-                      key={clave}
-                      style={[styles.chip, activo && styles.chipSeleccionado]}
-                      onPress={() => setFormaPago(clave)}
-                    >
-                      <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>
-                        {FORMAS_PAGO[clave].etiqueta}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <ChipGroup
+                style={styles.chips}
+                options={ORDEN_FORMAS_PAGO.map((clave) => ({
+                  value: clave,
+                  label: FORMAS_PAGO[clave].etiqueta,
+                  selected: formaPago === clave,
+                }))}
+                onPress={setFormaPago}
+              />
 
               <Text style={styles.label}>¿Facturado?</Text>
-              <View style={styles.chips}>
-                {[
-                  { valor: true, etiqueta: "Sí" },
-                  { valor: false, etiqueta: "No" },
-                ].map(({ valor, etiqueta }) => {
-                  const activo = facturado === valor;
-                  return (
-                    <TouchableOpacity
-                      key={etiqueta}
-                      style={[styles.chip, activo && styles.chipSeleccionado]}
-                      onPress={() => setFacturado(valor)}
-                    >
-                      <Text style={[styles.chipTexto, activo && styles.chipTextoSeleccionado]}>{etiqueta}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <ChipGroup
+                style={styles.chips}
+                options={[
+                  { value: true, label: "Sí", selected: facturado === true },
+                  { value: false, label: "No", selected: facturado === false },
+                ]}
+                onPress={setFacturado}
+              />
 
               {error && <Text style={styles.error}>{error}</Text>}
 
@@ -232,31 +217,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
     marginBottom: 16,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipSeleccionado: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  chipTexto: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  chipTextoSeleccionado: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
   },
   error: {
     fontFamily: fonts.body,

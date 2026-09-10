@@ -4,13 +4,16 @@ import { colors, fonts } from "../theme";
 // Chip individual: puramente presentacional, no sabe nada de selección —
 // solo dibuja según `selected` y avisa el toque. No se exporta: ningún uso
 // de hoy necesita un chip suelto fuera de un ChipGroup.
-function Chip({ label, selected, onPress, selectedColor }) {
+function Chip({ label, selected, onPress, selectedColor, disabled }) {
   return (
     <TouchableOpacity
       style={[styles.chip, selected && { backgroundColor: selectedColor, borderColor: selectedColor }]}
       onPress={onPress}
+      disabled={disabled}
     >
-      <Text style={[styles.chipTexto, selected && styles.chipTextoSeleccionado]}>{label}</Text>
+      <Text style={[styles.chipTexto, selected && styles.chipTextoSeleccionado]} numberOfLines={1}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -27,7 +30,7 @@ function Chip({ label, selected, onPress, selectedColor }) {
 // togglear un array, o togglear a null). Así conviven sin fricción el caso
 // de selección única (la mayoría) y el de multi-select real (empleados
 // asignados en DatosServicioStep.js).
-export default function ChipGroup({ options, onPress, selectedColor = colors.accent, style }) {
+export default function ChipGroup({ options, onPress, selectedColor = colors.accent, style, disabled = false }) {
   return (
     <View style={[styles.chips, style]}>
       {options.map((opcion) => (
@@ -37,6 +40,7 @@ export default function ChipGroup({ options, onPress, selectedColor = colors.acc
           selected={opcion.selected}
           onPress={() => onPress(opcion.value)}
           selectedColor={selectedColor}
+          disabled={disabled}
         />
       ))}
     </View>
@@ -56,6 +60,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 9,
+    maxWidth: "100%",
   },
   chipTexto: {
     fontFamily: fonts.body,

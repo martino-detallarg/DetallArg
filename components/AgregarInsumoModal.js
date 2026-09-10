@@ -19,6 +19,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
+import ChipGroup from "./ChipGroup";
 import MedidorNivelInsumo from "./MedidorNivelInsumo";
 import { CATEGORIAS, UNIDADES_CAPACIDAD, catalogoInsumos } from "../data/mockInsumos";
 import { useData } from "../data/DataContext";
@@ -33,6 +34,12 @@ const PROPS_NUMERICO_DONE = {
   returnKeyType: "done",
   onSubmitEditing: () => Keyboard.dismiss(),
 };
+
+// Un rollo de PPF no tiene diluciones ni "cuánto rinde" como el resto de los
+// insumos: se mide en m² del rollo, no en ml/g/unidades (ver CamposStock).
+function esCategoriaPpf(categoria) {
+  return categoria === "ppf";
+}
 
 // Un producto "se diluye" si su catálogo lista alguna dilución real más allá
 // de "Puro" (usarlo puro no es una dilución que el taller tenga que elegir).
@@ -164,24 +171,15 @@ function CamposStock({
               <Text style={[styles.unidadChipTexto, styles.unidadChipTextoActivo]}>m2</Text>
             </View>
           ) : (
-            <View style={styles.unidadChips}>
-              {UNIDADES_CAPACIDAD.filter((unidad) => unidad !== "m2").map((unidad) => {
-                const activa = capacidadUnidad === unidad;
-                return (
-                  <TouchableOpacity
-                    key={unidad}
-                    style={[styles.unidadChip, activa && styles.unidadChipActivo]}
-                    onPress={() => onCambiarCapacidadUnidad(unidad)}
-                    disabled={bloqueada}
-                    pointerEvents={bloqueada ? "none" : "auto"}
-                  >
-                    <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}>
-                      {unidad}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <ChipGroup
+              disabled={bloqueada}
+              options={UNIDADES_CAPACIDAD.filter((unidad) => unidad !== "m2").map((unidad) => ({
+                value: unidad,
+                label: unidad,
+                selected: capacidadUnidad === unidad,
+              }))}
+              onPress={onCambiarCapacidadUnidad}
+            />
           )}
         </View>
       </View>
@@ -239,7 +237,7 @@ function CamposStock({
 
 function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress, onAgregar }) {
   const categoria = CATEGORIAS[producto.categoria];
-  const esRollo = producto.categoria === "ppf";
+  const esRollo = esCategoriaPpf(producto.categoria);
   const tieneDilucion = !esRollo && calcularTieneDilucion(producto.diluciones);
 
   const [opcionesDilucion, setOpcionesDilucion] = useState(() => [...producto.diluciones]);
@@ -340,24 +338,15 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
         {tieneDilucion ? (
           <View style={styles.campo}>
             <Text style={styles.campoLabel}>Dilución</Text>
-            <View style={styles.dilucionChips}>
-              {opcionesDilucion.map((opcion) => {
-                const activa = dilucionesSeleccionadas.includes(opcion);
-                return (
-                  <TouchableOpacity
-                    key={opcion}
-                    style={[styles.unidadChip, activa && styles.unidadChipActivo]}
-                    onPress={() => toggleDilucion(opcion)}
-                    disabled={bloqueada}
-                    pointerEvents={bloqueada ? "none" : "auto"}
-                  >
-                    <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]} numberOfLines={1}>
-                      {etiquetaCortaDilucion(opcion)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <ChipGroup
+              disabled={bloqueada}
+              options={opcionesDilucion.map((opcion) => ({
+                value: opcion,
+                label: etiquetaCortaDilucion(opcion),
+                selected: dilucionesSeleccionadas.includes(opcion),
+              }))}
+              onPress={toggleDilucion}
+            />
             {dilucionesSeleccionadas.length > 0 ? (
               <View style={styles.mlPorUsoLista}>
                 {dilucionesSeleccionadas.map((opcion) => {
@@ -472,7 +461,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
   const [nombre, setNombre] = useState("");
   const [marca, setMarca] = useState("");
   const [categoria, setCategoria] = useState(claveCategoriaInicial);
-  const esRollo = categoria === "ppf";
+  const esRollo = esCategoriaPpf(categoria);
   const [seDiluye, setSeDiluye] = useState(false);
   // Solo el X: el "1:" es fijo, no se tipea — mismo criterio que patente.js
   // (normalizar en el momento, no aceptar cualquier formato libre).
@@ -490,7 +479,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
   // fuerza la unidad a m2 (y la saca en cuanto se elige otra categoría).
   function handleCambiarCategoria(nuevaCategoria) {
     setCategoria(nuevaCategoria);
-    if (nuevaCategoria === "ppf") {
+    if (esCategoriaPpf(nuevaCategoria)) {
       setCapacidadUnidad("m2");
     } else if (capacidadUnidad === "m2") {
       setCapacidadUnidad(UNIDADES_CAPACIDAD[0]);
@@ -567,43 +556,27 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
 
       <View style={styles.campo}>
         <Text style={styles.campoLabel}>Categoría</Text>
-        <View style={styles.dilucionChips}>
-          {Object.entries(CATEGORIAS).map(([clave, datos]) => {
-            const activa = categoria === clave;
-            return (
-              <TouchableOpacity
-                key={clave}
-                style={[styles.unidadChip, activa && styles.unidadChipActivo]}
-                onPress={() => handleCambiarCategoria(clave)}
-                disabled={guardando}
-              >
-                <Text style={[styles.unidadChipTexto, activa && styles.unidadChipTextoActivo]}>
-                  {datos.etiqueta}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <ChipGroup
+          disabled={guardando}
+          options={Object.entries(CATEGORIAS).map(([clave, datos]) => ({
+            value: clave,
+            label: datos.etiqueta,
+            selected: categoria === clave,
+          }))}
+          onPress={handleCambiarCategoria}
+        />
       </View>
 
       <View style={styles.campo}>
         <Text style={styles.campoLabel}>¿Se diluye?</Text>
-        <View style={styles.unidadChips}>
-          <TouchableOpacity
-            style={[styles.unidadChip, seDiluye && styles.unidadChipActivo]}
-            onPress={() => setSeDiluye(true)}
-            disabled={guardando}
-          >
-            <Text style={[styles.unidadChipTexto, seDiluye && styles.unidadChipTextoActivo]}>Sí</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.unidadChip, !seDiluye && styles.unidadChipActivo]}
-            onPress={() => setSeDiluye(false)}
-            disabled={guardando}
-          >
-            <Text style={[styles.unidadChipTexto, !seDiluye && styles.unidadChipTextoActivo]}>No</Text>
-          </TouchableOpacity>
-        </View>
+        <ChipGroup
+          disabled={guardando}
+          options={[
+            { value: true, label: "Sí", selected: seDiluye === true },
+            { value: false, label: "No", selected: seDiluye === false },
+          ]}
+          onPress={setSeDiluye}
+        />
       </View>
 
       {seDiluye ? (
@@ -1100,15 +1073,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     ...shadowSubtle,
-  },
-  unidadChips: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  dilucionChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
   },
   dilucionCustomFila: {
     flexDirection: "row",

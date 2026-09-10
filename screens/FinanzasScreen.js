@@ -110,6 +110,7 @@ export default function FinanzasScreen({ navigation }) {
   const [indiceSeleccionado, setIndiceSeleccionado] = useState(null);
   const [generandoPdf, setGenerandoPdf] = useState(false);
   const [eliminandoGastoId, setEliminandoGastoId] = useState(null);
+  const [errorEliminarGasto, setErrorEliminarGasto] = useState(null);
   const anchoGrafico = width - PADDING_PANTALLA * 2 - 32;
 
   const totalCostosFijos = costosFijos.reduce((suma, c) => suma + c.monto, 0);
@@ -118,6 +119,8 @@ export default function FinanzasScreen({ navigation }) {
   // parcial que todavía no cubre el precio) — ver Cuentas por Cobrar.
   const cuentasPorCobrar = calcularCuentasPorCobrar(turnos, cobros, getClienteById, getVehiculoById);
   const totalCuentasPorCobrar = cuentasPorCobrar.reduce((suma, item) => suma + (item.saldo ?? 0), 0);
+  const cargandoCuentasPorCobrar = cargandoTurnos || cargandoCobros;
+  const errorCuentasPorCobrar = errorCargaTurnos || errorCargaCobros;
 
   const claveMesActual = claveMesDeFecha(new Date());
   const gastosVariablesDelMes = gastosVariables.filter((g) => claveMes(g.fecha) === claveMesActual);
@@ -263,10 +266,11 @@ export default function FinanzasScreen({ navigation }) {
   async function handleEliminarGasto(id) {
     if (eliminandoGastoId) return;
     setEliminandoGastoId(id);
+    setErrorEliminarGasto(null);
     try {
       await eliminarGastoVariable(id);
     } catch (err) {
-      Alert.alert("No se pudo eliminar", "No se pudo eliminar el gasto. Probá de nuevo.");
+      setErrorEliminarGasto("No se pudo eliminar el gasto. Probá de nuevo.");
     } finally {
       setEliminandoGastoId(null);
     }
@@ -406,22 +410,38 @@ export default function FinanzasScreen({ navigation }) {
           contentContainerStyle={styles.pagina}
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity
-            style={styles.cuentasPorCobrarTarjeta}
-            onPress={() => navigation.navigate("CuentasPorCobrar")}
-            activeOpacity={0.85}
-          >
-            <View style={styles.cuentasPorCobrarIcono}>
-              <Ionicons name="time-outline" size={20} color={colors.accentLight} />
-            </View>
-            <View style={styles.cuentasPorCobrarTextos}>
-              <Text style={styles.cuentasPorCobrarTitulo}>Cuentas por Cobrar</Text>
-              {totalCuentasPorCobrar > 0 && (
-                <Text style={styles.cuentasPorCobrarMonto}>{formatearPesos(totalCuentasPorCobrar)} adeudado</Text>
-              )}
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+          <View style={styles.cuentasPorCobrarWrap}>
+            <TouchableOpacity
+              style={styles.cuentasPorCobrarTarjeta}
+              onPress={() => navigation.navigate("CuentasPorCobrar")}
+              activeOpacity={0.85}
+            >
+              <View style={styles.cuentasPorCobrarIcono}>
+                <Ionicons name="time-outline" size={20} color={colors.accentLight} />
+              </View>
+              <View style={styles.cuentasPorCobrarTextos}>
+                <Text style={styles.cuentasPorCobrarTitulo}>Cuentas por Cobrar</Text>
+                {totalCuentasPorCobrar > 0 && (
+                  <Text style={styles.cuentasPorCobrarMonto}>{formatearPesos(totalCuentasPorCobrar)} adeudado</Text>
+                )}
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Mismo criterio que la dona/tendencia de más abajo: sin este
+            overlay, mientras cargandoTurnos/cargandoCobros todavía no
+            resuelven, la tarjeta se ve como si no hubiera nada adeudado
+            (totalCuentasPorCobrar arranca en 0). */}
+            {(cargandoCuentasPorCobrar || errorCuentasPorCobrar) && (
+              <View style={styles.tarjetaOverlay}>
+                {cargandoCuentasPorCobrar ? (
+                  <ActivityIndicator color={colors.accent} size="large" />
+                ) : (
+                  <Text style={styles.tarjetaOverlayError}>{errorCuentasPorCobrar}</Text>
+                )}
+              </View>
+            )}
+          </View>
 
           <View style={styles.tarjeta}>
             <View style={styles.tarjetaHeaderFila}>
@@ -471,6 +491,7 @@ export default function FinanzasScreen({ navigation }) {
           {gastosVariablesDelMes.length > 0 && (
             <View style={styles.gastosSeccion}>
               <Text style={styles.gastosTitulo}>Gastos variables de este mes</Text>
+              {errorEliminarGasto && <Text style={styles.gastosError}>{errorEliminarGasto}</Text>}
               {gastosVariablesDelMes.map((gasto) => {
                 const categoria = CATEGORIAS_GASTOS_VARIABLES[gasto.categoria];
                 return (
@@ -743,6 +764,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: PADDING_PANTALLA,
     paddingBottom: 20,
   },
+  cuentasPorCobrarWrap: {
+    marginBottom: 16,
+  },
   cuentasPorCobrarTarjeta: {
     flexDirection: "row",
     alignItems: "center",
@@ -753,7 +777,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: 14,
-    marginBottom: 16,
   },
   cuentasPorCobrarIcono: {
     width: 40,
@@ -859,6 +882,12 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  gastosError: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.error,
     marginBottom: 10,
   },
   gastoFila: {
