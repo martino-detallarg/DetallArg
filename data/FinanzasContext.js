@@ -127,9 +127,11 @@ export function FinanzasProvider({ children }) {
     setIntentoCargaGastosVariables((n) => n + 1);
   }
 
-  // Un turno = un cobro en v1 (sin pagos parciales) — TrabajoDetalleModal es
-  // quien decide si ya existe un cobro para este turno antes de mostrar el
-  // botón "Registrar cobro", esta función no lo valida de nuevo.
+  // Un turno puede tener varios cobros (pagos parciales, ver
+  // calcularSaldoPendienteTurno en utils/calculosFinanzas.js) — TrabajoDetalleModal
+  // es quien decide si mostrar "Registrar cobro"/"Registrar seña" según el
+  // saldo pendiente y el estado del turno, no según si ya existe un cobro
+  // previo; esta función no vuelve a validar nada de eso.
   //
   // `esSena` (ver alter_cobros_es_sena.sql): un cobro parcial tomado con el
   // turno todavía en Pendiente/En proceso, para reservarlo. Límite conocido,

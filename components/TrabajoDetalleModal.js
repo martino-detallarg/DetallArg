@@ -555,11 +555,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 10,
   },
-  // Visualmente distinto de cobroBoton (amber en vez de accent): "Registrar
-  // seña" y "Registrar cobro" nunca conviven en pantalla (mutuamente
-  // excluyentes por estado del turno), pero el color ayuda a no confundir
-  // una seña con un cobro final si el taller ve capturas viejas o compara
-  // ambos flujos entre sí.
+  // Visualmente distinto de cobroBoton (amber en vez de accent): desde
+  // c0def6c "Registrar seña" y "Registrar cobro" SÍ pueden convivir en
+  // pantalla (turno Finalizado/Entregado con saldo pendiente, ver
+  // puedeCobrar/puedeTomarSena) — el color evita que se confundan entre sí
+  // cuando aparecen juntos.
   senaBoton: {
     flexDirection: "row",
     alignItems: "center",
