@@ -85,6 +85,13 @@ export function calcularPresupuestoPpf({
   const detalle = panelesElegidos.map((panelKey) => {
     const panel = paneles[panelKey];
     if (!panel) {
+      // TODO: hoy esta rama es inalcanzable (SelectorPanelesPpf.js filtra
+      // contra panelesDisponibles antes de togglear, así que panelesElegidos
+      // nunca trae una key que no exista en la matriz actual). Si algún día
+      // ppfPanelMatrix.js cambia y deja "huérfano" un panel ya elegido en un
+      // turno viejo, esta fila le va a faltar m2ConMerma/costoPanel — falta
+      // decidir cómo se muestra en PresupuestoPpfStep.js antes de completarla
+      // (¿fila de aviso? ¿excluirla del total?).
       return { panel: panelKey, error: "PANEL_DESCONOCIDO" };
     }
     return {

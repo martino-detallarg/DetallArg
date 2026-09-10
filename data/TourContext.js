@@ -48,7 +48,12 @@ export function TourProvider({ children }) {
     setTourActivo(false);
     setPasoActualId(null);
     setTourVisto(true);
-    AsyncStorage.setItem(CLAVE_TOUR_VISTO, "true").catch(() => {});
+    // No hace falta mostrarle nada al taller si esto falla (en el peor caso
+    // el tour vuelve a aparecer una vez de más), pero tampoco hay que
+    // tragarse el error del todo -- mismo criterio que el resto de la app.
+    AsyncStorage.setItem(CLAVE_TOUR_VISTO, "true").catch((error) => {
+      console.warn("No se pudo guardar que el tour ya se vio:", error);
+    });
   }
 
   function avanzarTour() {
@@ -65,10 +70,6 @@ export function TourProvider({ children }) {
     marcarTourVisto();
   }
 
-  function finalizarTour() {
-    marcarTourVisto();
-  }
-
   const value = useMemo(
     () => ({
       tourActivo,
@@ -77,7 +78,6 @@ export function TourProvider({ children }) {
       iniciarTour,
       avanzarTour,
       saltearTour,
-      finalizarTour,
     }),
     [tourActivo, pasoActualId, tourVisto]
   );
