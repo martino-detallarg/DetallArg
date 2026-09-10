@@ -21,7 +21,7 @@ import TourSpotlight from "./TourSpotlight";
 // hijo recién se está montando, ej. un paso de wizard que abre ya estando en
 // ese punto del tour).
 export default function TourAnchor({ id, children }) {
-  const { pasoActualId } = useTour();
+  const { pasoActualId, avanzarTour } = useTour();
   const esActivo = pasoActualId === id;
   const ref = useRef(null);
   const [rect, setRect] = useState(null);
@@ -52,8 +52,18 @@ export default function TourAnchor({ id, children }) {
   }, [esActivo, medir]);
 
   const onLayoutOriginal = children.props.onLayout;
+  const onPressOriginal = children.props.onPress;
   const paso = PASOS_TOUR.find((p) => p.id === id);
 
+  // El control real queda tocable a propósito (ver TourSpotlight.js) porque el
+  // texto de varios pasos invita a tocarlo. Si tiene onPress, lo enganchamos
+  // para que tocarlo de verdad TAMBIÉN avance el tour -- si no, pasoActualId
+  // nunca cambia (solo avanza el botón "Siguiente" del globito) y el tour
+  // queda trabado apuntando a un control que ya hizo lo suyo (navegó, abrió
+  // otro modal) mientras el spotlight sigue montado encima. Los pasos que
+  // envuelven un contenedor sin onPress propio (inspección de daños, firma,
+  // etc.) no se tocan: ahí el control real no navega a otro lado, así que no
+  // corren este riesgo.
   return (
     <>
       {cloneElement(children, {
@@ -62,6 +72,14 @@ export default function TourAnchor({ id, children }) {
           onLayoutOriginal?.(evento);
           if (esActivo) medir();
         },
+        ...(esActivo && onPressOriginal
+          ? {
+              onPress: (...args) => {
+                onPressOriginal(...args);
+                avanzarTour();
+              },
+            }
+          : null),
       })}
       {esActivo && rect && paso && <TourSpotlight rect={rect} paso={paso} />}
     </>
