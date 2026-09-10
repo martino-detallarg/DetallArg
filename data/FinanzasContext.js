@@ -17,6 +17,7 @@ function filaACobro(fila) {
     fecha: convertirFechaDesdeISO(fila.fecha),
     formaPago: fila.forma_pago,
     facturado: fila.facturado,
+    esSena: fila.es_sena,
   };
 }
 
@@ -32,7 +33,7 @@ function filaAGastoVariable(fila) {
   };
 }
 
-const COLUMNAS_COBRO = "id, turno_id, monto, fecha, forma_pago, facturado";
+const COLUMNAS_COBRO = "id, turno_id, monto, fecha, forma_pago, facturado, es_sena";
 const COLUMNAS_GASTO_VARIABLE = "id, monto, categoria, fecha, descripcion, facturado, comprobante_storage_path";
 
 // Fase A de Finanzas: registrar cobros de trabajos y cargar gastos variables
@@ -129,7 +130,17 @@ export function FinanzasProvider({ children }) {
   // Un turno = un cobro en v1 (sin pagos parciales) — TrabajoDetalleModal es
   // quien decide si ya existe un cobro para este turno antes de mostrar el
   // botón "Registrar cobro", esta función no lo valida de nuevo.
-  async function registrarCobro({ turnoId, monto, fecha, formaPago, facturado }) {
+  //
+  // `esSena` (ver alter_cobros_es_sena.sql): un cobro parcial tomado con el
+  // turno todavía en Pendiente/En proceso, para reservarlo. Límite conocido,
+  // no bloqueante: el costo de insumos de un trabajo
+  // (turno_receta_aplicada.costo_unitario_snapshot, ver costoInsumosTurno en
+  // utils/calculosFinanzas.js) recién se congela cuando el turno pasa a
+  // Finalizado. Si el reporte de Finanzas de un mes se mira ANTES de que el
+  // trabajo se finalice, una seña de ese mes figura con margen ~100% (sin
+  // costo todavía) — misma convención que ya existe hoy para un turno sin
+  // receta aplicada, y no se recalcula después.
+  async function registrarCobro({ turnoId, monto, fecha, formaPago, facturado, esSena = false }) {
     const { data, error } = await supabase
       .from("cobros")
       .insert({
@@ -139,6 +150,7 @@ export function FinanzasProvider({ children }) {
         fecha: convertirFechaAISO(fecha),
         forma_pago: formaPago,
         facturado,
+        es_sena: esSena,
       })
       .select(COLUMNAS_COBRO)
       .single();
