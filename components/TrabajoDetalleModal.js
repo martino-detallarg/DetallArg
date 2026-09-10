@@ -13,6 +13,11 @@ import { formatearDuracion, formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const ESTADOS_QUE_PERMITEN_COBRO = ["Finalizado", "Entregado"];
+// Una seña es un cobro parcial para RESERVAR el trabajo, tomado antes de que
+// exista nada para entregar — por eso solo aplica mientras el turno sigue
+// Pendiente/En proceso. El cobro final (no-seña) sigue exigiendo
+// Finalizado/Entregado exactamente como hoy, sin overlap entre los dos.
+const ESTADOS_QUE_PERMITEN_SENA = ["Pendiente", "En proceso"];
 
 // Mismo criterio de color por estado que TurnoCard.js.
 const COLOR_ESTADO = {
@@ -32,7 +37,12 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   const [errorEstado, setErrorEstado] = useState(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState(null);
-  const [modalCobroVisible, setModalCobroVisible] = useState(false);
+  // null | "cobro" | "sena" — un solo estado para las dos formas de abrir
+  // RegistrarCobroModal (nunca pueden estar activas a la vez: el botón de
+  // cobro normal y el de seña ya son mutuamente excluyentes por estado del
+  // turno, ver puedeCobrar/puedeTomarSena) — así solo hay un <Modal> nativo
+  // en juego por vez, mismo criterio que ClientesScreen.js.
+  const [modoRegistro, setModoRegistro] = useState(null);
 
   // Estado "de prueba": tocar un chip solo cambia esto, no el turno real.
   // Se resetea al estado real del turno cada vez que el modal se vuelve a
@@ -56,6 +66,8 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   const totalCobrado = cobrosDelTurno.reduce((suma, c) => suma + c.monto, 0);
   const saldoPendiente = calcularSaldoPendienteTurno(turno, cobros);
   const puedeCobrar = ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado);
+  const puedeTomarSena =
+    ESTADOS_QUE_PERMITEN_SENA.includes(turno.estado) && (saldoPendiente === null || saldoPendiente > 0);
   const hayCambioSinGuardar = estadoLocal !== turno.estado;
 
   // El nombre se muestra con el mismo criterio que el resto de la app
@@ -109,7 +121,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
 
   return (
     <>
-    <Modal visible={visible && !modalCobroVisible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible && !modoRegistro} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.fondo}>
         <View style={styles.contenedor}>
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -235,6 +247,43 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
               </View>
             )}
 
+            {cobrosDelTurno.length > 0 && (
+              <View style={styles.tarjetaSeccion}>
+                <Text style={styles.tituloTarjeta}>Historial de pagos</Text>
+                {cobrosDelTurno.map((c) => (
+                  <View key={c.id} style={styles.historialFila}>
+                    <Text style={styles.campoValor}>
+                      {formatearPesos(c.monto)} · {c.fecha}
+                    </Text>
+                    {c.esSena && (
+                      <View style={styles.senaEtiqueta}>
+                        <Text style={styles.senaEtiquetaTexto}>Seña</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {puedeTomarSena && (
+              <View style={styles.tarjetaSeccion}>
+                <Text style={styles.tituloTarjeta}>Seña</Text>
+                <Text style={styles.senaAyuda}>
+                  Cobrá una seña ahora para reservar el trabajo, antes de que esté listo.
+                </Text>
+                <TouchableOpacity
+                  style={styles.senaBoton}
+                  onPress={() => setModoRegistro("sena")}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="wallet-outline" size={16} color={colors.bg} />
+                  <Text style={styles.senaBotonTexto}>
+                    {totalCobrado > 0 ? "Registrar otra seña" : "Registrar seña"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {puedeCobrar && (
               <View style={styles.tarjetaSeccion}>
                 <Text style={styles.tituloTarjeta}>Cobro</Text>
@@ -251,7 +300,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                     <TourAnchor id="trabajoDetalle.cobrar">
                       <TouchableOpacity
                         style={styles.cobroBoton}
-                        onPress={() => setModalCobroVisible(true)}
+                        onPress={() => setModoRegistro("cobro")}
                         activeOpacity={0.85}
                       >
                         <Ionicons name="cash-outline" size={16} color={colors.bg} />
@@ -293,11 +342,12 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
     </Modal>
 
     <RegistrarCobroModal
-      visible={modalCobroVisible}
+      visible={modoRegistro !== null}
       turno={turno}
+      esSena={modoRegistro === "sena"}
       saldoPendiente={saldoPendiente}
       montoYaCobrado={totalCobrado}
-      onClose={() => setModalCobroVisible(false)}
+      onClose={() => setModoRegistro(null)}
     />
     </>
   );
@@ -418,6 +468,51 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cobroBotonTexto: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.bg,
+  },
+  historialFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginBottom: 6,
+  },
+  senaEtiqueta: {
+    backgroundColor: colors.amberTint,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  senaEtiquetaTexto: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.amber,
+  },
+  senaAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 10,
+  },
+  // Visualmente distinto de cobroBoton (amber en vez de accent): "Registrar
+  // seña" y "Registrar cobro" nunca conviven en pantalla (mutuamente
+  // excluyentes por estado del turno), pero el color ayuda a no confundir
+  // una seña con un cobro final si el taller ve capturas viejas o compara
+  // ambos flujos entre sí.
+  senaBoton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 48,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    backgroundColor: colors.amber,
+    marginBottom: 12,
+  },
+  senaBotonTexto: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,
     color: colors.bg,

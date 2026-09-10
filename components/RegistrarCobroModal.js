@@ -15,12 +15,15 @@ import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 // Registra el cobro de un turno ya Finalizado/Entregado (ver
-// TrabajoDetalleModal.js). Ahora admite pagos parciales (Cuentas por
-// Cobrar): `saldoPendiente`/`montoYaCobrado` son opcionales (undefined
-// cuando se abre desde un lugar que todavía no los calcula) — cuando vienen,
-// prefillean el monto con lo que falta en vez del precio completo del turno
-// y avisan cuánto ya se cobró, sin bloquear un pago distinto a mano.
-export default function RegistrarCobroModal({ visible, turno, saldoPendiente, montoYaCobrado, onClose }) {
+// TrabajoDetalleModal.js), o una SEÑA de un turno todavía Pendiente/En
+// proceso (`esSena` — ver TrabajoDetalleModal.js y
+// SeleccionarTrabajoSenaModal.js, mismo mecanismo de cobro parcial, solo
+// que tomado antes). Ahora admite pagos parciales (Cuentas por Cobrar):
+// `saldoPendiente`/`montoYaCobrado` son opcionales (undefined cuando se abre
+// desde un lugar que todavía no los calcula) — cuando vienen, prefillean el
+// monto con lo que falta en vez del precio completo del turno y avisan
+// cuánto ya se cobró, sin bloquear un pago distinto a mano.
+export default function RegistrarCobroModal({ visible, turno, esSena = false, saldoPendiente, montoYaCobrado, onClose }) {
   const { registrarCobro } = useFinanzas();
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState("");
@@ -54,7 +57,7 @@ export default function RegistrarCobroModal({ visible, turno, saldoPendiente, mo
     setCargando(true);
     setError(null);
     try {
-      await registrarCobro({ turnoId: turno.id, monto: montoNumerico, fecha, formaPago, facturado });
+      await registrarCobro({ turnoId: turno.id, monto: montoNumerico, fecha, formaPago, facturado, esSena });
       onClose();
     } catch (err) {
       setError("No se pudo registrar el cobro. Probá de nuevo.");
@@ -68,7 +71,7 @@ export default function RegistrarCobroModal({ visible, turno, saldoPendiente, mo
       <SafeAreaProvider>
         <SafeAreaView style={styles.pantalla} edges={["top", "bottom"]}>
           <KeyboardAvoidingView style={styles.flexUno} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <WizardHeader titulo="Registrar Cobro" paso={1} totalPasos={1} onAtras={onClose} />
+            <WizardHeader titulo={esSena ? "Registrar Seña" : "Registrar Cobro"} paso={1} totalPasos={1} onAtras={onClose} />
 
             <ScrollView ref={scrollRef} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
               {montoYaCobrado > 0 && (
