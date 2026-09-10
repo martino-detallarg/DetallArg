@@ -301,6 +301,31 @@ export function calcularTotalDescontado(cobros, getTurnoById) {
     .reduce((suma, { cobro, turno }) => suma + (turno.precio - cobro.monto), 0);
 }
 
+// Semáforo de color de la Ganancia Neta del mes, relativo al punto de
+// equilibrio (porcentaje, no un monto fijo — así no hay que reajustarlo a
+// mano por inflación, ver alter_talleres_umbral_ganancia_verde.sql). Devuelve
+// una clave ("error"/"amber"/"success") que la UI traduce al color real de
+// theme.js, o `null` (color neutro) si `puntoEquilibrio` todavía no es
+// calculable — no hay base para pintar ningún color sin ese dato.
+// - Rojo: ganancia neta <= 0, o la facturación del mes ni siquiera alcanzó
+//   la facturación de equilibrio.
+// - Ámbar: superó el equilibrio, pero por menos de `umbralPorcentaje`.
+// - Verde: superó el equilibrio por `umbralPorcentaje` o más.
+export function calcularColorSemaforoGananciaNeta(
+  gananciaNetaDelMes,
+  totalFacturadoDelMes,
+  puntoEquilibrio,
+  umbralPorcentaje
+) {
+  if (!puntoEquilibrio) return null;
+  if (gananciaNetaDelMes <= 0 || totalFacturadoDelMes < puntoEquilibrio.facturacion) return "error";
+  if (puntoEquilibrio.facturacion <= 0) return "success";
+
+  const excedentePorcentaje =
+    ((totalFacturadoDelMes - puntoEquilibrio.facturacion) / puntoEquilibrio.facturacion) * 100;
+  return excedentePorcentaje >= umbralPorcentaje ? "success" : "amber";
+}
+
 // Debajo de este mínimo de días transcurridos, proyectar el cierre de mes
 // da un número demasiado ruidoso (1 solo trabajo cobrado el día 2 "cerraría
 // el mes" en 15x eso) — mejor no mostrar nada que mostrar un número

@@ -20,6 +20,7 @@ import CuentasPorCobrarScreen from "../screens/CuentasPorCobrarScreen";
 import NotificacionesScreen from "../screens/NotificacionesScreen";
 import SoporteScreen from "../screens/SoporteScreen";
 import MisHorariosScreen from "../screens/MisHorariosScreen";
+import ConfiguracionFinanzasScreen from "../screens/ConfiguracionFinanzasScreen";
 import HistorialClientesScreen from "../screens/HistorialClientesScreen";
 import ConfiguracionScreen from "../screens/ConfiguracionScreen";
 import DocumentoLegalScreen from "../screens/DocumentoLegalScreen";
@@ -56,6 +57,7 @@ function MiTallerStackNavigator() {
       <MiTallerStack.Screen name="MiEquipo" component={MiEquipoScreen} />
       <MiTallerStack.Screen name="MisInsumos" component={MisInsumosScreen} />
       <MiTallerStack.Screen name="MisHorarios" component={MisHorariosScreen} />
+      <MiTallerStack.Screen name="ConfiguracionFinanzas" component={ConfiguracionFinanzasScreen} />
       <MiTallerStack.Screen name="MisServicios" component={MisServiciosScreen} />
       <MiTallerStack.Screen name="Catalogo" component={CatalogoScreen} />
       <MiTallerStack.Screen name="EditorCatalogo" component={EditorCatalogoScreen} />

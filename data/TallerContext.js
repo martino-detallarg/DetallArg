@@ -17,6 +17,12 @@ const MIS_DATOS_VACIOS = {
 
 const ORDEN_DIAS = horariosIniciales.map((h) => h.dia);
 
+// Mismo valor sugerido que supabase/alter_talleres_umbral_ganancia_verde.sql
+// — fallback para el ratito entre que se pushea este código y se corre esa
+// migración (columna todavía no existe, data.umbral_ganancia_verde_porcentaje
+// viene undefined), mismo criterio que el fallback de onboarding_completado.
+const UMBRAL_GANANCIA_VERDE_DEFAULT = 30;
+
 // Postgres `time` vuelve de Supabase como "09:00:00" (con segundos) — se
 // recorta a "09:00" para seguir siendo compatible con parsearHoraHHMM/
 // formatearHoraHHMM (esperan HH:MM exacto). También reordena Lunes->Domingo,
@@ -67,6 +73,7 @@ export function TallerProvider({ children }) {
   const [misDatos, setMisDatos] = useState(MIS_DATOS_VACIOS);
   const [plan, setPlan] = useState("basico");
   const [onboardingCompletado, setOnboardingCompletado] = useState(true);
+  const [umbralGananciaVerdePorcentaje, setUmbralGananciaVerdePorcentaje] = useState(UMBRAL_GANANCIA_VERDE_DEFAULT);
   const [horarios, setHorarios] = useState(horariosIniciales);
   const [cargandoTaller, setCargandoTaller] = useState(true);
   const [errorCargaTaller, setErrorCargaTaller] = useState(null);
@@ -119,6 +126,9 @@ export function TallerProvider({ children }) {
       // la columna no existe, data.onboarding_completado viene undefined y
       // no hay que mostrarle el wizard a nadie por error.
       setOnboardingCompletado(data.onboarding_completado ?? true);
+      setUmbralGananciaVerdePorcentaje(
+        data.umbral_ganancia_verde_porcentaje ?? UMBRAL_GANANCIA_VERDE_DEFAULT
+      );
       setCargandoTaller(false);
     }
 
@@ -284,6 +294,19 @@ export function TallerProvider({ children }) {
     );
   }
 
+  // Umbral del semáforo de Ganancia Neta (Finanzas), editable desde
+  // ConfiguracionFinanzasScreen.js — ver
+  // supabase/alter_talleres_umbral_ganancia_verde.sql y
+  // calcularColorSemaforoGananciaNeta en utils/calculosFinanzas.js.
+  async function actualizarUmbralGananciaVerde(porcentaje) {
+    const { error } = await supabase
+      .from("talleres")
+      .update({ umbral_ganancia_verde_porcentaje: porcentaje })
+      .eq("id", user.id);
+    if (error) throw error;
+    setUmbralGananciaVerdePorcentaje(porcentaje);
+  }
+
   // Wizard de bienvenida de 4 pasos (screens/onboarding/OnboardingWizard.js)
   // — se llama una sola vez, al terminar el último paso (sea completándolo
   // o salteándolo, ningún paso es obligatorio).
@@ -316,6 +339,8 @@ export function TallerProvider({ children }) {
       marcarOnboardingCompletado,
       horarios,
       actualizarHorario,
+      umbralGananciaVerdePorcentaje,
+      actualizarUmbralGananciaVerde,
       cargandoTaller,
       errorCargaTaller,
       recargarTaller,
@@ -331,6 +356,7 @@ export function TallerProvider({ children }) {
       limiteEmpleados,
       onboardingCompletado,
       horarios,
+      umbralGananciaVerdePorcentaje,
       cargandoTaller,
       errorCargaTaller,
       cargandoHorarios,

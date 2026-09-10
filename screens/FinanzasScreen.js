@@ -22,6 +22,7 @@ import {
   calcularMargenPromedio,
   calcularPuntoEquilibrio,
   calcularFaltanteParaEquilibrio,
+  calcularColorSemaforoGananciaNeta,
   calcularTotalDescontado,
   calcularProyeccionCierreMes,
   calcularDesgloseFacturado,
@@ -65,7 +66,7 @@ export default function FinanzasScreen({ navigation }) {
   } = useFinanzas();
   const { turnos, cargandoTurnos, errorCargaTurnos, getTurnoById } = useTurnos();
   const { cargandoClientes, errorCargaClientes, getClienteById, getVehiculoById } = useClientes();
-  const { nombreTaller, logoTaller, misDatos } = useTaller();
+  const { nombreTaller, logoTaller, misDatos, umbralGananciaVerdePorcentaje } = useTaller();
   const [modalGastoVisible, setModalGastoVisible] = useState(false);
   const [generandoPdf, setGenerandoPdf] = useState(false);
 
@@ -111,6 +112,15 @@ export default function FinanzasScreen({ navigation }) {
   // trabajos por mes el dato sería demasiado ruidoso.
   const margenPromedio = calcularMargenPromedio(cobros, getTurnoById);
   const puntoEquilibrio = calcularPuntoEquilibrio(totalCostosFijos, margenPromedio);
+
+  // Semáforo de color de la tarjeta hero (rojo/ámbar/verde/neutro) — ver
+  // calcularColorSemaforoGananciaNeta en utils/calculosFinanzas.js.
+  const colorSemaforoGananciaNeta = calcularColorSemaforoGananciaNeta(
+    gananciaNetaDelMes,
+    totalFacturadoDelMes,
+    puntoEquilibrio,
+    umbralGananciaVerdePorcentaje
+  );
 
   // Cuánto se "descontó" este mes respecto del precio de lista congelado en
   // cada turno (ver calcularTotalDescontado) — solo cuenta cuando se cobró
@@ -225,7 +235,7 @@ export default function FinanzasScreen({ navigation }) {
         <TourAnchor id="finanzas.info">
           <View style={styles.heroTarjeta}>
             <Text style={styles.resumenLabel}>Ganancia neta del mes</Text>
-            <Text style={[styles.resumenMonto, gananciaNetaDelMes < 0 && styles.resumenMontoNegativo]}>
+            <Text style={[styles.resumenMonto, ESTILOS_SEMAFORO[colorSemaforoGananciaNeta]]}>
               {formatearPesos(gananciaNetaDelMes)}
             </Text>
             <Text style={styles.proyeccionTexto}>
@@ -393,8 +403,14 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: colors.textPrimary,
   },
-  resumenMontoNegativo: {
+  resumenMontoError: {
     color: colors.error,
+  },
+  resumenMontoAmbar: {
+    color: colors.amber,
+  },
+  resumenMontoVerde: {
+    color: colors.success,
   },
   proyeccionTexto: {
     fontFamily: fonts.body,
@@ -495,3 +511,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 });
+
+// Traduce la clave de calcularColorSemaforoGananciaNeta al estilo real —
+// `undefined` (clave `null`, color neutro) hace que el array de estilos de
+// la tarjeta hero simplemente no agregue nada, quedando en textPrimary.
+const ESTILOS_SEMAFORO = {
+  error: styles.resumenMontoError,
+  amber: styles.resumenMontoAmbar,
+  success: styles.resumenMontoVerde,
+};
