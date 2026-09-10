@@ -10,8 +10,6 @@ import { useFinanzas } from "../data/FinanzasContext";
 import { calcularSaldoPendienteTurno } from "../utils/calculosFinanzas";
 import { colors, fonts } from "../theme";
 
-const ESTADOS_QUE_PERMITEN_SENA = ["Pendiente", "En proceso"];
-
 function coincide(campo, termino) {
   return (campo ?? "").toLowerCase().includes(termino);
 }
@@ -21,8 +19,10 @@ function coincide(campo, termino) {
 // seña y el trabajo todavía no se abrió desde ningún otro lado (a
 // diferencia del botón contextual de TrabajoDetalleModal.js, acá el trabajo
 // NO está implícito). Busca por cliente, patente o servicio (mismo criterio
-// que ClientesScreen.js) sobre los turnos en Pendiente/En proceso — los ya
-// Finalizados/Entregados no aplican para seña, esos usan el cobro normal.
+// que ClientesScreen.js) sobre cualquier turno con saldo pendiente, sin
+// importar el estado — una seña es un cobro parcial más, disponible
+// mientras quede saldo, no solo en Pendiente/En proceso (mismo criterio
+// que puedeTomarSena en TrabajoDetalleModal.js).
 export default function SeleccionarTrabajoSenaModal({ visible, onClose, onElegirTurno }) {
   const { turnos } = useTurnos();
   const { getClienteById, getVehiculoById } = useClientes();
@@ -32,13 +32,13 @@ export default function SeleccionarTrabajoSenaModal({ visible, onClose, onElegir
   const turnosDisponibles = useMemo(
     () =>
       turnos
-        .filter((t) => ESTADOS_QUE_PERMITEN_SENA.includes(t.estado))
         .map((turno) => ({
           turno,
           cliente: getClienteById(turno.clienteId),
           auto: getVehiculoById(turno.autoId),
           saldo: calcularSaldoPendienteTurno(turno, cobros),
-        })),
+        }))
+        .filter(({ saldo }) => saldo === null || saldo > 0),
     [turnos, cobros, getClienteById, getVehiculoById]
   );
 
@@ -72,7 +72,7 @@ export default function SeleccionarTrabajoSenaModal({ visible, onClose, onElegir
 
           <ScrollView contentContainerStyle={styles.lista} showsVerticalScrollIndicator={false}>
             {turnosDisponibles.length === 0 ? (
-              <Text style={styles.vacio}>No hay trabajos Pendientes o En proceso para tomar una seña.</Text>
+              <Text style={styles.vacio}>No hay trabajos con saldo pendiente para tomar una seña.</Text>
             ) : filtrados.length === 0 ? (
               <Text style={styles.vacio}>No encontramos ningún trabajo con esos datos.</Text>
             ) : (

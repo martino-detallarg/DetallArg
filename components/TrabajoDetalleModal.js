@@ -14,11 +14,6 @@ import { formatearDuracion, formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const ESTADOS_QUE_PERMITEN_COBRO = ["Finalizado", "Entregado"];
-// Una seña es un cobro parcial para RESERVAR el trabajo, tomado antes de que
-// exista nada para entregar — por eso solo aplica mientras el turno sigue
-// Pendiente/En proceso. El cobro final (no-seña) sigue exigiendo
-// Finalizado/Entregado exactamente como hoy, sin overlap entre los dos.
-const ESTADOS_QUE_PERMITEN_SENA = ["Pendiente", "En proceso"];
 
 // Mismo criterio de color por estado que TurnoCard.js.
 const COLOR_ESTADO = {
@@ -39,10 +34,11 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState(null);
   // null | "cobro" | "sena" — un solo estado para las dos formas de abrir
-  // RegistrarCobroModal (nunca pueden estar activas a la vez: el botón de
-  // cobro normal y el de seña ya son mutuamente excluyentes por estado del
-  // turno, ver puedeCobrar/puedeTomarSena) — así solo hay un <Modal> nativo
-  // en juego por vez, mismo criterio que ClientesScreen.js.
+  // RegistrarCobroModal: "Registrar cobro" y "Registrar seña" pueden estar
+  // los dos visibles a la vez (Finalizado/Entregado con saldo pendiente,
+  // ver puedeCobrar/puedeTomarSena), pero tocar cualquiera de los dos solo
+  // puede dejar UN modo activo por vez en este único estado — así nunca hay
+  // más de un <Modal> nativo en juego, mismo criterio que ClientesScreen.js.
   const [modoRegistro, setModoRegistro] = useState(null);
   const [firmaModalVisible, setFirmaModalVisible] = useState(false);
 
@@ -68,8 +64,10 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   const totalCobrado = cobrosDelTurno.reduce((suma, c) => suma + c.monto, 0);
   const saldoPendiente = calcularSaldoPendienteTurno(turno, cobros);
   const puedeCobrar = ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado);
-  const puedeTomarSena =
-    ESTADOS_QUE_PERMITEN_SENA.includes(turno.estado) && (saldoPendiente === null || saldoPendiente > 0);
+  // Sin importar el estado del trabajo: una seña es un cobro parcial más,
+  // disponible mientras quede saldo — puede convivir con "Registrar cobro"
+  // (Finalizado/Entregado con saldo pendiente) en vez de reemplazarlo.
+  const puedeTomarSena = saldoPendiente === null || saldoPendiente > 0;
   const hayCambioSinGuardar = estadoLocal !== turno.estado;
 
   // El nombre se muestra con el mismo criterio que el resto de la app
@@ -292,9 +290,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
             {puedeTomarSena && (
               <View style={styles.tarjetaSeccion}>
                 <Text style={styles.tituloTarjeta}>Seña</Text>
-                <Text style={styles.senaAyuda}>
-                  Cobrá una seña ahora para reservar el trabajo, antes de que esté listo.
-                </Text>
+                <Text style={styles.senaAyuda}>Registrá un pago parcial en cualquier momento, sin esperar a cobrar el resto.</Text>
                 <TouchableOpacity
                   style={styles.senaBoton}
                   onPress={() => setModoRegistro("sena")}
