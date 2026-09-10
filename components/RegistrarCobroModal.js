@@ -9,6 +9,7 @@ import Input from "./Input";
 import Button from "./Button";
 import ChipGroup from "./ChipGroup";
 import { useFinanzas } from "../data/FinanzasContext";
+import { useTaller } from "../data/TallerContext";
 import { ORDEN_FORMAS_PAGO, FORMAS_PAGO } from "../data/mockFinanzas";
 import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../utils/fecha";
 import { formatearPesos } from "../utils/formato";
@@ -26,6 +27,7 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 // cuánto ya se cobró, sin bloquear un pago distinto a mano.
 export default function RegistrarCobroModal({ visible, turno, esSena = false, saldoPendiente, montoYaCobrado, onClose }) {
   const { registrarCobro } = useFinanzas();
+  const { comisionTarjetaPorcentaje } = useTaller();
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState("");
   const [formaPago, setFormaPago] = useState(null);
@@ -49,6 +51,13 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
   const esValido = monto.trim() !== "" && !Number.isNaN(montoNumerico) && montoNumerico > 0 && fecha.trim() !== "";
   const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
+  // Comisión a fotografiar en este cobro (ver alter_cobros_comision_porcentaje.sql):
+  // solo cuando la forma de pago es "tarjeta" y hay un % > 0 configurado en
+  // ese momento — Efectivo/Transferencia/Otro nunca tienen comisión.
+  const aplicaComision = formaPago === "tarjeta" && comisionTarjetaPorcentaje > 0;
+  const montoComisionEstimado =
+    aplicaComision && !Number.isNaN(montoNumerico) ? (montoNumerico * comisionTarjetaPorcentaje) / 100 : 0;
+
   function obtenerFechaInicialPicker() {
     return parsearFechaDDMMAAAA(fecha) || new Date();
   }
@@ -58,7 +67,15 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
     setCargando(true);
     setError(null);
     try {
-      await registrarCobro({ turnoId: turno.id, monto: montoNumerico, fecha, formaPago, facturado, esSena });
+      await registrarCobro({
+        turnoId: turno.id,
+        monto: montoNumerico,
+        fecha,
+        formaPago,
+        facturado,
+        esSena,
+        comisionPorcentaje: aplicaComision ? comisionTarjetaPorcentaje : null,
+      });
       onClose();
     } catch (err) {
       setError("No se pudo registrar el cobro. Probá de nuevo.");
@@ -144,6 +161,13 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
                 onPress={setFacturado}
               />
 
+              {aplicaComision && (
+                <Text style={styles.avisoComision}>
+                  Se va a descontar ~{comisionTarjetaPorcentaje}% de comisión de tarjeta (
+                  {formatearPesos(montoComisionEstimado)}) al calcular tu ganancia neta.
+                </Text>
+              )}
+
               {error && <Text style={styles.error}>{error}</Text>}
 
               <View style={styles.boton} onLayout={onLayoutBoton}>
@@ -218,6 +242,17 @@ const styles = StyleSheet.create({
   },
   chips: {
     marginBottom: 16,
+  },
+  avisoComision: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.amber,
+    backgroundColor: colors.amberTint,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    padding: 10,
+    marginBottom: 12,
   },
   error: {
     fontFamily: fonts.body,

@@ -11,7 +11,12 @@ import { useTurnos } from "../data/TurnoContext";
 import { CATEGORIAS_GASTOS_VARIABLES } from "../data/mockFinanzas";
 import { formatearPesos } from "../utils/formato";
 import { claveMesDeFecha } from "../utils/fecha";
-import { claveMes, margenBrutoTrabajo, calcularPorcentajeInsumosSobreFacturacion } from "../utils/calculosFinanzas";
+import {
+  claveMes,
+  margenBrutoTrabajo,
+  calcularPorcentajeInsumosSobreFacturacion,
+  calcularTotalComisionesTarjeta,
+} from "../utils/calculosFinanzas";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const PADDING_PANTALLA = 20;
@@ -51,14 +56,18 @@ export default function FinanzasCostosScreen({ navigation }) {
   // Mismo cálculo que el home (FinanzasScreen.js) para el % de insumos sobre
   // facturación — se recalcula acá en vez de recibirlo por prop, mismo
   // criterio que el resto de las pantallas nuevas de Finanzas.
-  const trabajosDelMes = cobros
-    .filter((c) => claveMes(c.fecha) === claveMesActual)
-    .map((cobro) => {
-      const turno = cobro.turnoId ? getTurnoById(cobro.turnoId) : null;
-      const margen = margenBrutoTrabajo(cobro, turno);
-      return { cobro, costoInsumos: cobro.monto - margen };
-    });
+  const cobrosDelMes = cobros.filter((c) => claveMes(c.fecha) === claveMesActual);
+  const trabajosDelMes = cobrosDelMes.map((cobro) => {
+    const turno = cobro.turnoId ? getTurnoById(cobro.turnoId) : null;
+    const margen = margenBrutoTrabajo(cobro, turno);
+    return { cobro, costoInsumos: cobro.monto - margen };
+  });
   const porcentajeInsumosSobreFacturacion = calcularPorcentajeInsumosSobreFacturacion(trabajosDelMes);
+
+  // Comisión de tarjeta fotografiada en los cobros del mes (Fase 4) — mismo
+  // dato que ya resta de la Ganancia Neta en FinanzasScreen.js, mostrado
+  // acá como un costo más para que quede transparente de dónde sale.
+  const totalComisionesTarjetaDelMes = calcularTotalComisionesTarjeta(cobrosDelMes);
 
   function handlePressSegmento(clave) {
     if (clave === "fijos") {
@@ -168,6 +177,15 @@ export default function FinanzasCostosScreen({ navigation }) {
             <Text style={styles.insumosPorcentajeTexto}>
               Tus insumos representan el {Math.round(porcentajeInsumosSobreFacturacion)}% de lo que facturás este
               mes.
+            </Text>
+          </View>
+        )}
+
+        {totalComisionesTarjetaDelMes > 0 && (
+          <View style={[styles.tarjeta, styles.tarjetaConMargen]}>
+            <Text style={styles.tarjetaTitulo}>Comisiones de tarjeta</Text>
+            <Text style={styles.insumosPorcentajeTexto}>
+              {formatearPesos(totalComisionesTarjetaDelMes)} este mes, ya descontados de tu Ganancia Neta.
             </Text>
           </View>
         )}

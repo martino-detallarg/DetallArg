@@ -18,6 +18,7 @@ function filaACobro(fila) {
     formaPago: fila.forma_pago,
     facturado: fila.facturado,
     esSena: fila.es_sena,
+    comisionPorcentaje: fila.comision_porcentaje,
   };
 }
 
@@ -33,7 +34,7 @@ function filaAGastoVariable(fila) {
   };
 }
 
-const COLUMNAS_COBRO = "id, turno_id, monto, fecha, forma_pago, facturado, es_sena";
+const COLUMNAS_COBRO = "id, turno_id, monto, fecha, forma_pago, facturado, es_sena, comision_porcentaje";
 const COLUMNAS_GASTO_VARIABLE = "id, monto, categoria, fecha, descripcion, facturado, comprobante_storage_path";
 
 // Fase A de Finanzas: registrar cobros de trabajos y cargar gastos variables
@@ -142,7 +143,21 @@ export function FinanzasProvider({ children }) {
   // trabajo se finalice, una seña de ese mes figura con margen ~100% (sin
   // costo todavía) — misma convención que ya existe hoy para un turno sin
   // receta aplicada, y no se recalcula después.
-  async function registrarCobro({ turnoId, monto, fecha, formaPago, facturado, esSena = false }) {
+  // `comisionPorcentaje` (Fase 4 de Finanzas, ver alter_cobros_comision_porcentaje.sql):
+  // el número YA FOTOGRAFIADO que decide quien llama (RegistrarCobroModal.js,
+  // a partir de talleres.comision_tarjeta_porcentaje vigente en el momento de
+  // guardar) — esta función no vuelve a resolver nada de configuración,
+  // solo persiste el valor que le pasan. `null`/`undefined` si ese cobro no
+  // tuvo comisión.
+  async function registrarCobro({
+    turnoId,
+    monto,
+    fecha,
+    formaPago,
+    facturado,
+    esSena = false,
+    comisionPorcentaje = null,
+  }) {
     const { data, error } = await supabase
       .from("cobros")
       .insert({
@@ -153,6 +168,7 @@ export function FinanzasProvider({ children }) {
         forma_pago: formaPago,
         facturado,
         es_sena: esSena,
+        comision_porcentaje: comisionPorcentaje,
       })
       .select(COLUMNAS_COBRO)
       .single();

@@ -194,20 +194,40 @@ export function obtenerUltimosMeses(cantidad) {
   });
 }
 
+// Comisión de medios de pago (tarjeta) fotografiada en cada cobro al momento
+// de registrarlo (cobro.comisionPorcentaje, ver
+// supabase/alter_cobros_comision_porcentaje.sql) — un cobro sin comisión
+// fotografiada (forma de pago sin comisión configurada en ese momento, o
+// cargado antes de esta columna existir) no suma nada, `comisionPorcentaje`
+// nunca se trata como 0 real. Quien llama ya filtró `cobros` por el período
+// que le interesa (mismo criterio que calcularTotalDescontado).
+export function calcularTotalComisionesTarjeta(cobros) {
+  return cobros.reduce((suma, c) => {
+    if (c.comisionPorcentaje == null) return suma;
+    return suma + (c.monto * c.comisionPorcentaje) / 100;
+  }, 0);
+}
+
 // Ganancia neta de un mes puntual: ganancia bruta de los cobros de ese mes
 // (mismo margen por trabajo que el resto de este archivo, incluidos los
 // cobros sin turno resoluble — ver margenBrutoTrabajo) menos costos fijos
 // vigentes (constante: no hay historial mes a mes de costos_fijos, se aplica
 // el total actual a cada mes, igual que gananciaNetaDelMes en
-// FinanzasScreen.js) menos gastos variables reales de ese mes.
+// FinanzasScreen.js) menos gastos variables reales de ese mes, menos
+// comisiones de tarjeta fotografiadas en los cobros de ese mes. La
+// facturación bruta (totalFacturadoDelMes) NO se toca en ningún lado de este
+// archivo: la comisión es un costo, no una reducción de lo facturado.
 export function calcularGananciaNetaMes(clave, cobros, gastosVariables, totalCostosFijos, getTurnoById) {
-  const gananciaBruta = cobros
-    .filter((c) => claveMes(c.fecha) === clave)
-    .reduce((suma, c) => suma + margenBrutoTrabajo(c, c.turnoId ? getTurnoById(c.turnoId) : null), 0);
+  const cobrosDelMes = cobros.filter((c) => claveMes(c.fecha) === clave);
+  const gananciaBruta = cobrosDelMes.reduce(
+    (suma, c) => suma + margenBrutoTrabajo(c, c.turnoId ? getTurnoById(c.turnoId) : null),
+    0
+  );
   const gastosDelMes = gastosVariables
     .filter((g) => claveMes(g.fecha) === clave)
     .reduce((suma, g) => suma + g.monto, 0);
-  return gananciaBruta - totalCostosFijos - gastosDelMes;
+  const comisionesDelMes = calcularTotalComisionesTarjeta(cobrosDelMes);
+  return gananciaBruta - totalCostosFijos - gastosDelMes - comisionesDelMes;
 }
 
 // Ganancia neta de los últimos `cantidad` meses (el actual + anteriores),

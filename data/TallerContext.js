@@ -23,6 +23,10 @@ const ORDEN_DIAS = horariosIniciales.map((h) => h.dia);
 // viene undefined), mismo criterio que el fallback de onboarding_completado.
 const UMBRAL_GANANCIA_VERDE_DEFAULT = 30;
 
+// Mismo criterio de fallback que UMBRAL_GANANCIA_VERDE_DEFAULT, para
+// supabase/alter_talleres_comision_tarjeta.sql.
+const COMISION_TARJETA_DEFAULT = 0;
+
 // Postgres `time` vuelve de Supabase como "09:00:00" (con segundos) — se
 // recorta a "09:00" para seguir siendo compatible con parsearHoraHHMM/
 // formatearHoraHHMM (esperan HH:MM exacto). También reordena Lunes->Domingo,
@@ -74,6 +78,7 @@ export function TallerProvider({ children }) {
   const [plan, setPlan] = useState("basico");
   const [onboardingCompletado, setOnboardingCompletado] = useState(true);
   const [umbralGananciaVerdePorcentaje, setUmbralGananciaVerdePorcentaje] = useState(UMBRAL_GANANCIA_VERDE_DEFAULT);
+  const [comisionTarjetaPorcentaje, setComisionTarjetaPorcentaje] = useState(COMISION_TARJETA_DEFAULT);
   const [horarios, setHorarios] = useState(horariosIniciales);
   const [cargandoTaller, setCargandoTaller] = useState(true);
   const [errorCargaTaller, setErrorCargaTaller] = useState(null);
@@ -129,6 +134,7 @@ export function TallerProvider({ children }) {
       setUmbralGananciaVerdePorcentaje(
         data.umbral_ganancia_verde_porcentaje ?? UMBRAL_GANANCIA_VERDE_DEFAULT
       );
+      setComisionTarjetaPorcentaje(data.comision_tarjeta_porcentaje ?? COMISION_TARJETA_DEFAULT);
       setCargandoTaller(false);
     }
 
@@ -294,17 +300,30 @@ export function TallerProvider({ children }) {
     );
   }
 
-  // Umbral del semáforo de Ganancia Neta (Finanzas), editable desde
-  // ConfiguracionFinanzasScreen.js — ver
-  // supabase/alter_talleres_umbral_ganancia_verde.sql y
-  // calcularColorSemaforoGananciaNeta en utils/calculosFinanzas.js.
-  async function actualizarUmbralGananciaVerde(porcentaje) {
-    const { error } = await supabase
-      .from("talleres")
-      .update({ umbral_ganancia_verde_porcentaje: porcentaje })
-      .eq("id", user.id);
+  // Ajustes de Finanzas editables desde ConfiguracionFinanzasScreen.js: el
+  // umbral del semáforo de Ganancia Neta (ver
+  // calcularColorSemaforoGananciaNeta en utils/calculosFinanzas.js) y el %
+  // de comisión de tarjeta que se fotografía en cada cobro nuevo (ver
+  // RegistrarCobroModal.js). Mismo patrón de objeto parcial que
+  // actualizarMisDatos: solo escribe las columnas que vienen definidas.
+  async function actualizarConfiguracionFinanzas(cambios) {
+    const columnas = {};
+    if (cambios.umbralGananciaVerdePorcentaje !== undefined) {
+      columnas.umbral_ganancia_verde_porcentaje = cambios.umbralGananciaVerdePorcentaje;
+    }
+    if (cambios.comisionTarjetaPorcentaje !== undefined) {
+      columnas.comision_tarjeta_porcentaje = cambios.comisionTarjetaPorcentaje;
+    }
+
+    const { error } = await supabase.from("talleres").update(columnas).eq("id", user.id);
     if (error) throw error;
-    setUmbralGananciaVerdePorcentaje(porcentaje);
+
+    if (cambios.umbralGananciaVerdePorcentaje !== undefined) {
+      setUmbralGananciaVerdePorcentaje(cambios.umbralGananciaVerdePorcentaje);
+    }
+    if (cambios.comisionTarjetaPorcentaje !== undefined) {
+      setComisionTarjetaPorcentaje(cambios.comisionTarjetaPorcentaje);
+    }
   }
 
   // Wizard de bienvenida de 4 pasos (screens/onboarding/OnboardingWizard.js)
@@ -340,7 +359,8 @@ export function TallerProvider({ children }) {
       horarios,
       actualizarHorario,
       umbralGananciaVerdePorcentaje,
-      actualizarUmbralGananciaVerde,
+      comisionTarjetaPorcentaje,
+      actualizarConfiguracionFinanzas,
       cargandoTaller,
       errorCargaTaller,
       recargarTaller,
@@ -357,6 +377,7 @@ export function TallerProvider({ children }) {
       onboardingCompletado,
       horarios,
       umbralGananciaVerdePorcentaje,
+      comisionTarjetaPorcentaje,
       cargandoTaller,
       errorCargaTaller,
       cargandoHorarios,

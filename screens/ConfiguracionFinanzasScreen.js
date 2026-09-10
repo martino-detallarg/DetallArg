@@ -7,37 +7,52 @@ import EstadoCarga from "../components/EstadoCarga";
 import { useTaller } from "../data/TallerContext";
 import { colors, fonts } from "../theme";
 
-// Ajustes de Finanzas: umbral del semáforo de Ganancia Neta (Fase 3 del
-// prompt "nuevo home de Finanzas") — accedida desde Mi Taller, mismo patrón
+// Ajustes de Finanzas: umbral del semáforo de Ganancia Neta (Fase 3) y % de
+// comisión de tarjeta que se fotografía en cada cobro nuevo (Fase 4) del
+// prompt "nuevo home de Finanzas" — accedida desde Mi Taller, mismo patrón
 // de formulario que MisDatosScreen.js.
 export default function ConfiguracionFinanzasScreen({ navigation }) {
   const {
     umbralGananciaVerdePorcentaje,
-    actualizarUmbralGananciaVerde,
+    comisionTarjetaPorcentaje,
+    actualizarConfiguracionFinanzas,
     cargandoTaller,
     errorCargaTaller,
     recargarTaller,
   } = useTaller();
   const [umbral, setUmbral] = useState(String(umbralGananciaVerdePorcentaje));
+  const [comision, setComision] = useState(String(comisionTarjetaPorcentaje));
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
-  // Mismo criterio que MisDatosScreen.js: `umbralGananciaVerdePorcentaje`
-  // llega con su valor default hasta que termina el fetch inicial de
-  // TallerContext — hay que resincronizar el campo recién ahí.
+  // Mismo criterio que MisDatosScreen.js: los valores llegan con su default
+  // hasta que termina el fetch inicial de TallerContext — hay que
+  // resincronizar los campos recién ahí.
   useEffect(() => {
-    if (!cargandoTaller) setUmbral(String(umbralGananciaVerdePorcentaje));
+    if (!cargandoTaller) {
+      setUmbral(String(umbralGananciaVerdePorcentaje));
+      setComision(String(comisionTarjetaPorcentaje));
+    }
   }, [cargandoTaller]);
 
   const umbralNumerico = Number(umbral.replace(",", "."));
-  const esValido = umbral.trim() !== "" && !Number.isNaN(umbralNumerico) && umbralNumerico >= 0;
+  const umbralValido = umbral.trim() !== "" && !Number.isNaN(umbralNumerico) && umbralNumerico >= 0;
+
+  const comisionNumerico = Number(comision.replace(",", "."));
+  const comisionValida =
+    comision.trim() !== "" && !Number.isNaN(comisionNumerico) && comisionNumerico >= 0 && comisionNumerico <= 100;
+
+  const esValido = umbralValido && comisionValida;
 
   async function handleGuardar() {
     if (!esValido) return;
     setCargando(true);
     setError(null);
     try {
-      await actualizarUmbralGananciaVerde(umbralNumerico);
+      await actualizarConfiguracionFinanzas({
+        umbralGananciaVerdePorcentaje: umbralNumerico,
+        comisionTarjetaPorcentaje: comisionNumerico,
+      });
       navigation.navigate("MiTaller");
     } catch (err) {
       setError("No se pudieron guardar los cambios. Probá de nuevo.");
@@ -68,6 +83,22 @@ export default function ConfiguracionFinanzasScreen({ navigation }) {
               value={umbral}
               onChangeText={setUmbral}
               placeholder="Ej: 30"
+              keyboardType="numeric"
+              sufijo="%"
+              returnKeyType="next"
+            />
+
+            <Text style={styles.seccionLabel}>Comisión de tarjeta</Text>
+            <Text style={styles.ayuda}>
+              Cuando registrás un cobro con forma de pago "Tarjeta", este porcentaje se descuenta de tu Ganancia
+              Neta. Efectivo, transferencia y otros medios no tienen comisión. Si después cambiás este valor, los
+              cobros ya registrados siguen mostrando la comisión con la que se cobraron.
+            </Text>
+            <Input
+              label="% de comisión en Tarjeta"
+              value={comision}
+              onChangeText={setComision}
+              placeholder="Ej: 6"
               keyboardType="numeric"
               sufijo="%"
               returnKeyType="done"
@@ -103,6 +134,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 8,
+    marginTop: 8,
   },
   ayuda: {
     fontFamily: fonts.body,

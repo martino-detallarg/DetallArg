@@ -23,6 +23,7 @@ import {
   calcularPuntoEquilibrio,
   calcularFaltanteParaEquilibrio,
   calcularColorSemaforoGananciaNeta,
+  calcularTotalComisionesTarjeta,
   calcularTotalDescontado,
   calcularProyeccionCierreMes,
   calcularDesgloseFacturado,
@@ -100,11 +101,18 @@ export default function FinanzasScreen({ navigation }) {
   const gananciaBrutaDelMes = trabajosDelMes.reduce((suma, t) => suma + t.margen, 0);
   // Facturación real (lo cobrado), distinta de gananciaBrutaDelMes (lo
   // cobrado menos costo de insumos) — el PDF "para el contador" necesita la
-  // primera, no la segunda (ver utils/finanzasPdf.js).
+  // primera, no la segunda (ver utils/finanzasPdf.js). La comisión de
+  // tarjeta (ver más abajo) NUNCA la toca: es un costo, no una reducción de
+  // lo facturado.
   const totalFacturadoDelMes = trabajosDelMes.reduce((suma, t) => suma + t.cobro.monto, 0);
-  const gananciaNetaDelMes = gananciaBrutaDelMes - totalCostosFijos - totalGastosVariablesDelMes;
-  // Desglose facturado/no-facturado para el PDF "para el contador".
   const cobrosDelMes = trabajosDelMes.map((t) => t.cobro);
+  // Comisión de tarjeta fotografiada en los cobros del mes (ver
+  // RegistrarCobroModal.js/alter_cobros_comision_porcentaje.sql) — se resta
+  // de la ganancia neta junto con costos fijos y gastos variables.
+  const totalComisionesTarjetaDelMes = calcularTotalComisionesTarjeta(cobrosDelMes);
+  const gananciaNetaDelMes =
+    gananciaBrutaDelMes - totalCostosFijos - totalGastosVariablesDelMes - totalComisionesTarjetaDelMes;
+  // Desglose facturado/no-facturado para el PDF "para el contador".
   const desglose = calcularDesgloseFacturado(cobrosDelMes, gastosVariablesDelMes, totalCostosFijos);
 
   // El margen promedio (para el punto de equilibrio) se calcula sobre TODOS
