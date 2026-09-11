@@ -46,6 +46,30 @@ function FilaTurno({ turno, cliente, auto }) {
   );
 }
 
+// Cabecera tocable de cada cliente agrupado — un grupo "sin cliente"
+// (clienteId nulo o de un cliente ya borrado) no tiene nada más para
+// mostrar al expandirse, así que queda como fila informativa (tocable=false).
+function CabeceraCliente({ nombre, cantidadTrabajos, expandido, tocable, onPress }) {
+  return (
+    <TouchableOpacity
+      style={styles.filaCabeceraCliente}
+      onPress={onPress}
+      activeOpacity={tocable ? 0.8 : 1}
+      disabled={!tocable}
+    >
+      <View style={styles.filaInfo}>
+        <Text style={styles.filaCliente} numberOfLines={1} ellipsizeMode="tail">
+          {nombre}
+        </Text>
+        <Text style={styles.filaSub}>
+          {cantidadTrabajos} {cantidadTrabajos === 1 ? "trabajo" : "trabajos"}
+        </Text>
+      </View>
+      {tocable && <Ionicons name={expandido ? "chevron-up" : "chevron-down"} size={18} color={colors.textMuted} />}
+    </TouchableOpacity>
+  );
+}
+
 // Chip de filtro genérico (Vehículo/Servicio/Fecha): sin contorno, fondo
 // sólido que pasa a colors.accent cuando hay un valor elegido, con una "x"
 // para limpiarlo sin tener que reabrir el selector y volver a elegir "Todos".
@@ -86,15 +110,23 @@ export default function HistorialClientesScreen({ navigation, route }) {
   const [servicioModalVisible, setServicioModalVisible] = useState(false);
   const [rangoFechaModalVisible, setRangoFechaModalVisible] = useState(false);
 
+  // Acordeón: un solo cliente expandido a la vez.
+  const [clienteExpandidoId, setClienteExpandidoId] = useState(null);
+
   // Si se llega desde la ficha de un cliente (VehiculosClienteModal), el
   // filtro de cliente ya viene aplicado precargando el buscador con su
   // nombre — mismo mecanismo de búsqueda por nombre que si el usuario lo
   // hubiera tipeado a mano, así el usuario no tiene que volver a buscarlo.
+  // Además queda expandido de entrada, para caer directo viendo sus
+  // trabajos sin tener que tocarlo una vez más.
   useEffect(() => {
     const clienteIdInicial = route.params?.clienteIdInicial;
     if (!clienteIdInicial) return;
     const cliente = getClienteById(clienteIdInicial);
-    if (cliente) setBusqueda(cliente.nombre);
+    if (cliente) {
+      setBusqueda(cliente.nombre);
+      setClienteExpandidoId(clienteIdInicial);
+    }
   }, [route.params?.clienteIdInicial]);
 
   const vehiculoFiltro = vehiculoFiltroId ? getVehiculoById(vehiculoFiltroId) : null;
@@ -171,6 +203,43 @@ export default function HistorialClientesScreen({ navigation, route }) {
     );
   }
 
+  function renderGrupo(grupo) {
+    const cliente = grupo.clienteId ? getClienteById(grupo.clienteId) : null;
+    const nombreCliente = cliente?.nombre ?? "Cliente eliminado";
+    const tocable = !!cliente;
+    const expandido = tocable && clienteExpandidoId === grupo.clienteId;
+    const vehiculos = cliente?.vehiculos ?? [];
+    const textoVehiculos = vehiculos
+      .map((v) => `${v.marca} ${v.modelo}${v.anio ? ` ${v.anio}` : ""}`)
+      .join(" · ");
+
+    return (
+      <View key={grupo.clienteId ?? "sin-cliente"} style={styles.grupoCliente}>
+        <CabeceraCliente
+          nombre={nombreCliente}
+          cantidadTrabajos={grupo.turnos.length}
+          expandido={expandido}
+          tocable={tocable}
+          onPress={() => setClienteExpandidoId((actual) => (actual === grupo.clienteId ? null : grupo.clienteId))}
+        />
+
+        {expandido && (
+          <View style={styles.grupoExpandido}>
+            {vehiculos.length > 0 && (
+              <View style={styles.vehiculosFila}>
+                <Ionicons name="car-outline" size={14} color={colors.textMuted} />
+                <Text style={styles.vehiculosTexto} numberOfLines={2}>
+                  {textoVehiculos}
+                </Text>
+              </View>
+            )}
+            {grupo.turnos.map(renderTurno)}
+          </View>
+        )}
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
@@ -223,20 +292,11 @@ export default function HistorialClientesScreen({ navigation, route }) {
       <EstadoCarga cargando={cargandoTurnos} error={errorCargaTurnos} onReintentar={recargarTurnos}>
         <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
           {turnos.length === 0 ? (
-            <Text style={styles.vacio}>Todavía no hay turnos cargados.</Text>
+            <Text style={styles.vacio}>Todavía no hay trabajos cargados.</Text>
           ) : totalFiltrado === 0 ? (
-            <Text style={styles.vacio}>No se encontraron turnos.</Text>
+            <Text style={styles.vacio}>No se encontraron clientes con esos filtros.</Text>
           ) : (
-            <>
-              {turnosConFechaFiltrados.map(renderTurno)}
-
-              {turnosSinFechaFiltrados.length > 0 && (
-                <>
-                  <Text style={styles.seccionTitulo}>Sin fecha asignada</Text>
-                  {turnosSinFechaFiltrados.map(renderTurno)}
-                </>
-              )}
-            </>
+            gruposPorCliente.map(renderGrupo)
           )}
         </ScrollView>
       </EstadoCarga>
@@ -342,13 +402,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 40,
   },
-  seccionTitulo: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 16,
-    color: colors.textPrimary,
-    marginTop: 24,
-    marginBottom: 4,
-  },
   vacio: {
     fontFamily: fonts.body,
     textAlign: "center",
@@ -391,5 +444,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginLeft: 8,
+  },
+  grupoCliente: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  filaCabeceraCliente: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  grupoExpandido: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.surface2,
+    gap: 8,
+  },
+  vehiculosFila: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  vehiculosTexto: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
   },
 });
