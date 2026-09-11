@@ -47,12 +47,19 @@ export default function RenovacionInsumoModal() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
+  const [anchoTexto, setAnchoTexto] = useState("");
+  const [largoTexto, setLargoTexto] = useState("");
+
   const pendiente = insumosParaRenovar[0] ?? null;
   // Se resuelve contra misInsumos en vivo (no el snapshot {id, nombre} de
   // la cola) para tener productoId/capacidadUnidad actuales al armar el
   // formulario — por si el insumo se editó entre que se encoló y que le
   // toca el turno.
   const insumo = pendiente ? getInsumoById(pendiente.id) : null;
+  // Un rollo de PPF no tiene "tamaños de envase sugeridos" ni una unidad
+  // para elegir (siempre m²) — mismo criterio que AgregarInsumoModal.js:
+  // se pide ancho + largo del rollo nuevo en vez del formulario genérico.
+  const esRollo = insumo?.categoria === "ppf";
   const envasesSugeridos = insumo
     ? (catalogoInsumos.find((p) => p.id === insumo.productoId)?.tamanosEnvase ?? [])
     : [];
@@ -80,6 +87,10 @@ export default function RenovacionInsumoModal() {
     setCapacidadTexto("");
     setPrecioTexto("");
     setUnidad(insumo?.capacidadUnidad || "ml");
+    // Prellenado con el ancho anterior del rollo (si ya tenía uno cargado)
+    // -- editable, por si este rollo nuevo viene en otro ancho.
+    setAnchoTexto(insumo?.anchoRollo != null ? String(insumo.anchoRollo) : "");
+    setLargoTexto("");
     setPaso(PASO_FORMULARIO);
   }
 
@@ -91,12 +102,31 @@ export default function RenovacionInsumoModal() {
   }
 
   async function handleConfirmarRenovacion() {
-    const capacidad = Number(String(capacidadTexto).replace(",", "."));
     const precio = Number(String(precioTexto).replace(",", "."));
-    if (!capacidad || capacidad <= 0) {
-      setError("Ingresá la capacidad del envase.");
-      return;
+
+    let capacidad;
+    let anchoRolloValor = null;
+    if (esRollo) {
+      const ancho = Number(String(anchoTexto).replace(",", "."));
+      const largo = Number(String(largoTexto).replace(",", "."));
+      if (!ancho || ancho <= 0) {
+        setError("Ingresá el ancho del rollo.");
+        return;
+      }
+      if (!largo || largo <= 0) {
+        setError("Ingresá el largo del rollo nuevo.");
+        return;
+      }
+      capacidad = ancho * largo;
+      anchoRolloValor = ancho;
+    } else {
+      capacidad = Number(String(capacidadTexto).replace(",", "."));
+      if (!capacidad || capacidad <= 0) {
+        setError("Ingresá la capacidad del envase.");
+        return;
+      }
     }
+
     if (!precio || precio <= 0) {
       setError("Ingresá el precio que pagaste.");
       return;
@@ -107,9 +137,10 @@ export default function RenovacionInsumoModal() {
     try {
       await reponerInsumo(pendiente.id, {
         capacidadTotal: capacidad,
-        capacidadUnidad: unidad,
+        capacidadUnidad: esRollo ? "m2" : unidad,
         precioCompra: precio,
         cantidadActual: capacidad,
+        anchoRollo: anchoRolloValor,
       });
       cerrarYSeguir();
     } catch (err) {
@@ -163,10 +194,10 @@ export default function RenovacionInsumoModal() {
 
           {paso === PASO_FORMULARIO && (
             <>
-              <Text style={styles.titulo}>Cargar envase nuevo</Text>
+              <Text style={styles.titulo}>{esRollo ? "Cargar rollo nuevo" : "Cargar envase nuevo"}</Text>
               <Text style={styles.subtitulo}>{pendiente.nombre}</Text>
 
-              {envasesSugeridos.length > 0 && (
+              {!esRollo && envasesSugeridos.length > 0 && (
                 <View style={styles.campo}>
                   <Text style={styles.label}>Tamaños sugeridos por la marca</Text>
                   <ChipGroup
@@ -176,23 +207,50 @@ export default function RenovacionInsumoModal() {
                 </View>
               )}
 
-              <View style={styles.campo}>
-                <Text style={styles.label}>Capacidad del envase</Text>
-                <View style={styles.capacidadFila}>
-                  <TextInput
-                    style={styles.input}
-                    value={capacidadTexto}
-                    onChangeText={setCapacidadTexto}
-                    placeholder="500"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="numeric"
-                  />
-                  <ChipGroup
-                    options={UNIDADES_CAPACIDAD.map((u) => ({ value: u, label: u, selected: unidad === u }))}
-                    onPress={setUnidad}
-                  />
+              {esRollo ? (
+                <>
+                  <View style={styles.campo}>
+                    <Text style={styles.label}>Ancho del rollo (m)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={anchoTexto}
+                      onChangeText={setAnchoTexto}
+                      placeholder="1.52"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={styles.campo}>
+                    <Text style={styles.label}>Largo del rollo nuevo (m)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={largoTexto}
+                      onChangeText={setLargoTexto}
+                      placeholder="15"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </>
+              ) : (
+                <View style={styles.campo}>
+                  <Text style={styles.label}>Capacidad del envase</Text>
+                  <View style={styles.capacidadFila}>
+                    <TextInput
+                      style={styles.input}
+                      value={capacidadTexto}
+                      onChangeText={setCapacidadTexto}
+                      placeholder="500"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                    />
+                    <ChipGroup
+                      options={UNIDADES_CAPACIDAD.map((u) => ({ value: u, label: u, selected: unidad === u }))}
+                      onPress={setUnidad}
+                    />
+                  </View>
                 </View>
-              </View>
+              )}
 
               <View style={styles.campo}>
                 <Text style={styles.label}>Precio pagado</Text>
