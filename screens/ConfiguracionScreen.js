@@ -20,6 +20,18 @@ export default function ConfiguracionScreen({ navigation }) {
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [errorCierre, setErrorCierre] = useState(null);
 
+  // El primer TourAnchor del tour ("home.fab") vive en HomeScreen.js —
+  // ConfiguracionScreen está en un Stack separado (ConfiguracionStack), así
+  // que si el taller no está ya parado en Home cuando toca este botón, el
+  // spotlight no tiene ningún TourAnchor montado donde aparecer. "Home" es
+  // una Drawer.Screen de primer nivel, hermana directa de "Configuracion"
+  // en el mismo Drawer (ver DashboardNavigator.js) — no hace falta
+  // sintaxis de navegación anidada acá.
+  function handleVerTutorial() {
+    iniciarTour();
+    navigation.navigate("Home");
+  }
+
   async function handleCerrarSesion() {
     setCerrandoSesion(true);
     setErrorCierre(null);
@@ -96,7 +108,7 @@ export default function ConfiguracionScreen({ navigation }) {
 
         <Text style={styles.seccionLabel}>Ayuda</Text>
         <View style={styles.tarjeta}>
-          <TouchableOpacity style={styles.fila} onPress={iniciarTour} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.fila} onPress={handleVerTutorial} activeOpacity={0.8}>
             <Text style={styles.filaTexto}>Ver tutorial de nuevo</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
