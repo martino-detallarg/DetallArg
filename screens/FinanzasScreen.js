@@ -23,6 +23,8 @@ import {
   calcularPuntoEquilibrio,
   calcularFaltanteParaEquilibrio,
   calcularColorSemaforoGananciaNeta,
+  calcularColorSemaforoMonotributo,
+  calcularFacturacionUltimos12Meses,
   calcularTotalComisionesTarjeta,
   calcularTotalDescontado,
   calcularProyeccionCierreMes,
@@ -34,6 +36,7 @@ import {
   nombreTrabajoCobro,
   rankingServiciosPorGanancia,
 } from "../utils/calculosFinanzas";
+import { TOPES_MONOTRIBUTO } from "../data/monotributoCategorias";
 import { construirHtmlResumenFinanciero, generarYCompartirPdf } from "../utils/finanzasPdf";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -129,6 +132,15 @@ export default function FinanzasScreen({ navigation }) {
     puntoEquilibrio,
     umbralGananciaVerdePorcentaje
   );
+
+  // Aviso de tope de Monotributo (solo si el taller es Monotributista y
+  // cargó categoría en Mis Datos, ver MisDatosScreen.js) — ventana MÓVIL de
+  // 12 meses, no año calendario (ver calcularFacturacionUltimos12Meses en
+  // utils/calculosFinanzas.js, ARCA recategoriza así).
+  const mostrarTopeMonotributo = misDatos.situacionFiscal === "Monotributista" && !!misDatos.categoriaMonotributo;
+  const facturacionUltimos12Meses = mostrarTopeMonotributo ? calcularFacturacionUltimos12Meses(cobros) : 0;
+  const topeMonotributo = mostrarTopeMonotributo ? TOPES_MONOTRIBUTO[misDatos.categoriaMonotributo] : null;
+  const colorSemaforoMonotributo = calcularColorSemaforoMonotributo(facturacionUltimos12Meses, topeMonotributo);
 
   // Cuánto se "descontó" este mes respecto del precio de lista congelado en
   // cada turno (ver calcularTotalDescontado) — solo cuenta cuando se cobró
@@ -290,6 +302,18 @@ export default function FinanzasScreen({ navigation }) {
             <Text style={styles.gridSub}>vs. precio de lista</Text>
           </View>
         </View>
+
+        {mostrarTopeMonotributo && (
+          <View style={styles.monotributoTarjeta}>
+            <Text style={styles.resumenLabel}>
+              Facturación últimos 12 meses (Categoría {misDatos.categoriaMonotributo})
+            </Text>
+            <Text style={[styles.resumenMonto, styles.monotributoMonto, ESTILOS_SEMAFORO[colorSemaforoMonotributo]]}>
+              {formatearPesos(facturacionUltimos12Meses)}
+            </Text>
+            <Text style={styles.proyeccionTexto}>de {formatearPesos(topeMonotributo)} de tope anual</Text>
+          </View>
+        )}
 
         <View style={styles.navLista}>
           <TouchableOpacity
@@ -458,6 +482,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textMuted,
     marginTop: 3,
+  },
+  monotributoTarjeta: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 16,
+    marginBottom: 12,
+  },
+  monotributoMonto: {
+    fontSize: 22,
   },
   navLista: {
     gap: 10,
