@@ -6,6 +6,7 @@ import Button from "../components/Button";
 import ChipGroup from "../components/ChipGroup";
 import EstadoCarga from "../components/EstadoCarga";
 import BuscadorUbicacion from "../components/BuscadorUbicacion";
+import MapaUbicacion from "../components/MapaUbicacion";
 import { useTaller } from "../data/TallerContext";
 import { SITUACIONES_FISCALES } from "../data/mockTaller";
 import { colors, fonts } from "../theme";
@@ -54,6 +55,13 @@ export default function MisDatosScreen({ navigation }) {
   // juntas (ver BuscadorUbicacion.js/places-proxy).
   function elegirUbicacion(cambios) {
     setDatos((actuales) => ({ ...actuales, ...cambios }));
+  }
+
+  // Se arrastró el pin del mapa a mano (ver MapaUbicacion.js) — solo toca
+  // las coordenadas, el texto de la dirección queda como lo devolvió Google
+  // (la corrección es del PIN, no de la dirección formateada).
+  function arrastrarPinUbicacion(lat, lng) {
+    setDatos((actuales) => ({ ...actuales, ubicacionLat: lat, ubicacionLng: lng }));
   }
 
   function elegirSituacionFiscal(opcion) {
@@ -141,6 +149,18 @@ export default function MisDatosScreen({ navigation }) {
               onCambiarTexto={cambiarTextoUbicacion}
               onSeleccionar={elegirUbicacion}
             />
+
+            {/* Solo con coordenadas reales (elegidas del buscador, o ya
+            cargadas de antes) — un taller con `ubicacion` vieja como texto
+            libre sin resolver contra Google no tiene centro válido para el
+            mapa todavía. */}
+            {datos.ubicacionLat != null && datos.ubicacionLng != null && (
+              <MapaUbicacion
+                lat={datos.ubicacionLat}
+                lng={datos.ubicacionLng}
+                onArrastrarPin={arrastrarPinUbicacion}
+              />
+            )}
 
             <Text style={styles.label}>Situación fiscal (opcional)</Text>
             <ChipGroup
