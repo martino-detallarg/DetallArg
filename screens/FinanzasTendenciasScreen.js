@@ -7,9 +7,11 @@ import { useData } from "../data/DataContext";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
+import { useEquipo } from "../data/EquipoContext";
 import {
   calcularTendenciaGananciaNeta,
   rankingClientesPorFacturacion,
+  rankingEmpleadosPorFacturacion,
   rankingServiciosPorGanancia,
 } from "../utils/calculosFinanzas";
 import { colors, continuousCorner, fonts, radii } from "../theme";
@@ -29,6 +31,7 @@ export default function FinanzasTendenciasScreen({ navigation }) {
     useFinanzas();
   const { cargandoTurnos, errorCargaTurnos, getTurnoById } = useTurnos();
   const { cargandoClientes, errorCargaClientes, getClienteById } = useClientes();
+  const { empleados, cargandoEquipo, errorCargaEquipo } = useEquipo();
   const anchoGrafico = width - PADDING_PANTALLA * 2 - 32;
 
   const totalCostosFijos = costosFijos.reduce((suma, c) => suma + c.monto, 0);
@@ -37,6 +40,10 @@ export default function FinanzasTendenciasScreen({ navigation }) {
   const errorGananciaBruta = errorCargaCostosFijos || errorCargaCobros || errorCargaGastosVariables;
   const cargandoTendencia = cargandoGananciaBruta || cargandoTurnos || cargandoClientes;
   const errorTendencia = errorGananciaBruta || errorCargaTurnos || errorCargaClientes;
+  // Tarjeta de "Rendimiento por empleado": depende además de Mi Equipo
+  // (para saber si mostrar la tarjeta y resolver cargandoEquipo/error).
+  const cargandoEmpleados = cargandoTendencia || cargandoEquipo;
+  const errorEmpleados = errorTendencia || errorCargaEquipo;
 
   const tendenciaGananciaNeta = calcularTendenciaGananciaNeta(
     CANTIDAD_MESES_TENDENCIA,
@@ -47,6 +54,7 @@ export default function FinanzasTendenciasScreen({ navigation }) {
   );
   const rankingServicios = rankingServiciosPorGanancia(cobros, getTurnoById, CANTIDAD_MESES_TENDENCIA);
   const rankingClientes = rankingClientesPorFacturacion(cobros, getTurnoById, getClienteById);
+  const rankingEmpleados = rankingEmpleadosPorFacturacion(cobros, getTurnoById, CANTIDAD_MESES_TENDENCIA);
 
   const rankingServiciosConAlerta = rankingServicios.map((item) => ({
     ...item,
@@ -122,6 +130,34 @@ export default function FinanzasTendenciasScreen({ navigation }) {
             </View>
           )}
         </View>
+
+        {/* Solo si el taller cargó al menos 1 empleado en Mi Equipo (no
+        hace falta que esté activo, un inactivo con historial igual tiene
+        sentido verlo acá) — si trabaja solo, un ranking de empleados vacío
+        no aporta nada. */}
+        {empleados.length > 0 && (
+          <View style={[styles.tarjeta, styles.tarjetaConMargen]}>
+            <Text style={styles.tarjetaTitulo}>Rendimiento por empleado</Text>
+            <Text style={styles.tarjetaSubtitulo}>Últimos {CANTIDAD_MESES_TENDENCIA} meses, por facturación</Text>
+            <View style={styles.rankingContenedor}>
+              <RankingLista
+                items={rankingEmpleados}
+                etiquetaCantidad="trabajos"
+                vacioTexto="Todavía no hay trabajos con empleados asignados en este período."
+              />
+            </View>
+
+            {(cargandoEmpleados || errorEmpleados) && (
+              <View style={styles.tarjetaOverlay}>
+                {cargandoEmpleados ? (
+                  <ActivityIndicator color={colors.accent} size="large" />
+                ) : (
+                  <Text style={styles.tarjetaOverlayError}>{errorEmpleados}</Text>
+                )}
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
