@@ -10,6 +10,7 @@ import BuscadorUbicacion from "../components/BuscadorUbicacion";
 import MapaUbicacion from "../components/MapaUbicacion";
 import { useTaller } from "../data/TallerContext";
 import { SITUACIONES_FISCALES } from "../data/mockTaller";
+import { ORDEN_CATEGORIAS_MONOTRIBUTO } from "../data/monotributoCategorias";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 export default function MisDatosScreen({ navigation }) {
@@ -80,6 +81,18 @@ export default function MisDatosScreen({ navigation }) {
     }));
   }
 
+  // No borra categoriaMonotributo si el taller cambia a otra situación
+  // fiscal: el dato queda guardado sin usarse (MisDatosScreen.js deja de
+  // mostrar el selector, FinanzasScreen.js deja de mostrar el aviso), y si
+  // vuelve a elegir "Monotributista" más tarde reaparece con la categoría
+  // que ya tenía — no hace falta recargarla de cero.
+  function elegirCategoriaMonotributo(opcion) {
+    setDatos((actuales) => ({
+      ...actuales,
+      categoriaMonotributo: actuales.categoriaMonotributo === opcion ? null : opcion,
+    }));
+  }
+
   async function handleGuardar() {
     setCargando(true);
     setError(null);
@@ -94,6 +107,7 @@ export default function MisDatosScreen({ navigation }) {
         ubicacionLat: datos.ubicacionLat,
         ubicacionLng: datos.ubicacionLng,
         situacionFiscal: datos.situacionFiscal,
+        categoriaMonotributo: datos.categoriaMonotributo,
       });
       navigation.navigate("MiTaller");
     } catch (err) {
@@ -187,6 +201,21 @@ export default function MisDatosScreen({ navigation }) {
               onPress={elegirSituacionFiscal}
               style={styles.chips}
             />
+
+            {datos.situacionFiscal === "Monotributista" && (
+              <>
+                <Text style={styles.label}>Categoría de Monotributo</Text>
+                <ChipGroup
+                  options={ORDEN_CATEGORIAS_MONOTRIBUTO.map((categoria) => ({
+                    value: categoria,
+                    label: categoria,
+                    selected: datos.categoriaMonotributo === categoria,
+                  }))}
+                  onPress={elegirCategoriaMonotributo}
+                  style={styles.chips}
+                />
+              </>
+            )}
 
             {error && <Text style={styles.error}>{error}</Text>}
 

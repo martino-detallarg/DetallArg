@@ -21,6 +21,9 @@ const MIS_DATOS_VACIOS = {
   ubicacionLat: null,
   ubicacionLng: null,
   situacionFiscal: null,
+  // Categoría de Monotributo (A-K), solo relevante cuando situacionFiscal
+  // === "Monotributista" — ver MisDatosScreen.js/data/monotributoCategorias.js.
+  categoriaMonotributo: null,
 };
 
 const ORDEN_DIAS = horariosIniciales.map((h) => h.dia);
@@ -135,6 +138,7 @@ export function TallerProvider({ children }) {
         ubicacionLat: data.ubicacion_lat ?? null,
         ubicacionLng: data.ubicacion_lng ?? null,
         situacionFiscal: data.situacion_fiscal ?? null,
+        categoriaMonotributo: data.categoria_monotributo ?? null,
       });
       setPlan(data.plan ?? "basico");
       // ?? true: fallback seguro para el ratito entre que se pushea este
@@ -288,6 +292,7 @@ export function TallerProvider({ children }) {
     if (cambios.ubicacionLat !== undefined) columnas.ubicacion_lat = cambios.ubicacionLat;
     if (cambios.ubicacionLng !== undefined) columnas.ubicacion_lng = cambios.ubicacionLng;
     if (cambios.situacionFiscal !== undefined) columnas.situacion_fiscal = cambios.situacionFiscal;
+    if (cambios.categoriaMonotributo !== undefined) columnas.categoria_monotributo = cambios.categoriaMonotributo;
 
     const { error } = await supabase.from("talleres").update(columnas).eq("id", user.id);
     if (error) throw error;
