@@ -38,7 +38,7 @@ export default function CostosFijosScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onVolver={() => navigation.navigate("Finanzas")} />
+      <ScreenHeader onVolver={() => navigation.navigate("FinanzasHome")} />
 
       <Text style={styles.titulo}>Costos Fijos</Text>
 

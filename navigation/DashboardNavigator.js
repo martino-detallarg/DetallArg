@@ -68,8 +68,17 @@ function MiTallerStackNavigator() {
 
 function FinanzasStackNavigator() {
   return (
-    <FinanzasStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-      <FinanzasStack.Screen name="Finanzas" component={FinanzasScreen} />
+    <FinanzasStack.Navigator
+      initialRouteName="FinanzasHome"
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}
+    >
+      {/* "FinanzasHome" (no "Finanzas"): el Drawer de afuera ya registra su
+      propia pestaña con name="Finanzas" (más abajo, en DrawerNavigator) —
+      dos niveles de navegación con el mismo nombre literal disparaba el
+      warning de React Navigation de "screens with the same name nested
+      inside one another". El nombre de la pestaña exterior NO se toca (lo
+      usan otros lugares para entrar a la sección, ver DrawerContent.js). */}
+      <FinanzasStack.Screen name="FinanzasHome" component={FinanzasScreen} />
       <FinanzasStack.Screen name="FinanzasCostos" component={FinanzasCostosScreen} />
       <FinanzasStack.Screen name="FinanzasRendimiento" component={FinanzasRendimientoScreen} />
       <FinanzasStack.Screen name="FinanzasTendencias" component={FinanzasTendenciasScreen} />
