@@ -237,11 +237,22 @@ function bloqueUbicacion(misDatos) {
   return `<div><a href="${url}">${escapeHtml(misDatos.ubicacion)}</a></div>`;
 }
 
+// "Prefiero no decir" o vacío: no se muestra ninguna línea (mismo criterio
+// que el resto de los bloques opcionales de este archivo) — el resto de
+// los valores de SITUACIONES_FISCALES (data/mockTaller.js) se muestran tal
+// cual, para que un cliente empresa sepa de entrada si el taller le puede
+// dar factura A.
+function bloqueSituacionFiscal(misDatos) {
+  if (!misDatos?.situacionFiscal || misDatos.situacionFiscal === "Prefiero no decir") return "";
+  return `<div>${escapeHtml(misDatos.situacionFiscal)}</div>`;
+}
+
 function bloqueFooter(taller, datosOperativos) {
   const contacto = medioDeContacto(taller?.misDatos);
   return `
     <div class="footer">
       ${bloqueUbicacion(taller?.misDatos)}
+      ${bloqueSituacionFiscal(taller?.misDatos)}
       ${contacto ? `<div>${contacto}</div>` : ""}
       ${datosOperativos?.formaTrabajo ? `<div>Forma de trabajo: ${escapeHtml(datosOperativos.formaTrabajo)}</div>` : ""}
       <div>Moneda de cobro: ${escapeHtml(datosOperativos?.monedaCobro ?? "ARS $")}</div>
@@ -347,6 +358,7 @@ export function construirHtmlCatalogoCompleto(
           <div class="portada-info">
             ${textoLibre1 ? `<div>${escapeHtml(textoLibre1)}</div>` : ""}
             ${bloqueUbicacion(taller?.misDatos)}
+            ${bloqueSituacionFiscal(taller?.misDatos)}
             ${contacto ? `<div>${contacto}</div>` : ""}
             ${datosOperativos?.formaTrabajo ? `<div>Forma de trabajo: ${escapeHtml(datosOperativos.formaTrabajo)}</div>` : ""}
             ${textoLibre2 ? `<div>${escapeHtml(textoLibre2)}</div>` : ""}

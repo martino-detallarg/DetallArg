@@ -8,6 +8,7 @@
 // información estratégica del taller).
 import { formatearPesos } from "./formato";
 import { escapeHtml, generarYCompartirPdf } from "./pdf";
+import { TOPES_MONOTRIBUTO } from "../data/monotributoCategorias";
 
 export { generarYCompartirPdf };
 
@@ -135,6 +136,25 @@ function estilos() {
   `;
 }
 
+// Solo en la versión "contador" (esCompleto false) — la situación fiscal es
+// referencia para el contador, no algo que el taller necesite ver en su
+// propio resumen interno. "Prefiero no decir"/vacío no muestra nada. Si es
+// Monotributista y hay categoría cargada (ver MisDatosScreen.js), suma
+// categoría + tope anual (data/monotributoCategorias.js) como referencia
+// rápida — no repite la facturación de los últimos 12 meses (eso ya se ve
+// en la tarjeta de Finanzas, acá alcanza con el dato fijo del tope).
+function bloqueSituacionFiscal(misDatos) {
+  if (!misDatos?.situacionFiscal || misDatos.situacionFiscal === "Prefiero no decir") return "";
+
+  const esMonotributista = misDatos.situacionFiscal === "Monotributista" && misDatos.categoriaMonotributo;
+  const tope = esMonotributista ? TOPES_MONOTRIBUTO[misDatos.categoriaMonotributo] : null;
+  const referenciaMonotributo = tope
+    ? ` · Categoría ${escapeHtml(misDatos.categoriaMonotributo)} (tope ${formatearPesos(tope)}/año)`
+    : "";
+
+  return `<div class="header-subtitulo">${escapeHtml(misDatos.situacionFiscal)}${referenciaMonotributo}</div>`;
+}
+
 function bloqueHeader(taller, esCompleto) {
   return `
     <div class="header">
@@ -142,6 +162,7 @@ function bloqueHeader(taller, esCompleto) {
       <div>
         <div class="header-nombre">${escapeHtml(taller?.nombreTaller)}</div>
         <div class="header-subtitulo">${esCompleto ? "Resumen financiero mensual" : "Resumen para tu contador"}</div>
+        ${!esCompleto ? bloqueSituacionFiscal(taller?.misDatos) : ""}
       </div>
     </div>
   `;
