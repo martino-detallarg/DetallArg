@@ -5,6 +5,7 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 import ChipGroup from "../components/ChipGroup";
 import EstadoCarga from "../components/EstadoCarga";
+import BuscadorUbicacion from "../components/BuscadorUbicacion";
 import { useTaller } from "../data/TallerContext";
 import { SITUACIONES_FISCALES } from "../data/mockTaller";
 import { colors, fonts } from "../theme";
@@ -17,7 +18,6 @@ export default function MisDatosScreen({ navigation }) {
   const webRef = useRef(null);
   const correoRef = useRef(null);
   const telefonoRef = useRef(null);
-  const ubicacionRef = useRef(null);
 
   // `misDatos` llega vacío al montar y se llena recién cuando termina el
   // fetch inicial de TallerContext (asíncrono) — sin este efecto, si el
@@ -30,6 +30,30 @@ export default function MisDatosScreen({ navigation }) {
 
   function cambiar(campo, valor) {
     setDatos((actuales) => ({ ...actuales, [campo]: valor }));
+  }
+
+  // Tipear a mano en el buscador (sin elegir ninguna sugerencia todavía):
+  // se guarda como texto libre, mismo comportamiento que el campo de antes,
+  // pero SIN coordenadas — si ya había una ubicación resuelta por Google (o
+  // el pin ya se había arrastrado a mano) y el taller edita el texto a
+  // mano, esas coordenadas quedarían desactualizadas respecto del texto
+  // nuevo, así que se limpian acá: el mapa/botón "Cómo llegar" vuelven a
+  // aparecer recién cuando se elija una sugerencia de nuevo (ver
+  // BuscadorUbicacion.js).
+  function cambiarTextoUbicacion(texto) {
+    setDatos((actuales) => ({
+      ...actuales,
+      ubicacion: texto,
+      ubicacionPlaceId: null,
+      ubicacionLat: null,
+      ubicacionLng: null,
+    }));
+  }
+
+  // Se eligió una sugerencia real del buscador: pisa ubicación + coordenadas
+  // juntas (ver BuscadorUbicacion.js/places-proxy).
+  function elegirUbicacion(cambios) {
+    setDatos((actuales) => ({ ...actuales, ...cambios }));
   }
 
   function elegirSituacionFiscal(opcion) {
@@ -49,6 +73,9 @@ export default function MisDatosScreen({ navigation }) {
         correo: datos.correo.trim(),
         telefono: datos.telefono.trim(),
         ubicacion: datos.ubicacion.trim(),
+        ubicacionPlaceId: datos.ubicacionPlaceId,
+        ubicacionLat: datos.ubicacionLat,
+        ubicacionLng: datos.ubicacionLng,
         situacionFiscal: datos.situacionFiscal,
       });
       navigation.navigate("MiTaller");
@@ -106,17 +133,13 @@ export default function MisDatosScreen({ navigation }) {
               onChangeText={(v) => cambiar("telefono", v)}
               placeholder="Ej: 11 5555-5555"
               keyboardType="phone-pad"
-              returnKeyType="next"
-              onSubmitEditing={() => ubicacionRef.current?.focus()}
-            />
-            <Input
-              ref={ubicacionRef}
-              label="Ubicación"
-              value={datos.ubicacion}
-              onChangeText={(v) => cambiar("ubicacion", v)}
-              placeholder="Ej: Palermo, CABA"
               returnKeyType="done"
               onSubmitEditing={() => Keyboard.dismiss()}
+            />
+            <BuscadorUbicacion
+              valor={datos.ubicacion}
+              onCambiarTexto={cambiarTextoUbicacion}
+              onSeleccionar={elegirUbicacion}
             />
 
             <Text style={styles.label}>Situación fiscal (opcional)</Text>

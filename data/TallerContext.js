@@ -12,6 +12,14 @@ const MIS_DATOS_VACIOS = {
   correo: "",
   telefono: "",
   ubicacion: "",
+  // Coordenadas + Place ID de Google, resueltas por BuscadorUbicacion.js
+  // (autocompletado vía supabase/functions/places-proxy) o arrastrando el
+  // pin en MapaUbicacion.js — null en talleres que todavía tienen
+  // `ubicacion` como texto libre viejo, sin resolver contra Google (ver
+  // supabase/schema.sql, columnas ya agregadas de antes).
+  ubicacionPlaceId: null,
+  ubicacionLat: null,
+  ubicacionLng: null,
   situacionFiscal: null,
 };
 
@@ -123,6 +131,9 @@ export function TallerProvider({ children }) {
         correo: data.correo ?? "",
         telefono: data.telefono ?? "",
         ubicacion: data.ubicacion ?? "",
+        ubicacionPlaceId: data.ubicacion_place_id ?? null,
+        ubicacionLat: data.ubicacion_lat ?? null,
+        ubicacionLng: data.ubicacion_lng ?? null,
         situacionFiscal: data.situacion_fiscal ?? null,
       });
       setPlan(data.plan ?? "basico");
@@ -273,6 +284,9 @@ export function TallerProvider({ children }) {
     if (cambios.correo !== undefined) columnas.correo = cambios.correo;
     if (cambios.telefono !== undefined) columnas.telefono = cambios.telefono;
     if (cambios.ubicacion !== undefined) columnas.ubicacion = cambios.ubicacion;
+    if (cambios.ubicacionPlaceId !== undefined) columnas.ubicacion_place_id = cambios.ubicacionPlaceId;
+    if (cambios.ubicacionLat !== undefined) columnas.ubicacion_lat = cambios.ubicacionLat;
+    if (cambios.ubicacionLng !== undefined) columnas.ubicacion_lng = cambios.ubicacionLng;
     if (cambios.situacionFiscal !== undefined) columnas.situacion_fiscal = cambios.situacionFiscal;
 
     const { error } = await supabase.from("talleres").update(columnas).eq("id", user.id);
