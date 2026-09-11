@@ -306,6 +306,44 @@ export function rankingClientesPorFacturacion(cobros, getTurnoById, getClienteBy
     .slice(0, limite);
 }
 
+// Facturación generada por empleado (no margen — mismo criterio que
+// rankingClientesPorFacturacion: "quién le generó más ingresos al taller",
+// a diferencia de rankingServiciosPorGanancia que sí resta costo de
+// insumos para medir rentabilidad de un servicio) sobre los últimos
+// `cantidadMeses` (mismo criterio de ventana que el ranking de servicios,
+// no `rankingClientesPorFacturacion` que es histórico sin límite — acá con
+// pocos trabajos por mes el ranking sería demasiado ruidoso).
+//
+// Decisión de producto confirmada: un turno puede tener VARIOS empleados
+// asignados a la vez (turno.empleadosAsignados, nombre ya congelado al
+// asignar — ver TurnoContext.js) — a CADA UNO se le suma el monto COMPLETO
+// del cobro y +1 trabajo, no se reparte entre ellos. Es una vista de "quién
+// estuvo involucrado en qué", no un cálculo de reparto de plata: no
+// automatiza ningún pago ni comisión por trabajo (decisión de producto ya
+// tomada, fuera de alcance de esta función). Ordenado de mayor a menor
+// facturación, limitado a los primeros `limite`.
+export function rankingEmpleadosPorFacturacion(cobros, getTurnoById, cantidadMeses, limite = 5) {
+  const clavesVigentes = new Set(obtenerUltimosMeses(cantidadMeses).map((m) => m.clave));
+  const resolubles = cobrosConTurnoResoluble(cobros, getTurnoById).filter(({ cobro }) =>
+    clavesVigentes.has(claveMes(cobro.fecha))
+  );
+
+  const porEmpleado = new Map();
+  for (const { cobro, turno } of resolubles) {
+    for (const { empleadoId, nombreEmpleado } of turno.empleadosAsignados ?? []) {
+      const entrada =
+        porEmpleado.get(empleadoId) ?? { id: empleadoId, nombre: nombreEmpleado, cantidad: 0, monto: 0 };
+      entrada.cantidad += 1;
+      entrada.monto += cobro.monto;
+      porEmpleado.set(empleadoId, entrada);
+    }
+  }
+
+  return Array.from(porEmpleado.values())
+    .sort((a, b) => b.monto - a.monto)
+    .slice(0, limite);
+}
+
 // Cuánto se "regaló" respecto del precio de lista en un conjunto de cobros
 // (pensado para pasarle los cobros de un solo mes, ver FinanzasScreen.js):
 // solo cuenta cuando se cobró MENOS que turno.precio — el precio de lista
