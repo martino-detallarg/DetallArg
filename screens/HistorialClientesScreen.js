@@ -144,6 +144,22 @@ export default function HistorialClientesScreen({ navigation, route }) {
   const turnosSinFechaFiltrados = turnosSinFecha.filter(coincideConFiltros);
   const totalFiltrado = turnosConFechaFiltrados.length + turnosSinFechaFiltrados.length;
 
+  // Agrupa los turnos ya filtrados por cliente, preservando el orden en el
+  // que aparecen (con fecha primero, más reciente arriba; sin fecha al
+  // final) — así el orden de los GRUPOS sale gratis: un cliente queda
+  // ubicado en la posición de su trabajo más reciente, sin ordenar aparte.
+  const gruposPorCliente = useMemo(() => {
+    const mapa = new Map();
+    for (const turno of [...turnosConFechaFiltrados, ...turnosSinFechaFiltrados]) {
+      const clave = turno.clienteId ?? "sin-cliente";
+      if (!mapa.has(clave)) {
+        mapa.set(clave, { clienteId: turno.clienteId, turnos: [] });
+      }
+      mapa.get(clave).turnos.push(turno);
+    }
+    return Array.from(mapa.values());
+  }, [turnosConFechaFiltrados, turnosSinFechaFiltrados]);
+
   function renderTurno(turno) {
     return (
       <FilaTurno
