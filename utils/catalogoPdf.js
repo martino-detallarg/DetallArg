@@ -221,11 +221,27 @@ function bloqueGaleria(fotos) {
   `;
 }
 
+// Texto/link de ubicación, reusado en el footer y en la portada del
+// catálogo completo — con coordenadas reales (ver
+// TallerContext.js/BuscadorUbicacion.js) es un link clickeable a Google
+// Maps con el pin exacto ("Cómo llegar", mismo esquema de URL que el botón
+// de MisDatosScreen.js); sin coordenadas (`ubicacion` vieja, cargada como
+// texto libre y todavía sin resolver contra Google) sigue siendo texto
+// plano, mismo comportamiento que antes.
+function bloqueUbicacion(misDatos) {
+  if (!misDatos?.ubicacion) return "";
+  if (misDatos.ubicacionLat == null || misDatos.ubicacionLng == null) {
+    return `<div>${escapeHtml(misDatos.ubicacion)}</div>`;
+  }
+  const url = `https://www.google.com/maps/search/?api=1&query=${misDatos.ubicacionLat},${misDatos.ubicacionLng}`;
+  return `<div><a href="${url}">${escapeHtml(misDatos.ubicacion)}</a></div>`;
+}
+
 function bloqueFooter(taller, datosOperativos) {
   const contacto = medioDeContacto(taller?.misDatos);
   return `
     <div class="footer">
-      ${taller?.misDatos?.ubicacion ? `<div>${escapeHtml(taller.misDatos.ubicacion)}</div>` : ""}
+      ${bloqueUbicacion(taller?.misDatos)}
       ${contacto ? `<div>${contacto}</div>` : ""}
       ${datosOperativos?.formaTrabajo ? `<div>Forma de trabajo: ${escapeHtml(datosOperativos.formaTrabajo)}</div>` : ""}
       <div>Moneda de cobro: ${escapeHtml(datosOperativos?.monedaCobro ?? "ARS $")}</div>
@@ -330,7 +346,7 @@ export function construirHtmlCatalogoCompleto(
           <div class="portada-nombre">${escapeHtml(taller?.nombreTaller)}</div>
           <div class="portada-info">
             ${textoLibre1 ? `<div>${escapeHtml(textoLibre1)}</div>` : ""}
-            ${taller?.misDatos?.ubicacion ? `<div>${escapeHtml(taller.misDatos.ubicacion)}</div>` : ""}
+            ${bloqueUbicacion(taller?.misDatos)}
             ${contacto ? `<div>${contacto}</div>` : ""}
             ${datosOperativos?.formaTrabajo ? `<div>Forma de trabajo: ${escapeHtml(datosOperativos.formaTrabajo)}</div>` : ""}
             ${textoLibre2 ? `<div>${escapeHtml(textoLibre2)}</div>` : ""}

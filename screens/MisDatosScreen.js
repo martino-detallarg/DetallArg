@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Linking, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import WizardHeader from "../components/wizard/WizardHeader";
 import Input from "../components/Input";
 import Button from "../components/Button";
@@ -9,7 +10,7 @@ import BuscadorUbicacion from "../components/BuscadorUbicacion";
 import MapaUbicacion from "../components/MapaUbicacion";
 import { useTaller } from "../data/TallerContext";
 import { SITUACIONES_FISCALES } from "../data/mockTaller";
-import { colors, fonts } from "../theme";
+import { colors, continuousCorner, fonts, radii } from "../theme";
 
 export default function MisDatosScreen({ navigation }) {
   const { misDatos, actualizarMisDatos, cargandoTaller, errorCargaTaller, recargarTaller } = useTaller();
@@ -62,6 +63,14 @@ export default function MisDatosScreen({ navigation }) {
   // (la corrección es del PIN, no de la dirección formateada).
   function arrastrarPinUbicacion(lat, lng) {
     setDatos((actuales) => ({ ...actuales, ubicacionLat: lat, ubicacionLng: lng }));
+  }
+
+  // Mismo esquema de link que usa utils/catalogoPdf.js — no depende de
+  // tener Google/Apple Maps instalada de una forma específica, el sistema
+  // resuelve el link a lo que tenga disponible.
+  function handleComoLlegar() {
+    if (datos.ubicacionLat == null || datos.ubicacionLng == null) return;
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${datos.ubicacionLat},${datos.ubicacionLng}`);
   }
 
   function elegirSituacionFiscal(opcion) {
@@ -155,11 +164,17 @@ export default function MisDatosScreen({ navigation }) {
             libre sin resolver contra Google no tiene centro válido para el
             mapa todavía. */}
             {datos.ubicacionLat != null && datos.ubicacionLng != null && (
-              <MapaUbicacion
-                lat={datos.ubicacionLat}
-                lng={datos.ubicacionLng}
-                onArrastrarPin={arrastrarPinUbicacion}
-              />
+              <>
+                <MapaUbicacion
+                  lat={datos.ubicacionLat}
+                  lng={datos.ubicacionLng}
+                  onArrastrarPin={arrastrarPinUbicacion}
+                />
+                <TouchableOpacity style={styles.comoLlegarBoton} onPress={handleComoLlegar} activeOpacity={0.85}>
+                  <Ionicons name="navigate-outline" size={16} color={colors.accentLight} />
+                  <Text style={styles.comoLlegarTexto}>Cómo llegar</Text>
+                </TouchableOpacity>
+              </>
             )}
 
             <Text style={styles.label}>Situación fiscal (opcional)</Text>
@@ -207,6 +222,23 @@ const styles = StyleSheet.create({
   },
   chips: {
     marginBottom: 16,
+  },
+  comoLlegarBoton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 44,
+    borderRadius: radii.button,
+    ...continuousCorner,
+    borderWidth: 1,
+    borderColor: colors.borderAccent,
+    marginBottom: 16,
+  },
+  comoLlegarTexto: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.accentLight,
   },
   error: {
     fontFamily: fonts.body,
