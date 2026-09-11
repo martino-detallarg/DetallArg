@@ -65,7 +65,7 @@ export default function ConfiguracionScreen({ navigation }) {
           <View style={styles.separador} />
           <TouchableOpacity
             style={styles.fila}
-            onPress={() => navigation.navigate("MisDatos")}
+            onPress={() => navigation.navigate("MiTaller", { screen: "MisDatos" })}
             activeOpacity={0.8}
           >
             <Text style={styles.filaTexto}>Editar mis datos</Text>
