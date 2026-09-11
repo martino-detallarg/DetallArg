@@ -34,10 +34,6 @@ const ORDEN_DIAS = horariosIniciales.map((h) => h.dia);
 // viene undefined), mismo criterio que el fallback de onboarding_completado.
 const UMBRAL_GANANCIA_VERDE_DEFAULT = 30;
 
-// Mismo criterio de fallback que UMBRAL_GANANCIA_VERDE_DEFAULT, para
-// supabase/alter_talleres_comision_tarjeta.sql.
-const COMISION_TARJETA_DEFAULT = 0;
-
 // Postgres `time` vuelve de Supabase como "09:00:00" (con segundos) — se
 // recorta a "09:00" para seguir siendo compatible con parsearHoraHHMM/
 // formatearHoraHHMM (esperan HH:MM exacto). También reordena Lunes->Domingo,
@@ -89,7 +85,6 @@ export function TallerProvider({ children }) {
   const [plan, setPlan] = useState("basico");
   const [onboardingCompletado, setOnboardingCompletado] = useState(true);
   const [umbralGananciaVerdePorcentaje, setUmbralGananciaVerdePorcentaje] = useState(UMBRAL_GANANCIA_VERDE_DEFAULT);
-  const [comisionTarjetaPorcentaje, setComisionTarjetaPorcentaje] = useState(COMISION_TARJETA_DEFAULT);
   const [horarios, setHorarios] = useState(horariosIniciales);
   const [cargandoTaller, setCargandoTaller] = useState(true);
   const [errorCargaTaller, setErrorCargaTaller] = useState(null);
@@ -97,6 +92,16 @@ export function TallerProvider({ children }) {
   const [cargandoHorarios, setCargandoHorarios] = useState(true);
   const [errorCargaHorarios, setErrorCargaHorarios] = useState(null);
   const [intentoCargaHorarios, setIntentoCargaHorarios] = useState(0);
+  // Planes de comisión de tarjeta por cantidad de cuotas (ver
+  // supabase/crear_comisiones_tarjeta_cuotas.sql) — reemplaza el viejo %
+  // único (comisionTarjetaPorcentaje, columna ahora LEGACY). Bootstrap
+  // propio, mismo patrón que `horarios`, pero SIN paso de "sembrar
+  // defaults": una lista vacía es un estado válido (taller que todavía no
+  // cargó ningún plan), el taller la arma a mano, igual que costosFijos.
+  const [planesCuotasTarjeta, setPlanesCuotasTarjeta] = useState([]);
+  const [cargandoPlanesCuotas, setCargandoPlanesCuotas] = useState(true);
+  const [errorCargaPlanesCuotas, setErrorCargaPlanesCuotas] = useState(null);
+  const [intentoCargaPlanesCuotas, setIntentoCargaPlanesCuotas] = useState(0);
 
   // Dependencia `user?.id` (no `user` completo) a propósito: `AuthContext`
   // arma un objeto `session`/`user` NUEVO en cada refresh automático de
@@ -149,7 +154,6 @@ export function TallerProvider({ children }) {
       setUmbralGananciaVerdePorcentaje(
         data.umbral_ganancia_verde_porcentaje ?? UMBRAL_GANANCIA_VERDE_DEFAULT
       );
-      setComisionTarjetaPorcentaje(data.comision_tarjeta_porcentaje ?? COMISION_TARJETA_DEFAULT);
       setCargandoTaller(false);
     }
 
@@ -228,12 +232,55 @@ export function TallerProvider({ children }) {
     };
   }, [user?.id, intentoCargaHorarios]);
 
+  // Planes de comisión de tarjeta por cuotas — mismo patrón de useEffect
+  // que horarios, sin el paso de sembrar defaults (ver comentario del
+  // estado más arriba). Orden ascendente por `cuotas` (1 pago primero),
+  // consistente con cómo se van a listar en ConfiguracionFinanzasScreen.js
+  // y en los chips de RegistrarCobroModal.js.
+  useEffect(() => {
+    if (!user) return;
+    let cancelado = false;
+
+    async function cargarPlanesCuotas() {
+      setCargandoPlanesCuotas(true);
+      setErrorCargaPlanesCuotas(null);
+
+      const { data, error } = await supabase
+        .from("comisiones_tarjeta_cuotas")
+        .select("id, cuotas, comision_porcentaje")
+        .eq("taller_id", user.id)
+        .order("cuotas", { ascending: true });
+
+      if (cancelado) return;
+
+      if (error) {
+        setErrorCargaPlanesCuotas(mensajeErrorCarga(error, "los planes de comisión de tarjeta"));
+        setCargandoPlanesCuotas(false);
+        return;
+      }
+
+      setPlanesCuotasTarjeta(
+        data.map((fila) => ({ id: fila.id, cuotas: fila.cuotas, comisionPorcentaje: fila.comision_porcentaje }))
+      );
+      setCargandoPlanesCuotas(false);
+    }
+
+    cargarPlanesCuotas();
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.id, intentoCargaPlanesCuotas]);
+
   function recargarTaller() {
     setIntentoCargaTaller((n) => n + 1);
   }
 
   function recargarHorarios() {
     setIntentoCargaHorarios((n) => n + 1);
+  }
+
+  function recargarPlanesCuotas() {
+    setIntentoCargaPlanesCuotas((n) => n + 1);
   }
 
   // Sube el logo elegido (URI local del picker + su mimeType real) al
@@ -319,19 +366,17 @@ export function TallerProvider({ children }) {
     );
   }
 
-  // Ajustes de Finanzas editables desde ConfiguracionFinanzasScreen.js: el
-  // umbral del semáforo de Ganancia Neta (ver
-  // calcularColorSemaforoGananciaNeta en utils/calculosFinanzas.js) y el %
-  // de comisión de tarjeta que se fotografía en cada cobro nuevo (ver
-  // RegistrarCobroModal.js). Mismo patrón de objeto parcial que
-  // actualizarMisDatos: solo escribe las columnas que vienen definidas.
+  // Umbral del semáforo de Ganancia Neta (ver calcularColorSemaforoGananciaNeta
+  // en utils/calculosFinanzas.js), editable desde ConfiguracionFinanzasScreen.js
+  // — la comisión de tarjeta ya no vive acá, ver planesCuotasTarjeta/
+  // agregarPlanCuotas/editarPlanCuotas/eliminarPlanCuotas más abajo. Mismo
+  // patrón de objeto parcial que actualizarMisDatos: solo escribe las
+  // columnas que vienen definidas (hoy solo hay una, se mantiene la forma
+  // por si se suma otro ajuste de Finanzas más adelante).
   async function actualizarConfiguracionFinanzas(cambios) {
     const columnas = {};
     if (cambios.umbralGananciaVerdePorcentaje !== undefined) {
       columnas.umbral_ganancia_verde_porcentaje = cambios.umbralGananciaVerdePorcentaje;
-    }
-    if (cambios.comisionTarjetaPorcentaje !== undefined) {
-      columnas.comision_tarjeta_porcentaje = cambios.comisionTarjetaPorcentaje;
     }
 
     const { error } = await supabase.from("talleres").update(columnas).eq("id", user.id);
@@ -340,9 +385,46 @@ export function TallerProvider({ children }) {
     if (cambios.umbralGananciaVerdePorcentaje !== undefined) {
       setUmbralGananciaVerdePorcentaje(cambios.umbralGananciaVerdePorcentaje);
     }
-    if (cambios.comisionTarjetaPorcentaje !== undefined) {
-      setComisionTarjetaPorcentaje(cambios.comisionTarjetaPorcentaje);
-    }
+  }
+
+  // CRUD de planes de comisión de tarjeta por cuotas (ver
+  // ConfiguracionFinanzasScreen.js/PlanCuotasModal.js) — mismo criterio
+  // async/throw sin actualización optimista que el resto del archivo. El
+  // `unique (taller_id, cuotas)` de la tabla es quien realmente impide dos
+  // planes con la misma cantidad de cuotas; acá no se revalida antes de
+  // escribir, el error de Supabase (si choca) se relanza tal cual para que
+  // PlanCuotasModal.js lo muestre con su mensaje genérico de siempre.
+  async function agregarPlanCuotas({ cuotas, comisionPorcentaje }) {
+    const { data, error } = await supabase
+      .from("comisiones_tarjeta_cuotas")
+      .insert({ taller_id: user.id, cuotas, comision_porcentaje: comisionPorcentaje })
+      .select("id, cuotas, comision_porcentaje")
+      .single();
+    if (error) throw error;
+
+    const nuevoPlan = { id: data.id, cuotas: data.cuotas, comisionPorcentaje: data.comision_porcentaje };
+    setPlanesCuotasTarjeta((actuales) => [...actuales, nuevoPlan].sort((a, b) => a.cuotas - b.cuotas));
+    return nuevoPlan;
+  }
+
+  async function editarPlanCuotas(id, cambios) {
+    const columnas = {};
+    if (cambios.cuotas !== undefined) columnas.cuotas = cambios.cuotas;
+    if (cambios.comisionPorcentaje !== undefined) columnas.comision_porcentaje = cambios.comisionPorcentaje;
+
+    const { error } = await supabase.from("comisiones_tarjeta_cuotas").update(columnas).eq("id", id);
+    if (error) throw error;
+
+    setPlanesCuotasTarjeta((actuales) =>
+      actuales.map((p) => (p.id === id ? { ...p, ...cambios } : p)).sort((a, b) => a.cuotas - b.cuotas)
+    );
+  }
+
+  async function eliminarPlanCuotas(id) {
+    const { error } = await supabase.from("comisiones_tarjeta_cuotas").delete().eq("id", id);
+    if (error) throw error;
+
+    setPlanesCuotasTarjeta((actuales) => actuales.filter((p) => p.id !== id));
   }
 
   // Wizard de bienvenida de 4 pasos (screens/onboarding/OnboardingWizard.js)
@@ -378,8 +460,14 @@ export function TallerProvider({ children }) {
       horarios,
       actualizarHorario,
       umbralGananciaVerdePorcentaje,
-      comisionTarjetaPorcentaje,
       actualizarConfiguracionFinanzas,
+      planesCuotasTarjeta,
+      cargandoPlanesCuotas,
+      errorCargaPlanesCuotas,
+      recargarPlanesCuotas,
+      agregarPlanCuotas,
+      editarPlanCuotas,
+      eliminarPlanCuotas,
       cargandoTaller,
       errorCargaTaller,
       recargarTaller,
@@ -396,7 +484,9 @@ export function TallerProvider({ children }) {
       onboardingCompletado,
       horarios,
       umbralGananciaVerdePorcentaje,
-      comisionTarjetaPorcentaje,
+      planesCuotasTarjeta,
+      cargandoPlanesCuotas,
+      errorCargaPlanesCuotas,
       cargandoTaller,
       errorCargaTaller,
       cargandoHorarios,
