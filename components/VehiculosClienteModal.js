@@ -130,8 +130,6 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
     };
   }, [turnos, cobros, cliente]);
 
-  if (!cliente) return null;
-
   function handleAgregar() {
     setVehiculoEditandoId(null);
     setDatosVehiculo(VEHICULO_VACIO);
@@ -192,6 +190,16 @@ export default function VehiculosClienteModal({ visible, cliente, onClose, onEdi
     datosVehiculo.marca.trim() !== "" &&
     (datosVehiculo.sinPatente || esPatenteValida(datosVehiculo.patente));
   const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
+
+  // DESPUÉS de todos los hooks (incluido useScrollAlHabilitar de arriba) a
+  // propósito: `cliente` pasa a null en el momento de cerrar el modal,
+  // antes de que termine la animación de cierre — un early return de acá
+  // ANTES de un hook lo vuelve condicional y viola las Reglas de Hooks
+  // ("Rendered more hooks than during the previous render"). El
+  // `if (!cliente) return null;` de adentro de `estadisticas` (useMemo de
+  // arriba) no cuenta: ese ya corre siempre, es el cuerpo del hook, no un
+  // return del componente.
+  if (!cliente) return null;
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
