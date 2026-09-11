@@ -6,8 +6,6 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 import ChipGroup from "../components/ChipGroup";
 import EstadoCarga from "../components/EstadoCarga";
-import BuscadorUbicacion from "../components/BuscadorUbicacion";
-import MapaUbicacion from "../components/MapaUbicacion";
 import { useTaller } from "../data/TallerContext";
 import { SITUACIONES_FISCALES } from "../data/mockTaller";
 import { ORDEN_CATEGORIAS_MONOTRIBUTO } from "../data/monotributoCategorias";
@@ -35,43 +33,15 @@ export default function MisDatosScreen({ navigation }) {
     setDatos((actuales) => ({ ...actuales, [campo]: valor }));
   }
 
-  // Tipear a mano en el buscador (sin elegir ninguna sugerencia todavía):
-  // se guarda como texto libre, mismo comportamiento que el campo de antes,
-  // pero SIN coordenadas — si ya había una ubicación resuelta por Google (o
-  // el pin ya se había arrastrado a mano) y el taller edita el texto a
-  // mano, esas coordenadas quedarían desactualizadas respecto del texto
-  // nuevo, así que se limpian acá: el mapa/botón "Cómo llegar" vuelven a
-  // aparecer recién cuando se elija una sugerencia de nuevo (ver
-  // BuscadorUbicacion.js).
-  function cambiarTextoUbicacion(texto) {
-    setDatos((actuales) => ({
-      ...actuales,
-      ubicacion: texto,
-      ubicacionPlaceId: null,
-      ubicacionLat: null,
-      ubicacionLng: null,
-    }));
-  }
-
-  // Se eligió una sugerencia real del buscador: pisa ubicación + coordenadas
-  // juntas (ver BuscadorUbicacion.js/places-proxy).
-  function elegirUbicacion(cambios) {
-    setDatos((actuales) => ({ ...actuales, ...cambios }));
-  }
-
-  // Se arrastró el pin del mapa a mano (ver MapaUbicacion.js) — solo toca
-  // las coordenadas, el texto de la dirección queda como lo devolvió Google
-  // (la corrección es del PIN, no de la dirección formateada).
-  function arrastrarPinUbicacion(lat, lng) {
-    setDatos((actuales) => ({ ...actuales, ubicacionLat: lat, ubicacionLng: lng }));
-  }
-
-  // Mismo esquema de link que usa utils/catalogoPdf.js — no depende de
-  // tener Google/Apple Maps instalada de una forma específica, el sistema
-  // resuelve el link a lo que tenga disponible.
+  // Google Places (BuscadorUbicacion/MapaUbicacion) queda pausado hasta que
+  // se active la cuenta de facturación de Google Cloud — ver
+  // guia_google_maps_api_key.md. Mientras tanto, "Ubicación" es un campo de
+  // texto libre más, y "Cómo llegar" arma el link de búsqueda de Google Maps
+  // a partir de ESE TEXTO (Google lo geocodifica gratis al abrir el link,
+  // mismo esquema que ya usa utils/catalogoPdf.js) — sin key ni coordenadas.
   function handleComoLlegar() {
-    if (datos.ubicacionLat == null || datos.ubicacionLng == null) return;
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${datos.ubicacionLat},${datos.ubicacionLng}`);
+    if (!datos.ubicacion?.trim()) return;
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(datos.ubicacion)}`);
   }
 
   function elegirSituacionFiscal(opcion) {
@@ -167,28 +137,18 @@ export default function MisDatosScreen({ navigation }) {
               returnKeyType="done"
               onSubmitEditing={() => Keyboard.dismiss()}
             />
-            <BuscadorUbicacion
-              valor={datos.ubicacion}
-              onCambiarTexto={cambiarTextoUbicacion}
-              onSeleccionar={elegirUbicacion}
+            <Input
+              label="Ubicación"
+              value={datos.ubicacion}
+              onChangeText={(v) => cambiar("ubicacion", v)}
+              placeholder="Ej: Av. Rivadavia 1234, CABA"
             />
 
-            {/* Solo con coordenadas reales (elegidas del buscador, o ya
-            cargadas de antes) — un taller con `ubicacion` vieja como texto
-            libre sin resolver contra Google no tiene centro válido para el
-            mapa todavía. */}
-            {datos.ubicacionLat != null && datos.ubicacionLng != null && (
-              <>
-                <MapaUbicacion
-                  lat={datos.ubicacionLat}
-                  lng={datos.ubicacionLng}
-                  onArrastrarPin={arrastrarPinUbicacion}
-                />
-                <TouchableOpacity style={styles.comoLlegarBoton} onPress={handleComoLlegar} activeOpacity={0.85}>
-                  <Ionicons name="navigate-outline" size={16} color={colors.accentLight} />
-                  <Text style={styles.comoLlegarTexto}>Cómo llegar</Text>
-                </TouchableOpacity>
-              </>
+            {datos.ubicacion?.trim() && (
+              <TouchableOpacity style={styles.comoLlegarBoton} onPress={handleComoLlegar} activeOpacity={0.85}>
+                <Ionicons name="navigate-outline" size={16} color={colors.accentLight} />
+                <Text style={styles.comoLlegarTexto}>Cómo llegar</Text>
+              </TouchableOpacity>
             )}
 
             <Text style={styles.label}>Situación fiscal (opcional)</Text>
