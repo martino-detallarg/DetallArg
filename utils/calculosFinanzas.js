@@ -346,6 +346,36 @@ export function calcularColorSemaforoGananciaNeta(
   return excedentePorcentaje >= umbralPorcentaje ? "success" : "amber";
 }
 
+// Facturación de los últimos 12 meses CORRIDOS desde hoy (ventana móvil,
+// NO año calendario) — ARCA recategoriza el Monotributo así, no
+// enero-diciembre (ver data/monotributoCategorias.js y el aviso de tope en
+// FinanzasScreen.js). Suma `cobro.monto` de todos los cobros con fecha
+// entre hace 12 meses (mismo día del mes, un año — bah, 12 meses — atrás) y
+// hoy inclusive. Cobros con fecha inválida (best-effort, mismo criterio que
+// el resto de utils/fecha.js) se ignoran.
+export function calcularFacturacionUltimos12Meses(cobros) {
+  const hoy = new Date();
+  const hace12Meses = new Date(hoy.getFullYear(), hoy.getMonth() - 12, hoy.getDate());
+  return cobros.reduce((suma, c) => {
+    const fecha = parsearFechaDDMMAAAA(c.fecha);
+    if (!fecha || fecha < hace12Meses || fecha > hoy) return suma;
+    return suma + c.monto;
+  }, 0);
+}
+
+// Semáforo del tope de Monotributo (rojo/ámbar/verde), relativo al % de la
+// facturación de los últimos 12 meses sobre el tope de la categoría — mismo
+// criterio de claves que calcularColorSemaforoGananciaNeta, la UI las
+// traduce al color real de theme.js. `null` sin tope válido (categoría no
+// cargada, o data/monotributoCategorias.js sin esa clave).
+export function calcularColorSemaforoMonotributo(facturacionUltimos12Meses, tope) {
+  if (!tope || tope <= 0) return null;
+  const porcentaje = (facturacionUltimos12Meses / tope) * 100;
+  if (porcentaje >= 100) return "error";
+  if (porcentaje >= 80) return "amber";
+  return "success";
+}
+
 // Debajo de este mínimo de días transcurridos, proyectar el cierre de mes
 // da un número demasiado ruidoso (1 solo trabajo cobrado el día 2 "cerraría
 // el mes" en 15x eso) — mejor no mostrar nada que mostrar un número
