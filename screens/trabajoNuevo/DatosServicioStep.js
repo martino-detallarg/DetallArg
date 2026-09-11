@@ -20,6 +20,7 @@ import {
 import { useServicios } from "../../data/ServicioContext";
 import { useTaller } from "../../data/TallerContext";
 import { useEquipo } from "../../data/EquipoContext";
+import { useTurnos } from "../../data/TurnoContext";
 import { formatearDuracion } from "../../utils/formato";
 import { useScrollAlHabilitar } from "../../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii, shadowSubtle } from "../../theme";
@@ -29,6 +30,7 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
   const { horarios, limiteEmpleados } = useTaller();
   const { empleados } = useEquipo();
   const empleadosActivos = empleados.filter((e) => e.activo);
+  const { turnos } = useTurnos();
   const [errores, setErrores] = useState({});
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [mostrarPickerHora, setMostrarPickerHora] = useState(false);
@@ -93,6 +95,20 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     ? `Se entrega en aprox. ${formatearDuracion(servicioSeleccionado.duracionValor, servicioSeleccionado.duracionUnidad)}`
     : null;
 
+  // Cuántos turnos "en danza" tiene ese empleado ahora mismo — Pendiente o
+  // En proceso, sin importar la fecha (incluye agendados a futuro), para
+  // ayudar a repartir mejor el trabajo al asignar. Finalizado/Entregado no
+  // cuentan como carga. El turno que se está armando en este wizard todavía
+  // no existe en `turnos` (recién se crea al confirmar), así que nunca se
+  // cuenta a sí mismo.
+  function contarTrabajosActivos(empleadoId) {
+    return turnos.filter(
+      (t) =>
+        (t.estado === "Pendiente" || t.estado === "En proceso") &&
+        t.empleadosAsignados?.some((e) => e.empleadoId === empleadoId)
+    ).length;
+  }
+
   function toggleEmpleado(empleado) {
     const asignadosActuales = datos.empleadosAsignados ?? [];
     const yaAsignado = asignadosActuales.some((e) => e.empleadoId === empleado.id);
@@ -147,11 +163,14 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
             <View style={styles.empleadosContenedor}>
               <Text style={styles.label}>Empleados asignados</Text>
               <ChipGroup
-                options={empleadosActivos.map((empleado) => ({
-                  value: empleado.id,
-                  label: empleado.nombre,
-                  selected: (datos.empleadosAsignados ?? []).some((e) => e.empleadoId === empleado.id),
-                }))}
+                options={empleadosActivos.map((empleado) => {
+                  const activos = contarTrabajosActivos(empleado.id);
+                  return {
+                    value: empleado.id,
+                    label: activos > 0 ? `${empleado.nombre} · ${activos} activo${activos === 1 ? "" : "s"}` : empleado.nombre,
+                    selected: (datos.empleadosAsignados ?? []).some((e) => e.empleadoId === empleado.id),
+                  };
+                })}
                 onPress={(id) => toggleEmpleado(empleadosActivos.find((e) => e.id === id))}
                 style={styles.chips}
               />
