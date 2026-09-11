@@ -104,9 +104,20 @@ function validarStock({ capacidadTotal, precioDigitos, cantidadActual }) {
   };
 }
 
+// Convierte un texto de input (coma o punto decimal) en número, o null si no
+// es un número usable — mismo criterio de parseo que el resto del archivo.
+function numeroDesdeTexto(texto) {
+  const numero = Number(String(texto).replace(",", "."));
+  return Number.isNaN(numero) ? null : numero;
+}
+
 // Bloque de capacidad de envase, precio de compra y cantidad actual en stock:
 // compartido entre cada fila del catálogo y el formulario de insumo
-// personalizado para no duplicar la lógica de validación/formato.
+// personalizado para no duplicar la lógica de validación/formato. Para un
+// rollo de PPF (esRollo), "capacidad de envase" no tiene sentido — en vez de
+// eso se pide ancho + largo por separado y `capacidadTotal`/`cantidadActual`
+// (los mismos que ya usa cualquier otro insumo, ver validarStock/medidor) se
+// derivan solos como ancho × largo / ancho × metros restantes.
 function CamposStock({
   capacidadTotal,
   onCambiarCapacidadTotal,
@@ -120,11 +131,46 @@ function CamposStock({
   bloqueada = false,
   idParaMedidor,
   esRollo = false,
+  anchoRollo = "",
+  onCambiarAnchoRollo = () => {},
 }) {
   const precioFormateado = formatearMiles(precioDigitos);
+  const [largoRollo, setLargoRollo] = useState("");
+  const [metrosRestantes, setMetrosRestantes] = useState("");
 
   function handleCambiarPrecio(texto) {
     onCambiarPrecioDigitos(texto.replace(/\D/g, ""));
+  }
+
+  // Recalcula capacidadTotal (ancho × largo) y cantidadActual (ancho ×
+  // metros restantes) cada vez que cambia cualquiera de los tres valores —
+  // un rollo no cambia de ancho al usarse, solo se acorta, así que el mismo
+  // ancho sirve para las dos cuentas.
+  function recalcularRollo({ ancho = anchoRollo, largo = largoRollo, restantes = metrosRestantes }) {
+    const anchoNum = numeroDesdeTexto(ancho);
+    const largoNum = numeroDesdeTexto(largo);
+    const restantesNum = numeroDesdeTexto(restantes);
+
+    const total = anchoNum > 0 && largoNum > 0 ? anchoNum * largoNum : null;
+    onCambiarCapacidadTotal(total != null ? String(total) : "");
+
+    const actual = anchoNum > 0 && restantesNum >= 0 ? anchoNum * restantesNum : null;
+    onCambiarCantidadActual(actual != null ? String(actual) : "");
+  }
+
+  function handleCambiarAncho(texto) {
+    onCambiarAnchoRollo(texto);
+    recalcularRollo({ ancho: texto });
+  }
+
+  function handleCambiarLargo(texto) {
+    setLargoRollo(texto);
+    recalcularRollo({ largo: texto });
+  }
+
+  function handleCambiarMetrosRestantes(texto) {
+    setMetrosRestantes(texto);
+    recalcularRollo({ restantes: texto });
   }
 
   // El medidor solo tiene sentido una vez que hay una capacidad de envase
@@ -150,27 +196,52 @@ function CamposStock({
 
   return (
     <>
-      <View style={styles.camposEditables}>
-        <View style={styles.campo}>
-          <Text style={styles.campoLabel}>{esRollo ? "m² del rollo (ancho × largo)" : "Capacidad del envase"}</Text>
-          <TextInput
-            style={styles.campoInput}
-            value={capacidadTotal}
-            onChangeText={onCambiarCapacidadTotal}
-            placeholder={esRollo ? "Ej. 22.8" : "Ej. 500"}
-            placeholderTextColor={colors.textMuted}
-            keyboardType="numeric"
-            editable={!bloqueada}
-            {...PROPS_NUMERICO_DONE}
-          />
+      {esRollo ? (
+        <View style={styles.camposEditables}>
+          <View style={styles.campo}>
+            <Text style={styles.campoLabel}>Ancho del rollo (m)</Text>
+            <TextInput
+              style={styles.campoInput}
+              value={anchoRollo}
+              onChangeText={handleCambiarAncho}
+              placeholder="Ej. 1.52"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              editable={!bloqueada}
+              {...PROPS_NUMERICO_DONE}
+            />
+          </View>
+          <View style={styles.campo}>
+            <Text style={styles.campoLabel}>Largo del rollo (m)</Text>
+            <TextInput
+              style={styles.campoInput}
+              value={largoRollo}
+              onChangeText={handleCambiarLargo}
+              placeholder="Ej. 15"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              editable={!bloqueada}
+              {...PROPS_NUMERICO_DONE}
+            />
+          </View>
         </View>
-        <View style={styles.campo}>
-          <Text style={styles.campoLabel}>Unidad</Text>
-          {esRollo ? (
-            <View style={[styles.unidadChip, styles.unidadChipActivo]}>
-              <Text style={[styles.unidadChipTexto, styles.unidadChipTextoActivo]}>m2</Text>
-            </View>
-          ) : (
+      ) : (
+        <View style={styles.camposEditables}>
+          <View style={styles.campo}>
+            <Text style={styles.campoLabel}>Capacidad del envase</Text>
+            <TextInput
+              style={styles.campoInput}
+              value={capacidadTotal}
+              onChangeText={onCambiarCapacidadTotal}
+              placeholder="Ej. 500"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              editable={!bloqueada}
+              {...PROPS_NUMERICO_DONE}
+            />
+          </View>
+          <View style={styles.campo}>
+            <Text style={styles.campoLabel}>Unidad</Text>
             <ChipGroup
               disabled={bloqueada}
               options={UNIDADES_CAPACIDAD.filter((unidad) => unidad !== "m2").map((unidad) => ({
@@ -180,9 +251,9 @@ function CamposStock({
               }))}
               onPress={onCambiarCapacidadUnidad}
             />
-          )}
+          </View>
         </View>
-      </View>
+      )}
 
       {tamanosEnvase && tamanosEnvase.length > 0 ? (
         <Text style={styles.filaEnvases}>Envases de referencia: {tamanosEnvase.join(" · ")}</Text>
@@ -203,19 +274,44 @@ function CamposStock({
           />
         </View>
         <View style={styles.campo}>
-          <Text style={styles.campoLabel}>¿Cuánto tenés ahora? ({capacidadUnidad})</Text>
-          <TextInput
-            style={styles.campoInput}
-            value={cantidadActual}
-            onChangeText={onCambiarCantidadActual}
-            placeholder="Ej. 500"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="numeric"
-            editable={!bloqueada}
-            {...PROPS_NUMERICO_DONE}
-          />
+          {esRollo ? (
+            <>
+              <Text style={styles.campoLabel}>¿Cuántos metros te quedan?</Text>
+              <TextInput
+                style={styles.campoInput}
+                value={metrosRestantes}
+                onChangeText={handleCambiarMetrosRestantes}
+                placeholder="Ej. 8"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="numeric"
+                editable={!bloqueada}
+                {...PROPS_NUMERICO_DONE}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={styles.campoLabel}>¿Cuánto tenés ahora? ({capacidadUnidad})</Text>
+              <TextInput
+                style={styles.campoInput}
+                value={cantidadActual}
+                onChangeText={onCambiarCantidadActual}
+                placeholder="Ej. 500"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="numeric"
+                editable={!bloqueada}
+                {...PROPS_NUMERICO_DONE}
+              />
+            </>
+          )}
         </View>
       </View>
+
+      {esRollo && hayCapacidadValida && (
+        <Text style={styles.filaEnvases}>
+          ≈ {capacidadNumericaMedidor.toFixed(1)} m² en total · ≈ {(cantidadActualNumericaMedidor || 0).toFixed(1)} m²
+          disponibles ahora
+        </Text>
+      )}
 
       {hayCapacidadValida && (
         <View style={styles.medidorContenedor}>
@@ -253,6 +349,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
   const [capacidadUnidad, setCapacidadUnidad] = useState(esRollo ? "m2" : UNIDADES_CAPACIDAD[0]);
   const [precioDigitos, setPrecioDigitos] = useState("");
   const [cantidadActual, setCantidadActual] = useState("");
+  const [anchoRollo, setAnchoRollo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -261,7 +358,8 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
     precioDigitos,
     cantidadActual,
   });
-  const puedeAgregar = stockValido;
+  const anchoRolloNumerico = numeroDesdeTexto(anchoRollo);
+  const puedeAgregar = stockValido && (!esRollo || anchoRolloNumerico > 0);
 
   function toggleDilucion(opcion) {
     setDilucionesSeleccionadas((actuales) =>
@@ -302,6 +400,7 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
         capacidadUnidad,
         precioCompra: precioNumerico,
         cantidadActual: cantidadActualNumerica,
+        anchoRollo: esRollo ? anchoRolloNumerico : null,
       });
     } catch (err) {
       setError("No se pudo agregar. Probá de nuevo.");
@@ -425,6 +524,8 @@ function FilaProducto({ producto, agregado, bloqueada, expandida, onTogglePress,
 
         <CamposStock
           esRollo={esRollo}
+          anchoRollo={anchoRollo}
+          onCambiarAnchoRollo={setAnchoRollo}
           capacidadTotal={capacidadTotal}
           onCambiarCapacidadTotal={setCapacidadTotal}
           capacidadUnidad={capacidadUnidad}
@@ -472,6 +573,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
   const [capacidadUnidad, setCapacidadUnidad] = useState(UNIDADES_CAPACIDAD[0]);
   const [precioDigitos, setPrecioDigitos] = useState("");
   const [cantidadActual, setCantidadActual] = useState("");
+  const [anchoRollo, setAnchoRollo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -491,11 +593,13 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
     precioDigitos,
     cantidadActual,
   });
+  const anchoRolloNumerico = numeroDesdeTexto(anchoRollo);
   const puedeAgregar =
     nombre.trim() !== "" &&
     marca.trim() !== "" &&
     (!seDiluye || dilucionX.trim() !== "") &&
-    stockValido;
+    stockValido &&
+    (!esRollo || anchoRolloNumerico > 0);
   const onLayoutBoton = useScrollAlHabilitar(scrollRef, puedeAgregar);
 
   async function handleConfirmar() {
@@ -520,6 +624,7 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
         capacidadUnidad,
         precioCompra: precioNumerico,
         cantidadActual: cantidadActualNumerica,
+        anchoRollo: esRollo ? anchoRolloNumerico : null,
       });
     } catch (err) {
       setError("No se pudo agregar. Probá de nuevo.");
@@ -620,6 +725,8 @@ function FormularioPersonalizado({ onAgregar, onCancelar, scrollRef }) {
 
       <CamposStock
         esRollo={esRollo}
+        anchoRollo={anchoRollo}
+        onCambiarAnchoRollo={setAnchoRollo}
         capacidadTotal={capacidadTotal}
         onCambiarCapacidadTotal={setCapacidadTotal}
         capacidadUnidad={capacidadUnidad}
@@ -721,7 +828,10 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
     setFilaExpandidaId((actual) => (actual === productoId ? null : productoId));
   }
 
-  async function handleAgregar(producto, { diluciones, rendimiento, capacidadTotal, capacidadUnidad, precioCompra, cantidadActual }) {
+  async function handleAgregar(
+    producto,
+    { diluciones, rendimiento, capacidadTotal, capacidadUnidad, precioCompra, cantidadActual, anchoRollo }
+  ) {
     await agregarInsumo({
       productoId: producto.id,
       marca: producto.marca,
@@ -734,6 +844,7 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
       capacidadTotal,
       capacidadUnidad,
       cantidadActual,
+      anchoRollo,
     });
     setIdsAgregados((actuales) => new Set(actuales).add(producto.id));
     setFilaExpandidaId(null);
@@ -752,6 +863,7 @@ export default function AgregarInsumoModal({ visible, busquedaInicial, onClose }
       capacidadTotal: valores.capacidadTotal,
       capacidadUnidad: valores.capacidadUnidad,
       cantidadActual: valores.cantidadActual,
+      anchoRollo: valores.anchoRollo,
       esPersonalizado: true,
     });
     setVistaPersonalizado(false);
@@ -1164,27 +1276,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.accentLight,
     marginTop: 6,
-  },
-  unidadChip: {
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface2,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  unidadChipActivo: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  unidadChipTexto: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  unidadChipTextoActivo: {
-    fontFamily: fonts.bodySemiBold,
-    color: colors.bg,
   },
   botonAgregar: {
     width: 36,
