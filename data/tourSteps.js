@@ -12,6 +12,11 @@ export const PASOS_TOUR = [
     texto: "Con este botón cargás un cliente nuevo o un trabajo nuevo.",
   },
   {
+    id: "home.historial",
+    titulo: "Historial de clientes",
+    texto: "Acá vas a encontrar cada cliente con sus vehículos y el historial de trabajos que le hiciste.",
+  },
+  {
     id: "opcionesNuevo.clienteNuevo",
     titulo: "Cliente nuevo",
     texto: "Cargá un cliente nuevo, o si ya lo tenés, sumale un vehículo más.",
@@ -20,11 +25,6 @@ export const PASOS_TOUR = [
     id: "opcionesNuevo.trabajoNuevo",
     titulo: "Trabajo nuevo",
     texto: "Así cargás un trabajo nuevo para un cliente que ya existe.",
-  },
-  {
-    id: "home.historial",
-    titulo: "Historial de clientes",
-    texto: "Acá vas a encontrar cada cliente con sus vehículos y el historial de trabajos que le hiciste.",
   },
   {
     id: "trabajoNuevo.inspeccionVisual",
