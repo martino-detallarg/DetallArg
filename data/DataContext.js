@@ -22,13 +22,14 @@ function filaAInsumo(fila) {
     capacidadTotal: fila.capacidad_total,
     capacidadUnidad: fila.capacidad_unidad,
     cantidadActual: fila.cantidad_actual,
+    anchoRollo: fila.ancho_rollo,
     esPersonalizado: fila.es_personalizado ?? false,
     nivel: fila.nivel,
   };
 }
 
 const COLUMNAS_INSUMO =
-  "id, producto_id, marca, nombre, categoria, diluciones, rendimiento, imagen_url, precio_compra, capacidad_total, capacidad_unidad, cantidad_actual, es_personalizado, nivel";
+  "id, producto_id, marca, nombre, categoria, diluciones, rendimiento, imagen_url, precio_compra, capacidad_total, capacidad_unidad, cantidad_actual, ancho_rollo, es_personalizado, nivel";
 
 // Migrado a Supabase (tablas `insumos` y `costos_fijos`, ver supabase/schema.sql).
 // Todas las mutaciones son `async` y escriben de verdad contra Supabase antes
@@ -147,6 +148,7 @@ export function DataProvider({ children }) {
     capacidadTotal,
     capacidadUnidad,
     cantidadActual,
+    anchoRollo = null,
     esPersonalizado = false,
   }) {
     const nivel =
@@ -169,6 +171,7 @@ export function DataProvider({ children }) {
         capacidad_total: capacidadTotal,
         capacidad_unidad: capacidadUnidad,
         cantidad_actual: cantidadActual,
+        ancho_rollo: anchoRollo,
         es_personalizado: esPersonalizado,
         nivel,
       })
@@ -267,7 +270,7 @@ export function DataProvider({ children }) {
   // envase, desde RenovacionInsumoModal.js. `cantidadActual` se espera
   // igual a `capacidadTotal` (envase lleno recién comprado) — mismo cálculo
   // de `nivel` que agregarInsumo, no uno nuevo.
-  async function reponerInsumo(id, { capacidadTotal, capacidadUnidad, precioCompra, cantidadActual }) {
+  async function reponerInsumo(id, { capacidadTotal, capacidadUnidad, precioCompra, cantidadActual, anchoRollo = null }) {
     const nivel =
       capacidadTotal > 0
         ? Math.max(0, Math.min(100, Math.round((cantidadActual / capacidadTotal) * 100)))
@@ -280,6 +283,7 @@ export function DataProvider({ children }) {
         capacidad_unidad: capacidadUnidad,
         precio_compra: precioCompra,
         cantidad_actual: cantidadActual,
+        ancho_rollo: anchoRollo,
         nivel,
       })
       .eq("id", id);
@@ -288,7 +292,7 @@ export function DataProvider({ children }) {
     setMisInsumos((actuales) =>
       actuales.map((insumo) =>
         insumo.id === id
-          ? { ...insumo, capacidadTotal, capacidadUnidad, precioCompra, cantidadActual, nivel }
+          ? { ...insumo, capacidadTotal, capacidadUnidad, precioCompra, cantidadActual, anchoRollo, nivel }
           : insumo
       )
     );
