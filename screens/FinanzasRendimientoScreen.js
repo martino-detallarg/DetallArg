@@ -7,8 +7,8 @@ import { useData } from "../data/DataContext";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useTurnos } from "../data/TurnoContext";
 import { formatearPesos } from "../utils/formato";
-import { claveMesDeFecha, parsearFechaDDMMAAAA } from "../utils/fecha";
-import { claveMes, margenBrutoTrabajo, nombreTrabajoCobro } from "../utils/calculosFinanzas";
+import { parsearFechaDDMMAAAA } from "../utils/fecha";
+import { claveMes, claveMesDeFecha, margenBrutoTrabajo, nombreTrabajoCobro } from "../utils/calculosFinanzas";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const PADDING_PANTALLA = 20;

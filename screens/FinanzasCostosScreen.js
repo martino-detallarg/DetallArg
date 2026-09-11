@@ -10,9 +10,9 @@ import { useFinanzas } from "../data/FinanzasContext";
 import { useTurnos } from "../data/TurnoContext";
 import { CATEGORIAS_GASTOS_VARIABLES } from "../data/mockFinanzas";
 import { formatearPesos } from "../utils/formato";
-import { claveMesDeFecha } from "../utils/fecha";
 import {
   claveMes,
+  claveMesDeFecha,
   margenBrutoTrabajo,
   calcularPorcentajeInsumosSobreFacturacion,
   calcularTotalComisionesTarjeta,
