@@ -19,6 +19,7 @@ function filaACobro(fila) {
     facturado: fila.facturado,
     esSena: fila.es_sena,
     comisionPorcentaje: fila.comision_porcentaje,
+    cuotas: fila.cuotas,
   };
 }
 
@@ -34,7 +35,7 @@ function filaAGastoVariable(fila) {
   };
 }
 
-const COLUMNAS_COBRO = "id, turno_id, monto, fecha, forma_pago, facturado, es_sena, comision_porcentaje";
+const COLUMNAS_COBRO = "id, turno_id, monto, fecha, forma_pago, facturado, es_sena, comision_porcentaje, cuotas";
 const COLUMNAS_GASTO_VARIABLE = "id, monto, categoria, fecha, descripcion, facturado, comprobante_storage_path";
 
 // Fase A de Finanzas: registrar cobros de trabajos y cargar gastos variables
@@ -143,12 +144,13 @@ export function FinanzasProvider({ children }) {
   // trabajo se finalice, una seña de ese mes figura con margen ~100% (sin
   // costo todavía) — misma convención que ya existe hoy para un turno sin
   // receta aplicada, y no se recalcula después.
-  // `comisionPorcentaje` (Fase 4 de Finanzas, ver alter_cobros_comision_porcentaje.sql):
-  // el número YA FOTOGRAFIADO que decide quien llama (RegistrarCobroModal.js,
-  // a partir de talleres.comision_tarjeta_porcentaje vigente en el momento de
-  // guardar) — esta función no vuelve a resolver nada de configuración,
-  // solo persiste el valor que le pasan. `null`/`undefined` si ese cobro no
-  // tuvo comisión.
+  // `comisionPorcentaje`/`cuotas` (comisión de tarjeta por cantidad de
+  // cuotas, ver crear_comisiones_tarjeta_cuotas.sql): los valores YA
+  // FOTOGRAFIADOS que decide quien llama (RegistrarCobroModal.js, de un
+  // plan guardado en TallerContext.planesCuotasTarjeta o cargados a mano
+  // para ese cobro puntual) — esta función no vuelve a resolver nada de
+  // configuración, solo persiste lo que le pasan. `null`/`undefined` en
+  // los dos si ese cobro no tuvo comisión elegida.
   async function registrarCobro({
     turnoId,
     monto,
@@ -157,6 +159,7 @@ export function FinanzasProvider({ children }) {
     facturado,
     esSena = false,
     comisionPorcentaje = null,
+    cuotas = null,
   }) {
     const { data, error } = await supabase
       .from("cobros")
@@ -169,6 +172,7 @@ export function FinanzasProvider({ children }) {
         facturado,
         es_sena: esSena,
         comision_porcentaje: comisionPorcentaje,
+        cuotas,
       })
       .select(COLUMNAS_COBRO)
       .single();

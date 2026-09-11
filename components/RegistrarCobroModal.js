@@ -27,11 +27,17 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 // cuánto ya se cobró, sin bloquear un pago distinto a mano.
 export default function RegistrarCobroModal({ visible, turno, esSena = false, saldoPendiente, montoYaCobrado, onClose }) {
   const { registrarCobro } = useFinanzas();
-  const { comisionTarjetaPorcentaje } = useTaller();
+  const { planesCuotasTarjeta } = useTaller();
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState("");
   const [formaPago, setFormaPago] = useState(null);
   const [facturado, setFacturado] = useState(false);
+  // Id de un plan de planesCuotasTarjeta, "otro" (carga manual para ESTE
+  // cobro, sin guardar plan nuevo) o null (nada elegido todavía) — ver
+  // Contexto del prompt "Comisión de tarjeta por cantidad de cuotas".
+  const [planElegidoId, setPlanElegidoId] = useState(null);
+  const [cuotasManual, setCuotasManual] = useState("");
+  const [comisionManual, setComisionManual] = useState("");
   const [mostrarPicker, setMostrarPicker] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -43,6 +49,9 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
       setFecha(formatearFechaDDMMAAAA(new Date()));
       setFormaPago(null);
       setFacturado(false);
+      setPlanElegidoId(null);
+      setCuotasManual("");
+      setComisionManual("");
       setError(null);
     }
   }, [visible, turno]);
@@ -51,15 +60,44 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
   const esValido = monto.trim() !== "" && !Number.isNaN(montoNumerico) && montoNumerico > 0 && fecha.trim() !== "";
   const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
-  // Comisión a fotografiar en este cobro (ver alter_cobros_comision_porcentaje.sql):
-  // solo cuando la forma de pago es "tarjeta" y hay un % > 0 configurado en
-  // ese momento — Efectivo/Transferencia/Otro nunca tienen comisión.
-  const aplicaComision = formaPago === "tarjeta" && comisionTarjetaPorcentaje > 0;
+  const esTarjeta = formaPago === "tarjeta";
+  const planSeleccionado =
+    planElegidoId && planElegidoId !== "otro" ? planesCuotasTarjeta.find((p) => p.id === planElegidoId) : null;
+  // Sin ningún plan cargado todavía, no hay entre qué elegir — se muestran
+  // los campos manuales directo, sin la fila de chips (ver
+  // ConfiguracionFinanzasScreen.js para cargar planes).
+  const usaCargaManual = planElegidoId === "otro" || planesCuotasTarjeta.length === 0;
+
+  // Cuotas/comisión resueltas para ESTE cobro puntual — de un plan guardado,
+  // o cargadas a mano sin guardarse como plan nuevo. `null` si todavía no
+  // se eligió/completó nada: el cobro se guarda igual, sin comisión
+  // calculada (mismo criterio permisivo que ya tenía esta pantalla).
+  let cuotasResueltas = null;
+  let comisionResuelta = null;
+  if (planSeleccionado) {
+    cuotasResueltas = planSeleccionado.cuotas;
+    comisionResuelta = planSeleccionado.comisionPorcentaje;
+  } else if (usaCargaManual) {
+    const cuotasNum = Number(cuotasManual.trim());
+    const comisionNum = Number(comisionManual.replace(",", "."));
+    const cuotasOk = cuotasManual.trim() !== "" && Number.isInteger(cuotasNum) && cuotasNum > 0;
+    const comisionOk = comisionManual.trim() !== "" && !Number.isNaN(comisionNum) && comisionNum >= 0 && comisionNum <= 100;
+    if (cuotasOk && comisionOk) {
+      cuotasResueltas = cuotasNum;
+      comisionResuelta = comisionNum;
+    }
+  }
+
+  const aplicaComision = esTarjeta && comisionResuelta != null;
   const montoComisionEstimado =
-    aplicaComision && !Number.isNaN(montoNumerico) ? (montoNumerico * comisionTarjetaPorcentaje) / 100 : 0;
+    aplicaComision && !Number.isNaN(montoNumerico) ? (montoNumerico * comisionResuelta) / 100 : 0;
 
   function obtenerFechaInicialPicker() {
     return parsearFechaDDMMAAAA(fecha) || new Date();
+  }
+
+  function elegirPlan(id) {
+    setPlanElegidoId((actual) => (actual === id ? null : id));
   }
 
   async function handleGuardar() {
@@ -74,7 +112,8 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
         formaPago,
         facturado,
         esSena,
-        comisionPorcentaje: aplicaComision ? comisionTarjetaPorcentaje : null,
+        comisionPorcentaje: comisionResuelta,
+        cuotas: cuotasResueltas,
       });
       onClose();
     } catch (err) {
@@ -161,9 +200,59 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
                 onPress={setFacturado}
               />
 
+              {esTarjeta && (
+                <View style={styles.cuotasContenedor}>
+                  <Text style={styles.label}>Cuotas</Text>
+
+                  {planesCuotasTarjeta.length > 0 && (
+                    <ChipGroup
+                      style={styles.chips}
+                      options={[
+                        ...planesCuotasTarjeta.map((p) => ({
+                          value: p.id,
+                          label: p.cuotas === 1 ? `1 pago · ${p.comisionPorcentaje}%` : `${p.cuotas} cuotas · ${p.comisionPorcentaje}%`,
+                          selected: planElegidoId === p.id,
+                        })),
+                        { value: "otro", label: "Otro", selected: planElegidoId === "otro" },
+                      ]}
+                      onPress={elegirPlan}
+                    />
+                  )}
+
+                  {usaCargaManual && (
+                    <View style={styles.cuotasManualFila}>
+                      <View style={styles.cuotasManualInput}>
+                        <Input
+                          label="Cantidad de cuotas"
+                          value={cuotasManual}
+                          onChangeText={setCuotasManual}
+                          placeholder="Ej: 3"
+                          keyboardType="numeric"
+                        />
+                      </View>
+                      <View style={styles.cuotasManualInput}>
+                        <Input
+                          label="% de comisión"
+                          value={comisionManual}
+                          onChangeText={setComisionManual}
+                          placeholder="Ej: 8"
+                          keyboardType="numeric"
+                          sufijo="%"
+                        />
+                      </View>
+                    </View>
+                  )}
+
+                  <Text style={styles.cuotasAclaracion}>
+                    Si no elegís cuotas, este cobro se guarda sin comisión de tarjeta calculada.
+                  </Text>
+                </View>
+              )}
+
               {aplicaComision && (
                 <Text style={styles.avisoComision}>
-                  Se va a descontar ~{comisionTarjetaPorcentaje}% de comisión de tarjeta (
+                  Se va a descontar ~{comisionResuelta}% de comisión de tarjeta
+                  {cuotasResueltas ? ` (en ${cuotasResueltas === 1 ? "1 pago" : `${cuotasResueltas} cuotas`})` : ""} (
                   {formatearPesos(montoComisionEstimado)}) al calcular tu ganancia neta.
                 </Text>
               )}
@@ -242,6 +331,23 @@ const styles = StyleSheet.create({
   },
   chips: {
     marginBottom: 16,
+  },
+  cuotasContenedor: {
+    marginBottom: 4,
+  },
+  cuotasManualFila: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  cuotasManualInput: {
+    flex: 1,
+  },
+  cuotasAclaracion: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: -8,
+    marginBottom: 12,
   },
   avisoComision: {
     fontFamily: fonts.body,
