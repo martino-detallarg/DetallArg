@@ -70,66 +70,6 @@
       ]
     },
     {
-      "id": "parante_izq",
-      "label": "Parante izquierdo",
-      "points": [
-        [
-          95,
-          15
-        ],
-        [
-          170,
-          15
-        ],
-        [
-          166,
-          53
-        ],
-        [
-          126,
-          128
-        ],
-        [
-          100,
-          110
-        ],
-        [
-          78,
-          55
-        ]
-      ]
-    },
-    {
-      "id": "parante_der",
-      "label": "Parante derecho",
-      "points": [
-        [
-          597,
-          15
-        ],
-        [
-          522,
-          15
-        ],
-        [
-          526,
-          53
-        ],
-        [
-          566,
-          128
-        ],
-        [
-          592,
-          110
-        ],
-        [
-          614,
-          55
-        ]
-      ]
-    },
-    {
       "id": "optica_izq",
       "label": "Óptica izquierda",
       "points": [

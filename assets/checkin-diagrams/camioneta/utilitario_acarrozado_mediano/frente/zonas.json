@@ -134,66 +134,6 @@
       ]
     },
     {
-      "id": "parante_izq",
-      "label": "Parante izquierdo",
-      "points": [
-        [
-          95,
-          45
-        ],
-        [
-          150,
-          45
-        ],
-        [
-          140,
-          90
-        ],
-        [
-          135,
-          195
-        ],
-        [
-          100,
-          195
-        ],
-        [
-          70,
-          110
-        ]
-      ]
-    },
-    {
-      "id": "parante_der",
-      "label": "Parante derecho",
-      "points": [
-        [
-          580,
-          45
-        ],
-        [
-          525,
-          45
-        ],
-        [
-          535,
-          90
-        ],
-        [
-          540,
-          195
-        ],
-        [
-          575,
-          195
-        ],
-        [
-          605,
-          110
-        ]
-      ]
-    },
-    {
       "id": "espejo_izq",
       "label": "Espejo izquierdo",
       "points": [
