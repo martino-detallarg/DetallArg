@@ -42,6 +42,10 @@ function datosVacios(clienteId, autoId) {
       // null = todavía no tocó la barra (distinto de 0, que es "Reserva"
       // elegido a propósito) — ver TipoVehiculoStep.js y FuelGauge.js.
       nivelNafta: null,
+      // Toggle "Trabajo rápido, sin inspección ni firma" de TipoVehiculoStep.js
+      // — arranca siempre en false, es una decisión por trabajo, no una
+      // preferencia global del taller que deba persistir entre trabajos.
+      omitirInspeccionYFirma: false,
       // Solo se usa/se pisa cuando el servicio elegido es PPF (servicio.esPpf,
       // ver ServicioContext.js) — array de ids de panel namespaced por vista
       // ("frente__capot", ver data/ppfPanelMatrix.js), cargado en
@@ -164,6 +168,19 @@ export default function TrabajoNuevoWizard({
     });
   }
 
+  // Trabajo rápido (ver TipoVehiculoStep.js): se guarda con
+  // conformidadEstado "no_aplica" y se pasa a "confirmacion" directo,
+  // sin pisar por Inspección Visual ni Conformidad — handleFinalizar ya
+  // arma el resto del payload desde datos.servicio/datos.inspeccion, que
+  // en este camino siguen en sus valores vacíos iniciales (nunca se tocó
+  // InspeccionVisualStep). Relanza el error tal cual para que
+  // TipoVehiculoStep lo capture y muestre su propio estado de carga/error,
+  // mismo criterio que FirmaConformidadStep con onFinalizar.
+  async function handleGuardarSinInspeccion() {
+    await handleFinalizar("no_aplica");
+    setFase("confirmacion");
+  }
+
   // Servicio PPF (servicio.esPpf, ver ServicioContext.js): suma 2 pasos
   // extra (Selección de paneles + Presupuesto PPF) entre "Inspección
   // Visual" y "Conformidad" — ver SeleccionPanelesPpfStep.js/
@@ -173,9 +190,14 @@ export default function TrabajoNuevoWizard({
   // decidir qué paneles elegir para el PPF nuevo.
   const servicioSeleccionado = datos.servicio.servicioId ? getServicioById(datos.servicio.servicioId) : null;
   const esPpf = !!servicioSeleccionado?.esPpf;
-  const totalPasos = (seSaltaSeleccion ? 4 : 5) + (esPpf ? 2 : 0);
-
   const basePaso = seSaltaSeleccion ? 2 : 3; // paso de "tipoVehiculo"
+  // Ignora el toggle si el servicio es PPF, sin importar qué haya quedado
+  // tildado antes (ver Contexto) — PPF siempre pasa por el flujo completo.
+  const omitirInspeccionYFirma = datos.inspeccion.omitirInspeccionYFirma && !esPpf;
+  const totalPasos = omitirInspeccionYFirma
+    ? basePaso // termina en "tipoVehiculo", no hay más pasos numerados
+    : (seSaltaSeleccion ? 4 : 5) + (esPpf ? 2 : 0);
+
   const pasoActual = {
     elegirCliente: 1,
     elegirVehiculo: 1,
@@ -236,6 +258,8 @@ export default function TrabajoNuevoWizard({
               onCambiar={actualizarInspeccion}
               onAtras={() => setFase("servicio")}
               onContinuar={() => setFase("inspeccionVisual")}
+              esPpf={esPpf}
+              onGuardarSinInspeccion={handleGuardarSinInspeccion}
             />
           )}
           {fase === "inspeccionVisual" && (
