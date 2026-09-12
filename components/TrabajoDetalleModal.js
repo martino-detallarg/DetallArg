@@ -246,6 +246,20 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
               </View>
             )}
 
+            {/* Trabajo rápido (toggle en TipoVehiculoStep.js): decisión a
+            propósito de saltear inspección/firma, no un olvido — aviso
+            neutral, sin color de alerta ni acción disponible. */}
+            {turno.conformidadEstado === "no_aplica" && (
+              <View style={[styles.tarjetaSeccion, styles.conformidadInfo]}>
+                <View style={styles.conformidadAvisoFila}>
+                  <Ionicons name="flash-outline" size={18} color={colors.textMuted} />
+                  <Text style={styles.conformidadInfoTexto}>
+                    Trabajo rápido — sin inspección de daños ni firma de conformidad.
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {turno.empleadosAsignados?.length > 0 && (
               <View style={styles.tarjetaSeccion}>
                 <Text style={styles.tituloTarjeta}>Empleados asignados</Text>
@@ -530,6 +544,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.bg,
+  },
+  conformidadInfo: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface2,
+  },
+  conformidadInfoTexto: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   historialFila: {
     flexDirection: "row",
