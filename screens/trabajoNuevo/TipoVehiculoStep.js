@@ -51,8 +51,19 @@ const TIPOS = Object.entries(TIPOS_VEHICULO).map(([id, valor]) => ({ id, ...valo
 // Pantalla 1 de la inspección: elige la forma del vehículo (tipo,
 // subdivisión) y el nivel de nafta. La parte visual de daños (diagramas,
 // foto, guardar) quedó en InspeccionVisualStep.
-export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
+export default function TipoVehiculoStep({
+  datos,
+  paso,
+  totalPasos,
+  onCambiar,
+  onAtras,
+  onContinuar,
+  esPpf,
+  onGuardarSinInspeccion,
+}) {
   const [errores, setErrores] = useState({});
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardado, setErrorGuardado] = useState(null);
   const scrollRef = useRef(null);
 
   function elegirTipo(tipoId) {
@@ -92,8 +103,21 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
     return Object.keys(nuevosErrores).length === 0;
   }
 
-  function handleContinuar() {
-    if (validar()) onContinuar();
+  async function handleContinuar() {
+    if (!validar()) return;
+    if (esPpf || !datos.omitirInspeccionYFirma) {
+      onContinuar();
+      return;
+    }
+    setGuardando(true);
+    setErrorGuardado(null);
+    try {
+      await onGuardarSinInspeccion();
+    } catch (err) {
+      setErrorGuardado("No se pudo guardar el trabajo. Probá de nuevo.");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -206,8 +230,34 @@ export default function TipoVehiculoStep({ datos, paso, totalPasos, onCambiar, o
             </>
           )}
 
+          {!esPpf && (
+            <TouchableOpacity
+              style={styles.omitirFila}
+              onPress={() => onCambiar({ omitirInspeccionYFirma: !datos.omitirInspeccionYFirma })}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons
+                name={datos.omitirInspeccionYFirma ? "checkbox-marked" : "checkbox-blank-outline"}
+                size={20}
+                color={datos.omitirInspeccionYFirma ? colors.accentLight : colors.textSecondary}
+              />
+              <View style={styles.omitirTextos}>
+                <Text style={styles.omitirTitulo}>Trabajo rápido, sin inspección ni firma</Text>
+                <Text style={styles.omitirSubtitulo}>
+                  Para lavados y servicios cortos — se guarda directo, sin diagrama de daños ni firma de conformidad.
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.boton} onLayout={onLayoutBoton}>
-            <Button title="Siguiente" onPress={handleContinuar} disabled={!puedeContinuar} />
+            <Button
+              title={!esPpf && datos.omitirInspeccionYFirma ? (guardando ? "Guardando..." : "Guardar trabajo") : "Siguiente"}
+              onPress={handleContinuar}
+              disabled={!puedeContinuar || guardando}
+              loading={guardando}
+            />
+            {errorGuardado && <Text style={styles.error}>{errorGuardado}</Text>}
           </View>
         </ScrollView>
       </SwipeVolver>
@@ -350,5 +400,33 @@ const styles = StyleSheet.create({
   },
   boton: {
     marginTop: 28,
+  },
+  // Mismo criterio visual de fila con ícono + texto que bannerConfirmacion
+  // de más arriba, pero fondo surface2 (no accentTint): es una opción a
+  // elegir, no una confirmación informativa.
+  omitirFila: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.card,
+    ...continuousCorner,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 20,
+  },
+  omitirTextos: {
+    flex: 1,
+  },
+  omitirTitulo: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  omitirSubtitulo: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
   },
 });
