@@ -64,10 +64,12 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   }
 
-  // El código de 6 dígitos que llega por mail ES el token de recovery: al
-  // verificarlo ya queda una sesión activa (por eso updateUser funciona acá
-  // sin pedir la contraseña vieja), y esa sesión es la que hace que FlujoApp
-  // (App.js) pase solo a "app" apenas termina este flujo.
+  // El código que llega por mail ES el token de recovery: al verificarlo ya
+  // queda una sesión activa (por eso updateUser funciona acá sin pedir la
+  // contraseña vieja), y esa sesión es la que hace que FlujoApp (App.js) pase
+  // solo a "app" apenas termina este flujo. El largo del código lo define
+  // Supabase (Dashboard > Authentication > Email OTP Length, entre 6 y 10
+  // dígitos): no lo asumimos acá ni en RestablecerPasswordScreen.
   async function confirmarRecuperacion({ email, codigo, nuevaPassword }) {
     const { error: errorVerify } = await supabase.auth.verifyOtp({
       email,

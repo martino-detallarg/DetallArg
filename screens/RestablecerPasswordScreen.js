@@ -16,6 +16,16 @@ import { useAuth } from "../data/AuthContext";
 import { mensajeErrorAuth } from "../utils/auth";
 import { colors, fonts } from "../theme";
 
+// Supabase permite configurar el largo del código de email entre 6 y 10
+// dígitos (Dashboard > Authentication > Email OTP Length), y ese valor vive
+// en el dashboard, no en el repo: si acá fijamos un largo exacto, cambiarlo
+// allá rompe la pantalla sin que nadie toque código. Por eso validamos el
+// rango completo que Supabase puede emitir y dejamos que sea el servidor el
+// que diga si el código es válido o no.
+const CODIGO_MIN_DIGITOS = 6;
+const CODIGO_MAX_DIGITOS = 10;
+const REGEX_CODIGO = new RegExp(`^\\d{${CODIGO_MIN_DIGITOS},${CODIGO_MAX_DIGITOS}}$`);
+
 export default function RestablecerPasswordScreen({ email, onIrALogin }) {
   const { confirmarRecuperacion } = useAuth();
   const [codigo, setCodigo] = useState("");
@@ -28,8 +38,8 @@ export default function RestablecerPasswordScreen({ email, onIrALogin }) {
     const nuevosErrores = {};
     if (!codigo.trim()) {
       nuevosErrores.codigo = "Ingresá el código que te enviamos";
-    } else if (!/^\d{6}$/.test(codigo.trim())) {
-      nuevosErrores.codigo = "El código tiene 6 dígitos";
+    } else if (!REGEX_CODIGO.test(codigo.trim())) {
+      nuevosErrores.codigo = `El código son entre ${CODIGO_MIN_DIGITOS} y ${CODIGO_MAX_DIGITOS} números`;
     }
     if (!password) {
       nuevosErrores.password = "Ingresá una contraseña nueva";
@@ -77,7 +87,7 @@ export default function RestablecerPasswordScreen({ email, onIrALogin }) {
           <Logo size={48} />
           <Text style={styles.titulo}>Ingresá el código</Text>
           <Text style={styles.subtitulo}>
-            Te enviamos un código de 6 dígitos a{" "}
+            Te enviamos un código a{" "}
             <Text style={styles.textoDestacado}>{email || "tu email"}</Text>
           </Text>
         </View>
@@ -85,9 +95,10 @@ export default function RestablecerPasswordScreen({ email, onIrALogin }) {
         <Input
           label="Código"
           value={codigo}
-          onChangeText={setCodigo}
-          placeholder="123456"
+          onChangeText={(texto) => setCodigo(texto.replace(/\D/g, ""))}
+          placeholder="Código del email"
           keyboardType="number-pad"
+          maxLength={CODIGO_MAX_DIGITOS}
           error={errores.codigo}
         />
         <Input

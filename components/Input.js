@@ -30,7 +30,7 @@ const Input = forwardRef(function Input(
   // propio returnKeyType/onSubmitEditing (por ejemplo para encadenar al
   // siguiente campo de un formulario), se le pone un botón "Listo" que
   // cierra el teclado por default.
-  const esNumerico = keyboardType === "numeric";
+  const esNumerico = ["numeric", "number-pad", "decimal-pad"].includes(keyboardType);
   const returnKeyTypeFinal = returnKeyType ?? (esNumerico ? "done" : undefined);
   const onSubmitEditingFinal = onSubmitEditing ?? (esNumerico ? () => Keyboard.dismiss() : undefined);
 

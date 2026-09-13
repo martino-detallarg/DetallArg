@@ -62,7 +62,7 @@ export default function OlvidePasswordScreen({ onCodigoEnviado, onIrALogin }) {
           <Logo size={48} />
           <Text style={styles.titulo}>Recuperar contraseña</Text>
           <Text style={styles.subtitulo}>
-            Te vamos a enviar un código de 6 dígitos a tu email
+            Te vamos a enviar un código a tu email
           </Text>
         </View>
 
