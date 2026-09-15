@@ -23,6 +23,7 @@ import MisHorariosScreen from "../screens/MisHorariosScreen";
 import ConfiguracionFinanzasScreen from "../screens/ConfiguracionFinanzasScreen";
 import HistorialClientesScreen from "../screens/HistorialClientesScreen";
 import ConfiguracionScreen from "../screens/ConfiguracionScreen";
+import SeleccionPlanScreen from "../screens/SeleccionPlanScreen";
 import DocumentoLegalScreen from "../screens/DocumentoLegalScreen";
 import DrawerContent from "../components/DrawerContent";
 import RenovacionInsumoModal from "../components/RenovacionInsumoModal";
@@ -34,11 +35,12 @@ const MiTallerStack = createNativeStackNavigator();
 const FinanzasStack = createNativeStackNavigator();
 const ConfiguracionStack = createNativeStackNavigator();
 
-// Documentos legales sin contenido real todavía: ambos reusan la misma
-// pantalla genérica (ver DocumentoLegalScreen.js), solo cambia el título.
+// Términos y Privacidad reusan la misma pantalla genérica (ver
+// DocumentoLegalScreen.js): "tipo" es la clave que usa esa pantalla para
+// elegir título + texto desde data/textosLegales.js.
 const PANTALLAS_LEGAL = [
-  { ruta: "Terminos", titulo: "Términos y condiciones" },
-  { ruta: "Privacidad", titulo: "Política de privacidad" },
+  { ruta: "Terminos", tipo: "terminos" },
+  { ruta: "Privacidad", tipo: "privacidad" },
 ];
 
 // Estos 3 stacks anidados existen solo para darle a sus pantallas hijas el
@@ -92,12 +94,13 @@ function ConfiguracionStackNavigator() {
   return (
     <ConfiguracionStack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <ConfiguracionStack.Screen name="Configuracion" component={ConfiguracionScreen} />
-      {PANTALLAS_LEGAL.map(({ ruta, titulo }) => (
+      <ConfiguracionStack.Screen name="SeleccionPlan" component={SeleccionPlanScreen} />
+      {PANTALLAS_LEGAL.map(({ ruta, tipo }) => (
         <ConfiguracionStack.Screen
           key={ruta}
           name={ruta}
           component={DocumentoLegalScreen}
-          initialParams={{ titulo }}
+          initialParams={{ tipo }}
         />
       ))}
     </ConfiguracionStack.Navigator>

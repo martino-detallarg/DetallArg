@@ -70,10 +70,17 @@ export default function ConfiguracionScreen({ navigation }) {
             </Text>
           </View>
           <View style={styles.separador} />
-          <View style={styles.datoFila}>
+          <TouchableOpacity
+            style={styles.fila}
+            onPress={() => navigation.navigate("SeleccionPlan")}
+            activeOpacity={0.8}
+          >
             <Text style={styles.datoLabel}>Plan</Text>
-            <Text style={styles.datoValor}>{PLANES[plan].etiqueta}</Text>
-          </View>
+            <View style={styles.filaValorConFlecha}>
+              <Text style={styles.datoValor}>{PLANES[plan].etiqueta}</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </View>
+          </TouchableOpacity>
           <View style={styles.separador} />
           <TouchableOpacity
             style={styles.fila}
@@ -196,6 +203,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textPrimary,
     textAlign: "right",
+  },
+  filaValorConFlecha: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   fila: {
     flexDirection: "row",
