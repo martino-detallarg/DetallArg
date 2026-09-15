@@ -40,6 +40,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# gstack (reportes de seguridad, checkpoints — quedan locales)
+.gstack/
+
 # generated native folders
 /ios
 /android
