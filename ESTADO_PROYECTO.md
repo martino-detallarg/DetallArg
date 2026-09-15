@@ -266,7 +266,7 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 
 **Configuración (`ConfiguracionScreen.js`):**
 - **Cuenta**: tarjeta de solo lectura con nombre (`useTaller().misDatos.nombrePersonal`), empresa (`useTaller().nombreTaller`), email (`useAuth().user.email`, dato real de la sesión) y el plan actual (`TallerContext`), más un acceso "Editar mis datos" que navega a `MisDatosScreen` (no duplica esos campos acá).
-- **Legal**: "Términos y condiciones" y "Política de privacidad", ambos navegan a `DocumentoLegalScreen.js` — una pantalla genérica con el mismo texto de relleno ("Este documento todavía no fue redactado") porque no hay contenido legal real todavía.
+- **Legal**: "Términos y condiciones" y "Política de privacidad", ambos navegan a `DocumentoLegalScreen.js` — resuelve título + texto según `route.params.tipo` desde `data/textosLegales.js` (borradores de trabajo, con banner visible de "en revisión legal"). **Bloqueante para publicar en tiendas:** el texto tiene placeholders sin completar (`[completar fecha]`, razón social/CUIT/domicilio — ver TODO en `data/textosLegales.js`) y todavía no fue revisado por un abogado.
 - **Acerca de**: versión de la app (`VERSION_APP = "1.0.0"`, constante hardcodeada a mano — no hay `expo-constants` instalado para leer `app.json` en runtime, hay que mantenerla sincronizada manualmente).
 - **Cerrar sesión**: mismo `onLogout` que ya existe en el drawer (`DashboardNavigator.js` se lo pasa a `ConfiguracionScreen` como prop, vía función hija de `<Drawer.Screen>` en vez de `component`) — es intencional que el logout esté accesible desde los dos lugares.
 
@@ -283,7 +283,7 @@ No hay carpetas `ios/` ni `android/` en el repo (están en `.gitignore` — se g
 
 **A medio hacer:**
 - **Ya no queda ninguna pantalla placeholder** (ni en el drawer ni fuera de él): Configuración, la última, ya tiene UI propia — ver sección 3. `PlaceholderScreen.js` se borró del repo por quedar sin ningún uso.
-- **Términos y condiciones / Política de privacidad sin contenido real:** ambas rutas (`Terminos`, `Privacidad`) navegan a la misma pantalla genérica (`DocumentoLegalScreen.js`) con un texto de relleno ("Este documento todavía no fue redactado"), solo para dejar el enganche de navegación listo desde Configuración.
+- **Términos y condiciones / Política de privacidad, borrador sin cerrar:** ambas rutas (`Terminos`, `Privacidad`) navegan a `DocumentoLegalScreen.js`, que ya muestra el contenido real de trabajo (`data/textosLegales.js`, traído de `main` — commit `219c7e6`) con un banner de "borrador en revisión legal". Sigue sin ser publicable: el texto tiene campos sin completar (fecha, razón social, CUIT, domicilio legal — a la espera del dato real de la situación de monotributista de Augusto) y falta la revisión de un abogado.
 - **Diagrama de daños específico por carrocería, parcial:** ya no es 100% genérico — `components/diagrams/vehicles/PickupCabinaSimpleDiagram.js` es un diagrama real de 12 paneles para "Camioneta / Cabina simple", vectorizado de una foto de referencia. El registro (`components/diagrams/vehicles/index.js`) está preparado para sumar más carrocerías, pero por ahora es la única implementada: el resto de las combinaciones de tipo/subdivisión siguen cayendo al diagrama genérico de 7 zonas (`DamageDiagram.js`, solo vista "Frente").
 - **Carrusel de vistas de inspección con una sola vista:** `InspeccionVisualStep.js` ya soporta un carrusel de varias vistas (Frente/Techo/Izquierda/Derecha/Atrás), pero `VISTAS_INSPECCION` hoy solo tiene "Frente" cargada.
 
