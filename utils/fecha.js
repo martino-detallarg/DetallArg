@@ -181,6 +181,17 @@ export function formatearHoraHHMM(fecha) {
   return `${horas}:${minutos}`;
 }
 
+// Combina una fecha (Date, solo importan año/mes/día) con una hora "HH:MM"
+// en un único instante real — para poder calcular una entrega estimada con
+// precisión de hora, no solo de día (ver utils/entregas.js). Si `hora` no
+// es un HH:MM válido, devuelve la fecha a medianoche.
+export function combinarFechaYHora(fecha, hora) {
+  const horaParseada = parsearHoraHHMM(hora);
+  const combinada = new Date(fecha);
+  combinada.setHours(horaParseada ? horaParseada.getHours() : 0, horaParseada ? horaParseada.getMinutes() : 0, 0, 0);
+  return combinada;
+}
+
 // Traducción DD/MM/AAAA (formato de turno.fecha en toda la app) <-> ISO
 // (formato real de la columna `date` de turnos en Supabase). Reutilizan el
 // parseo/validación ya existente en vez de duplicarlo.

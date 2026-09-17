@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
@@ -21,32 +21,73 @@ import { useTurnos } from "../data/TurnoContext";
 import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
 import { useFinanzas } from "../data/FinanzasContext";
-import { obtenerDiasHastaEntrega } from "../utils/entregas";
+import { calcularInstanteEntrega, obtenerInicioTurno } from "../utils/entregas";
 import { calcularSaldoPendienteTurno } from "../utils/calculosFinanzas";
-import { esMismoDia, parsearFechaDDMMAAAA } from "../utils/fecha";
+import { sumarDias } from "../utils/fecha";
 import { colors, fonts, shadow } from "../theme";
 
-const ESTADOS_TERMINADOS = new Set(["Finalizado", "Entregado"]);
+// Horizonte hacia adelante para turnos que todavía no están atrasados ni
+// tienen el trabajo terminado (ver armarListaUrgencias) — más allá de esto
+// no tiene sentido mostrarlos en Home, siguen visibles en Agenda. Los
+// atrasados y los "Finalizado sin entregar" no respetan este límite: son
+// urgentes sin importar cuán lejos haya quedado su fecha agendada original.
+const HORIZONTE_DIAS = 7;
 
-// Orden de prioridad de la lista de Home: "En proceso" arriba de todo,
-// después "Finalizado" (a entregar), después "Pendiente" (sin comenzar), y
-// "Entregado" siempre al final sin importar nada más.
-const PRIORIDAD_ESTADO = {
-  "En proceso": 0,
-  Finalizado: 1,
-  Pendiente: 2,
-  Entregado: 3,
-};
+// Arma la lista de "Turnos activos" de Home: ya no es un filtro por fecha
+// agendada, es una vista de urgencias. Se ignora el estado para el orden
+// (Pendiente y En proceso se mezclan) y se arma en 3 grupos, en este orden:
+//   1. Atrasados: cualquier turno activo cuya entrega estimada ya pasó,
+//      incluido un Finalizado cuya hora prometida ya venció — el más
+//      atrasado primero.
+//   2. Finalizado sin entregar, pero todavía a tiempo (el auto está listo,
+//      esperando al cliente).
+//   3. El resto (Pendiente/En proceso, todavía a tiempo), de menor a mayor
+//      según cuánto falta para la entrega estimada — pero solo si esa
+//      entrega cae dentro de HORIZONTE_DIAS; si no, se excluye de Home.
+// La "entrega estimada" es un instante real (fecha + hora de llegada +
+// duración del servicio, con precisión de hora — ver utils/entregas.js), no
+// la fecha en la que se agendó el turno. Un turno sin fecha/hora válida, o
+// cuyo servicio no tiene duración cargada, no se puede ubicar con
+// precisión: igual se muestra (nunca desaparece), pero al final de su
+// grupo, sin orden preciso.
+function armarListaUrgencias(turnos, getServicioById) {
+  const ahora = new Date();
+  const limiteHorizonte = sumarDias(ahora, HORIZONTE_DIAS);
 
-// Dentro de "En proceso", más urgente primero: entrega hoy o atrasada (mismo
-// "rojo" que TurnoCard.js), después mañana, después el resto — un turno sin
-// fecha calculable cae en "el resto" (no hay con qué priorizarlo).
-function obtenerRangoUrgencia(turno, getServicioById) {
-  const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
-  const diasHastaEntrega = obtenerDiasHastaEntrega(turno, servicio);
-  if (diasHastaEntrega === null || diasHastaEntrega > 1) return 2;
-  if (diasHastaEntrega === 1) return 1;
-  return 0; // hoy (0) o atrasado (negativo)
+  const atrasados = [];
+  const finalizados = [];
+  const resto = [];
+
+  for (const turno of turnos) {
+    if (turno.estado === "Entregado") continue;
+
+    const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
+    const inicio = obtenerInicioTurno(turno);
+    const instanteEntrega = calcularInstanteEntrega(inicio, servicio);
+    const atrasado = instanteEntrega !== null && instanteEntrega.getTime() < ahora.getTime();
+    const item = { turno, instanteEntrega };
+
+    if (atrasado) {
+      atrasados.push(item);
+    } else if (turno.estado === "Finalizado") {
+      finalizados.push(item);
+    } else if (instanteEntrega === null || instanteEntrega.getTime() <= limiteHorizonte.getTime()) {
+      resto.push(item);
+    }
+    // Pendiente/En proceso a tiempo pero fuera del horizonte: se excluye de
+    // Home a propósito, sigue visible en Agenda.
+  }
+
+  // Sin instante calculable (null) siempre al final de su propio grupo:
+  // Infinity nunca gana una comparación ascendente contra un timestamp real.
+  const porCercania = (a, b) =>
+    (a.instanteEntrega?.getTime() ?? Infinity) - (b.instanteEntrega?.getTime() ?? Infinity);
+
+  atrasados.sort(porCercania); // más viejo (más atrasado) primero
+  finalizados.sort(porCercania);
+  resto.sort(porCercania);
+
+  return [...atrasados, ...finalizados, ...resto].map((item) => item.turno);
 }
 
 export default function HomeScreen({ navigation }) {
@@ -78,61 +119,22 @@ export default function HomeScreen({ navigation }) {
   const [selectorSenaVisible, setSelectorSenaVisible] = useState(false);
   const [turnoSenaId, setTurnoSenaId] = useState(null);
 
-  // Esta sección es "Turnos de HOY": a diferencia de Agenda (que filtra por
-  // fechaSeleccionada), acá el día es siempre el de hoy, sin selector — un
-  // turno con fecha inválida/sin cargar (parsearFechaDDMMAAAA devuelve
-  // null) tampoco entra, mismo criterio que turnosSinFecha en
-  // AgendaScreen.js (ahí se lista aparte; acá Home no tiene esa sección, así
-  // que directamente no cuenta para el anillo ni aparece en la lista).
-  //
-  // Además de los que LLEGAN hoy, también entran los "En proceso" cuya
-  // ENTREGA estimada es hoy o ya venció (obtenerDiasHastaEntrega <= 0),
-  // sin importar qué día llegaron — son los trabajos que hoy necesitan
-  // atención aunque hayan entrado otro día. Mismo cálculo que ya usa
-  // obtenerRangoUrgencia más abajo para ordenarlos, así que si un turno
-  // entra por esta segunda condición, siempre cae en el rango de máxima
-  // urgencia (0) al ordenar.
-  const turnosDeHoy = turnos.filter((t) => {
-    const fecha = parsearFechaDDMMAAAA(t.fecha);
-    if (fecha !== null && esMismoDia(fecha, new Date())) return true;
-
-    if (t.estado === "En proceso") {
-      const servicio = t.servicioId ? getServicioById(t.servicioId) : null;
-      const diasHastaEntrega = obtenerDiasHastaEntrega(t, servicio);
-      if (diasHastaEntrega !== null && diasHastaEntrega <= 0) return true;
-    }
-
-    return false;
-  });
-
-  // "En proceso" primero (con sub-orden por urgencia de entrega), después
-  // Finalizado, después Pendiente, y Entregado siempre al final — dentro de
-  // cada grupo (y dentro de cada sub-grupo de urgencia en "En proceso"), por
-  // hora ascendente.
-  const turnosOrdenados = [...turnosDeHoy].sort((a, b) => {
-    const prioridadA = PRIORIDAD_ESTADO[a.estado] ?? 4;
-    const prioridadB = PRIORIDAD_ESTADO[b.estado] ?? 4;
-    if (prioridadA !== prioridadB) return prioridadA - prioridadB;
-
-    if (a.estado === "En proceso") {
-      const urgenciaA = obtenerRangoUrgencia(a, getServicioById);
-      const urgenciaB = obtenerRangoUrgencia(b, getServicioById);
-      if (urgenciaA !== urgenciaB) return urgenciaA - urgenciaB;
-    }
-
-    return a.hora.localeCompare(b.hora);
-  });
+  const turnosOrdenados = useMemo(
+    () => armarListaUrgencias(turnos, getServicioById),
+    [turnos, getServicioById]
+  );
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
   const turnoSena = turnos.find((t) => t.id === turnoSenaId) ?? null;
   const cobrosDelTurnoSena = turnoSena ? cobros.filter((c) => c.turnoId === turnoSena.id) : [];
   const totalCobradoSena = cobrosDelTurnoSena.reduce((suma, c) => suma + c.monto, 0);
   const saldoPendienteSena = turnoSena ? calcularSaldoPendienteTurno(turnoSena, cobros) : null;
 
-  // Solo para el anillo de progreso de la card "Turnos de hoy": cuántos de
-  // los turnos de hoy ya están en un estado de cierre (Finalizado o
-  // Entregado) sobre el total. Es un cálculo derivado nada más para mostrar
-  // en el anillo, no cambia el dato ni el flujo de estados del turno.
-  const turnosCompletados = turnosOrdenados.filter((t) => ESTADOS_TERMINADOS.has(t.estado)).length;
+  // Solo para el anillo de progreso de la card "Turnos activos": cuántos ya
+  // están Finalizado (a entregar) sobre el total — Entregado no puede
+  // aparecer acá (armarListaUrgencias ya los excluye). Es un cálculo
+  // derivado nada más para mostrar en el anillo, no cambia el dato ni el
+  // flujo de estados del turno.
+  const turnosCompletados = turnosOrdenados.filter((t) => t.estado === "Finalizado").length;
   const progresoTurnosHoy = turnosOrdenados.length > 0 ? turnosCompletados / turnosOrdenados.length : 0;
 
   function handleAbrirClienteNuevo() {
@@ -208,7 +210,7 @@ export default function HomeScreen({ navigation }) {
                 <View style={styles.statAnillo}>
                   <StatCard
                     key={estaEnfocada}
-                    label="Turnos hoy"
+                    label="Turnos activos"
                     valor={turnosOrdenados.length}
                     progreso={progresoTurnosHoy}
                     tamano={110}
@@ -220,7 +222,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               </View>
 
-              <Text style={styles.seccionTitulo}>Turnos de hoy</Text>
+              <Text style={styles.seccionTitulo}>Turnos activos</Text>
             </>
           }
           renderItem={({ item }) => (
@@ -232,7 +234,7 @@ export default function HomeScreen({ navigation }) {
             />
           )}
           ListEmptyComponent={
-            <Text style={styles.vacio}>Todavía no hay turnos cargados para hoy.</Text>
+            <Text style={styles.vacio}>No tenés turnos activos en este momento.</Text>
           }
           ListFooterComponent={
             <TourAnchor id="home.historial">

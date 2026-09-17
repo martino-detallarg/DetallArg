@@ -4,8 +4,8 @@ import { Swipeable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { useServicios } from "../data/ServicioContext";
 import { useTurnos } from "../data/TurnoContext";
-import { diferenciaEnDias, parsearFechaDDMMAAAA } from "../utils/fecha";
-import { calcularFechaEntrega } from "../utils/entregas";
+import { diferenciaEnDias } from "../utils/fecha";
+import { calcularInstanteEntrega, obtenerInicioTurno } from "../utils/entregas";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 const COLOR_PUNTO_ESTADO = {
@@ -15,38 +15,36 @@ const COLOR_PUNTO_ESTADO = {
   Entregado: colors.success,
 };
 
-// Reemplaza la hora de llegada por el estado de entrega del trabajo. Solo
-// "En proceso" calcula la fecha de entrega estimada (hoy/mañana/en X días/
-// atrasado); "Pendiente" todavía ni arrancó, así que muestra un texto fijo
-// en vez de una fecha. "Atrasado" y "Se entrega hoy" comparten el mismo rojo
-// de máxima urgencia; "Se entrega mañana" usa amber como alerta intermedia;
-// "A entregar" (Finalizado) también es urgente porque falta que el cliente
-// lo retire, aunque el trabajo en sí ya esté terminado.
+// Refleja la entrega REAL calculada (inicio del turno + duración del
+// servicio, con precisión de hora — ver utils/entregas.js), no la fecha en
+// que se agendó el turno. Pendiente y En proceso comparten el mismo
+// criterio a propósito (HomeScreen.js ya no distingue por estado para
+// decidir urgencia): un turno vencido siempre muestra "Atrasado", sin
+// importar si todavía no arrancó o si ya está en curso. "Atrasado" gana
+// incluso sobre un Finalizado cuya hora prometida de entrega ya pasó sin
+// que lo hayan retirado — mismo criterio de prioridad que usa HomeScreen.js
+// para ordenar los 3 grupos de "Turnos activos".
 function calcularInfoEntrega(turno, servicio) {
   if (turno.estado === "Entregado") {
     return { texto: "¡Entregado!", color: colors.success, urgente: false };
   }
+
+  const inicio = obtenerInicioTurno(turno);
+  if (!inicio) {
+    // Turno sin fecha/hora parseable (ver "Sin fecha asignada" en
+    // AgendaScreen.js): no hay con qué calcular una entrega.
+    return { texto: turno.hora || "Sin fecha", color: colors.textSecondary, urgente: false };
+  }
+
+  const instanteEntrega = calcularInstanteEntrega(inicio, servicio);
+  if (instanteEntrega.getTime() < Date.now()) {
+    return { texto: "Atrasado", color: colors.error, urgente: true };
+  }
   if (turno.estado === "Finalizado") {
     return { texto: "A entregar", color: colors.amber, urgente: true };
   }
-  if (turno.estado === "Pendiente") {
-    return { texto: "Sin comenzar", color: colors.textMuted, urgente: false };
-  }
 
-  // A partir de acá, estado "En proceso".
-  const fechaLlegada = parsearFechaDDMMAAAA(turno.fecha);
-  if (!fechaLlegada) {
-    // Turno sin fecha parseable (ver "Sin fecha asignada" en AgendaScreen.js):
-    // no hay con qué calcular una entrega, se mantiene el viejo dato de hora.
-    return { texto: turno.hora, color: colors.textSecondary, urgente: false };
-  }
-
-  const fechaEntrega = calcularFechaEntrega(fechaLlegada, servicio);
-  const diasHastaEntrega = diferenciaEnDias(new Date(), fechaEntrega);
-
-  if (diasHastaEntrega < 0) {
-    return { texto: "Atrasado", color: colors.error, urgente: true };
-  }
+  const diasHastaEntrega = diferenciaEnDias(new Date(), instanteEntrega);
   if (diasHastaEntrega === 0) {
     return { texto: "Se entrega hoy", color: colors.error, urgente: true };
   }
