@@ -3,9 +3,16 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTurnos } from "../data/TurnoContext";
 import { useServicios } from "../data/ServicioContext";
-import { esMismoDia, formatearFechaDDMMAAAA, formatearMesAnio, parsearFechaDDMMAAAA } from "../utils/fecha";
-import { calcularFechaEntrega, ESTADOS_CERRADOS } from "../utils/entregas";
+import { diferenciaEnDias, esMismoDia, formatearFechaDDMMAAAA, formatearMesAnio, sumarDias } from "../utils/fecha";
+import { obtenerRangoTurno } from "../utils/entregas";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
+
+// Prioridad visual de cada día de la grilla — mismo criterio que los 3
+// baldes de "Turnos activos" en HomeScreen.js: un turno atrasado pesa más
+// que uno Finalizado sin entregar, que a su vez pesa más que uno
+// simplemente activo (recién llegado o en curso). Si varios turnos tocan el
+// mismo día con niveles distintos, gana el más alto.
+const NIVEL = { ATRASADO: 3, A_ENTREGAR: 2, ACTIVO: 1 };
 
 const INICIALES_DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 
@@ -47,30 +54,56 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
     if (visible) setMesVisible(fechaInicial ?? new Date());
   }, [visible, fechaInicial]);
 
-  // "Con turnos": todo día con al menos una llegada agendada, sin importar
-  // el estado. "Con entrega estimada": fecha de llegada + duración del
-  // servicio, SOLO cuando la duración está cargada en días (si es en horas,
-  // o no hay servicio/duración, la entrega es el mismo día de la llegada —
-  // no amerita marca aparte, ya la cubre "con turnos") y el trabajo todavía
-  // no se cerró (Finalizado/Entregado ya se entregó, no queda "pendiente").
-  const { diasConTurno, diasConEntrega } = useMemo(() => {
-    const conTurno = new Set();
-    const conEntrega = new Set();
-    for (const turno of turnos) {
-      const fechaLlegada = parsearFechaDDMMAAAA(turno.fecha);
-      if (!fechaLlegada) continue;
-      conTurno.add(formatearFechaDDMMAAAA(fechaLlegada));
+  // Nivel de cada día del mes VISIBLE (clave "DD/MM/AAAA" -> NIVEL más alto
+  // encontrado). Entregado queda afuera a propósito (mismo criterio que
+  // AgendaScreen.js): es un registro histórico cerrado, no aporta urgencia.
+  // Por cada turno activo se recorre solo la intersección de su rango
+  // [inicio, entrega] con el mes visible — así un turno larguísimo (o una
+  // duración mal cargada) nunca itera más de los ~31 días del mes, sin
+  // importar cuánto abarque en total.
+  const nivelPorDia = useMemo(() => {
+    const mapa = new Map();
+    const primerDiaMes = new Date(mesVisible.getFullYear(), mesVisible.getMonth(), 1);
+    const ultimoDiaMes = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + 1, 0);
 
-      if (ESTADOS_CERRADOS.has(turno.estado)) continue;
+    function marcar(dia, nivel) {
+      const clave = formatearFechaDDMMAAAA(dia);
+      if ((mapa.get(clave) ?? 0) < nivel) mapa.set(clave, nivel);
+    }
+
+    for (const turno of turnos) {
+      if (turno.estado === "Entregado") continue;
 
       const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
-      const fechaEntrega = calcularFechaEntrega(fechaLlegada, servicio);
-      if (fechaEntrega.getTime() !== fechaLlegada.getTime()) {
-        conEntrega.add(formatearFechaDDMMAAAA(fechaEntrega));
+      const rango = obtenerRangoTurno(turno, servicio);
+      if (!rango) continue;
+
+      const desde = rango.inicio.getTime() > primerDiaMes.getTime() ? rango.inicio : primerDiaMes;
+      const hasta = rango.instanteEntrega.getTime() < ultimoDiaMes.getTime() ? rango.instanteEntrega : ultimoDiaMes;
+      const cantidadDias = diferenciaEnDias(desde, hasta);
+      if (cantidadDias < 0) continue; // el rango del turno no toca este mes
+
+      for (let i = 0; i <= cantidadDias; i++) {
+        const dia = sumarDias(desde, i);
+        // "Atrasado" gana siempre, en cualquier día de su rango (mismo
+        // criterio que TurnoCard.js). Si no, un Finalizado sin entregar
+        // pesa como "a entregar" en TODOS sus días (ya terminó, está
+        // esperando retiro, no tiene sentido marcarlo "en curso"). El resto
+        // (Pendiente/En proceso a tiempo) solo pesa "a entregar" en su día
+        // de entrega real; cualquier otro día de su rango es "activo".
+        let nivel;
+        if (rango.atrasado) {
+          nivel = NIVEL.ATRASADO;
+        } else if (turno.estado === "Finalizado" || diferenciaEnDias(dia, rango.instanteEntrega) === 0) {
+          nivel = NIVEL.A_ENTREGAR;
+        } else {
+          nivel = NIVEL.ACTIVO;
+        }
+        marcar(dia, nivel);
       }
     }
-    return { diasConTurno: conTurno, diasConEntrega: conEntrega };
-  }, [turnos, getServicioById]);
+    return mapa;
+  }, [turnos, getServicioById, mesVisible]);
 
   const celdas = useMemo(() => obtenerCeldasDelMes(mesVisible), [mesVisible]);
 
@@ -115,9 +148,7 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
               if (!dia) return <View key={`vacia-${indice}`} style={styles.celda} />;
 
               const esHoy = esMismoDia(dia, new Date());
-              const clave = formatearFechaDDMMAAAA(dia);
-              const tieneTurno = diasConTurno.has(clave);
-              const tieneEntrega = diasConEntrega.has(clave);
+              const nivel = nivelPorDia.get(formatearFechaDDMMAAAA(dia)) ?? 0;
 
               return (
                 <TouchableOpacity
@@ -130,15 +161,15 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
                     style={[
                       styles.circuloDia,
                       // El estilo de "hoy" (fondo sólido) tiene prioridad
-                      // visual: si coincide con turno/entrega, no se dibuja
-                      // ningún anillo encima.
-                      !esHoy && tieneTurno && styles.circuloDiaConTurno,
-                      !esHoy && !tieneTurno && tieneEntrega && styles.circuloDiaConEntrega,
+                      // visual: si coincide con algún nivel de urgencia, no
+                      // se dibuja ningún anillo encima.
+                      !esHoy && nivel === NIVEL.ATRASADO && styles.circuloDiaAtrasado,
+                      !esHoy && nivel === NIVEL.A_ENTREGAR && styles.circuloDiaAEntregar,
+                      !esHoy && nivel === NIVEL.ACTIVO && styles.circuloDiaActivo,
                       esHoy && styles.circuloDiaHoy,
                     ]}
                   >
                     <Text style={[styles.numeroDia, esHoy && styles.numeroDiaHoy]}>{dia.getDate()}</Text>
-                    {!esHoy && tieneTurno && tieneEntrega && <View style={styles.puntoEntregaEsquina} />}
                   </View>
                 </TouchableOpacity>
               );
@@ -151,12 +182,16 @@ export default function AlmanaqueModal({ visible, fechaInicial, onSeleccionarDia
               <Text style={styles.referenciaTexto}>Hoy</Text>
             </View>
             <View style={styles.referenciaItem}>
-              <View style={[styles.referenciaPunto, { backgroundColor: colors.success }]} />
-              <Text style={styles.referenciaTexto}>Con turnos</Text>
+              <View style={[styles.referenciaPunto, { backgroundColor: colors.error }]} />
+              <Text style={styles.referenciaTexto}>Atrasado</Text>
             </View>
             <View style={styles.referenciaItem}>
               <View style={[styles.referenciaPunto, { backgroundColor: colors.amber }]} />
-              <Text style={styles.referenciaTexto}>Entrega estimada</Text>
+              <Text style={styles.referenciaTexto}>A entregar</Text>
+            </View>
+            <View style={styles.referenciaItem}>
+              <View style={[styles.referenciaPunto, { backgroundColor: colors.success }]} />
+              <Text style={styles.referenciaTexto}>En curso</Text>
             </View>
           </View>
         </View>
@@ -232,19 +267,22 @@ const styles = StyleSheet.create({
   circuloDiaHoy: {
     backgroundColor: colors.accent,
   },
-  // Anillo (borde + fondo tenue) para "con turnos" y "con entrega
-  // estimada" — se aplican al mismo círculo del día en vez del punto chico
-  // de abajo que había antes, así conviven con el número sin ensanchar la
-  // celda.
-  circuloDiaConTurno: {
+  // Anillo (borde + fondo tenue) según el nivel de urgencia del día — rojo
+  // gana sobre amber, que gana sobre verde (ver NIVEL más arriba).
+  circuloDiaAtrasado: {
     borderWidth: 1.5,
-    borderColor: colors.success,
-    backgroundColor: colors.successTint,
+    borderColor: colors.error,
+    backgroundColor: colors.errorTint,
   },
-  circuloDiaConEntrega: {
+  circuloDiaAEntregar: {
     borderWidth: 1.5,
     borderColor: colors.amber,
     backgroundColor: colors.amberTint,
+  },
+  circuloDiaActivo: {
+    borderWidth: 1.5,
+    borderColor: colors.success,
+    backgroundColor: colors.successTint,
   },
   numeroDia: {
     fontFamily: fonts.bodySemiBold,
@@ -253,21 +291,6 @@ const styles = StyleSheet.create({
   },
   numeroDiaHoy: {
     color: colors.bg,
-  },
-  // Punto superpuesto en la esquina del anillo verde para el caso "también
-  // hay una entrega ese día" — el borde en colors.surface lo separa del
-  // anillo de abajo para que se lea como una marca aparte, no como un
-  // recorte del círculo.
-  puntoEntregaEsquina: {
-    position: "absolute",
-    top: -1,
-    right: -1,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.amber,
-    borderWidth: 1.5,
-    borderColor: colors.surface,
   },
   referencia: {
     flexDirection: "row",

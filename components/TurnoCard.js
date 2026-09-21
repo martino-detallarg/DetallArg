@@ -15,16 +15,37 @@ const COLOR_PUNTO_ESTADO = {
   Entregado: colors.success,
 };
 
+// Frase relativa "hoy" / "mañana" / "en X días" a partir de una cantidad de
+// días ya calculada — siempre respecto de AHORA real, sin importar qué día
+// se esté mirando en Agenda (ver `diaVista` más abajo): es un dato sobre el
+// turno ("cuánto falta desde ahora"), no sobre qué día de su rango estás
+// navegando.
+function fraseRelativaEntrega(diasHastaEntrega) {
+  if (diasHastaEntrega === 0) return "hoy";
+  if (diasHastaEntrega === 1) return "mañana";
+  return `en ${diasHastaEntrega} días`;
+}
+
 // Refleja la entrega REAL calculada (inicio del turno + duración del
 // servicio, con precisión de hora — ver utils/entregas.js), no la fecha en
 // que se agendó el turno. Pendiente y En proceso comparten el mismo
 // criterio a propósito (HomeScreen.js ya no distingue por estado para
 // decidir urgencia): un turno vencido siempre muestra "Atrasado", sin
-// importar si todavía no arrancó o si ya está en curso. "Atrasado" gana
-// incluso sobre un Finalizado cuya hora prometida de entrega ya pasó sin
-// que lo hayan retirado — mismo criterio de prioridad que usa HomeScreen.js
-// para ordenar los 3 grupos de "Turnos activos".
-function calcularInfoEntrega(turno, servicio) {
+// importar si todavía no arrancó, si está en curso, o en qué día de su
+// rango se lo esté mirando. "Atrasado" gana incluso sobre un Finalizado
+// cuya hora prometida de entrega ya pasó sin que lo hayan retirado — mismo
+// criterio de prioridad que usa HomeScreen.js para ordenar los 3 grupos de
+// "Turnos activos".
+//
+// `diaVista` (opcional): el día que se está mostrando en Agenda, para un
+// turno que abarca más de un día. Sin `diaVista` (uso en Home, siempre
+// "ahora mismo") el mensaje es siempre el de la entrega, como hasta ahora.
+// Con `diaVista`, un turno todavía activo (no atrasado, no Finalizado)
+// muestra un mensaje distinto según en qué parte de su rango caiga ese
+// día: "Ingresó hoy" en su día de inicio, "En curso — entrega en X días"
+// en los días intermedios, o el mensaje normal de entrega en su día de
+// entrega (que gana el empate si inicio y entrega caen el mismo día).
+function calcularInfoEntrega(turno, servicio, diaVista) {
   if (turno.estado === "Entregado") {
     return { texto: "¡Entregado!", color: colors.success, urgente: false };
   }
@@ -45,6 +66,22 @@ function calcularInfoEntrega(turno, servicio) {
   }
 
   const diasHastaEntrega = diferenciaEnDias(new Date(), instanteEntrega);
+  // Sin diaVista, o si diaVista coincide con el día de entrega: mismo
+  // mensaje de siempre. El empate inicio == entrega (turno de un solo día,
+  // el caso más común) también cae acá, a propósito.
+  const esDiaDeEntrega = !diaVista || diferenciaEnDias(diaVista, instanteEntrega) === 0;
+  if (!esDiaDeEntrega) {
+    const esDiaDeInicio = diferenciaEnDias(inicio, diaVista) === 0;
+    if (esDiaDeInicio) {
+      return { texto: "Ingresó hoy", color: colors.textSecondary, urgente: false };
+    }
+    return {
+      texto: `En curso — entrega ${fraseRelativaEntrega(diasHastaEntrega)}`,
+      color: colors.textSecondary,
+      urgente: false,
+    };
+  }
+
   if (diasHastaEntrega === 0) {
     return { texto: "Se entrega hoy", color: colors.error, urgente: true };
   }
@@ -67,14 +104,14 @@ function AccionEliminar({ onPress }) {
   );
 }
 
-export default function TurnoCard({ turno, cliente, auto, onPress }) {
+export default function TurnoCard({ turno, cliente, auto, onPress, diaVista }) {
   const { getServicioById } = useServicios();
   const { eliminarTurno } = useTurnos();
   const swipeableRef = useRef(null);
   const colorEstado = COLOR_PUNTO_ESTADO[turno.estado] ?? colors.textMuted;
   const vehiculoTexto = auto ? `${auto.marca} ${auto.modelo}` : "Auto sin datos";
   const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
-  const infoEntrega = calcularInfoEntrega(turno, servicio);
+  const infoEntrega = calcularInfoEntrega(turno, servicio, diaVista);
 
   async function confirmarEliminar() {
     try {

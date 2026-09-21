@@ -1,30 +1,12 @@
-// Cálculo de entrega estimada de un turno. `calcularFechaEntrega` es el
-// cálculo histórico a nivel DÍA, usado por AlmanaqueModal.js y
-// WidgetCalendarioHome.js (solo necesitan saber en qué día cae la entrega
-// para marcar el calendario, no a qué hora). `obtenerInicioTurno` /
-// `calcularInstanteEntrega` son la versión con precisión de HORA, usada por
-// TurnoCard.js (mensaje de cada burbuja) y HomeScreen.js (orden de "Turnos
-// activos" por urgencia) — hace falta esa precisión porque un servicio
-// puede durar horas (ej. "3 horas") en vez de días, y ahí sí importa la
-// hora exacta de llegada, no solo el día.
-import { combinarFechaYHora, parsearFechaDDMMAAAA, sumarDias } from "./fecha";
-
-// Mismo set en toda la app (ver ESTADOS_TRABAJO en data/mockData.js): un
-// trabajo ya cerrado se considera entregado, no tiene sentido seguir
-// calculándole una fecha de entrega "pendiente".
-export const ESTADOS_CERRADOS = new Set(["Finalizado", "Entregado"]);
-
-// Fecha de entrega estimada de un turno, a nivel día: fecha de llegada + la
-// duración del servicio asociado, SOLO cuando esa duración está cargada en
-// días. Si es en horas, o no hay servicio/duración cargada, la entrega es
-// el mismo día de la llegada (se devuelve `fechaLlegada` sin modificar) —
-// alcanza para los consumidores que solo marcan días, no horas.
-export function calcularFechaEntrega(fechaLlegada, servicio) {
-  if (servicio?.duracionUnidad === "dias" && servicio.duracionValor) {
-    return sumarDias(fechaLlegada, servicio.duracionValor);
-  }
-  return fechaLlegada;
-}
+// Cálculo de entrega estimada de un turno, con precisión de HORA:
+// `obtenerInicioTurno`/`calcularInstanteEntrega` (usadas por TurnoCard.js
+// para el mensaje de cada burbuja y por HomeScreen.js para el orden de
+// "Turnos activos") y `obtenerRangoTurno` (que las combina, usada además
+// por AgendaScreen.js y AlmanaqueModal.js para saber qué días "toca" un
+// turno que abarca más de uno) — hace falta esa precisión porque un
+// servicio puede durar horas (ej. "3 horas") en vez de días, y ahí sí
+// importa la hora exacta de llegada, no solo el día.
+import { combinarFechaYHora, diferenciaEnDias, parsearFechaDDMMAAAA, sumarDias } from "./fecha";
 
 // Instante real de inicio de un turno: fecha + hora de llegada combinadas.
 // null si el turno no tiene una fecha parseable (ver "Sin fecha asignada"
@@ -39,9 +21,9 @@ export function obtenerInicioTurno(turno) {
 // tarde el mismo día, o pasar a la madrugada del día siguiente); "días"
 // suma días de calendario conservando la hora de inicio (no tiene sentido
 // prometer una hora exacta para un trabajo de varios días). Sin servicio o
-// sin duración cargada, la entrega es el propio inicio del turno — mismo
-// criterio que calcularFechaEntrega, ahora con hora. `inicioTurno` puede
-// ser null (turno sin fecha/hora válida): se propaga tal cual.
+// sin duración cargada, la entrega es el propio inicio del turno.
+// `inicioTurno` puede ser null (turno sin fecha/hora válida): se propaga
+// tal cual.
 export function calcularInstanteEntrega(inicioTurno, servicio) {
   if (!inicioTurno) return null;
   if (!servicio?.duracionValor || !servicio?.duracionUnidad) return inicioTurno;
@@ -49,4 +31,30 @@ export function calcularInstanteEntrega(inicioTurno, servicio) {
     return new Date(inicioTurno.getTime() + servicio.duracionValor * 3600000);
   }
   return sumarDias(inicioTurno, servicio.duracionValor);
+}
+
+// Resumen del rango completo de un turno: instante de inicio, instante de
+// entrega estimada, y si ya está atrasado (respecto de AHORA real, no del
+// día que se esté mirando en Agenda/Almanaque — "atrasado" es un hecho
+// absoluto del turno, no depende de qué día del rango se consulte). null si
+// el turno no tiene fecha/hora parseable (ver "Sin fecha asignada" en
+// AgendaScreen.js) — no hay rango que armar.
+export function obtenerRangoTurno(turno, servicio) {
+  const inicio = obtenerInicioTurno(turno);
+  if (!inicio) return null;
+
+  const instanteEntrega = calcularInstanteEntrega(inicio, servicio);
+  return {
+    inicio,
+    instanteEntrega,
+    atrasado: instanteEntrega.getTime() < Date.now(),
+  };
+}
+
+// ¿El día `dia` cae dentro del rango [inicio, instanteEntrega] del turno,
+// inclusive por día de calendario (no por instante exacto)? Usa
+// diferenciaEnDias (normaliza a medianoche) para no perder un día por
+// culpa de la hora exacta de inicio/entrega.
+export function diaEstaEnRango(rango, dia) {
+  return diferenciaEnDias(rango.inicio, dia) >= 0 && diferenciaEnDias(dia, rango.instanteEntrega) >= 0;
 }

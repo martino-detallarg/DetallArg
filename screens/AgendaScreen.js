@@ -12,7 +12,9 @@ import EstadoCarga from "../components/EstadoCarga";
 import TourAnchor from "../components/tour/TourAnchor";
 import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
+import { useServicios } from "../data/ServicioContext";
 import { useEquipo } from "../data/EquipoContext";
+import { obtenerRangoTurno, diaEstaEnRango } from "../utils/entregas";
 import {
   diferenciaEnDias,
   esMismoDia,
@@ -40,6 +42,7 @@ export default function AgendaScreen({ navigation }) {
   const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, actualizarEstadoTrabajo, eliminarTurno } =
     useTurnos();
   const { getClienteById, getVehiculoById } = useClientes();
+  const { getServicioById } = useServicios();
   const { empleados } = useEquipo();
   const empleadosActivos = empleados.filter((e) => e.activo);
 
@@ -113,20 +116,38 @@ export default function AgendaScreen({ navigation }) {
     }
   }
 
+  // Un turno "toca" el día seleccionado si ese día cae dentro de su rango
+  // [inicio, entrega estimada] (ver utils/entregas.js) — no solo si
+  // turno.fecha coincide exacto, para que un turno de varios días aparezca
+  // también en sus días intermedios y en su día de entrega real. Entregado
+  // es la excepción: es un registro histórico cerrado, sigue apareciendo
+  // solo en su turno.fecha original (sin repetirse en los demás días que
+  // hubiera abarcado).
   const { turnosDelDia, turnosSinFecha } = useMemo(() => {
     const conFecha = [];
     const sinFecha = [];
     for (const turno of turnos) {
-      const fechaParseada = parsearFechaDDMMAAAA(turno.fecha);
-      if (fechaParseada && esMismoDia(fechaParseada, fechaSeleccionada)) {
-        conFecha.push(turno);
-      } else if (!fechaParseada) {
+      if (turno.estado === "Entregado") {
+        const fechaParseada = parsearFechaDDMMAAAA(turno.fecha);
+        if (fechaParseada && esMismoDia(fechaParseada, fechaSeleccionada)) {
+          conFecha.push(turno);
+        } else if (!fechaParseada) {
+          sinFecha.push(turno);
+        }
+        continue;
+      }
+
+      const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
+      const rango = obtenerRangoTurno(turno, servicio);
+      if (!rango) {
         sinFecha.push(turno);
+      } else if (diaEstaEnRango(rango, fechaSeleccionada)) {
+        conFecha.push(turno);
       }
     }
     const porHora = (a, b) => a.hora.localeCompare(b.hora);
     return { turnosDelDia: conFecha.sort(porHora), turnosSinFecha: sinFecha.sort(porHora) };
-  }, [turnos, fechaSeleccionada]);
+  }, [turnos, fechaSeleccionada, getServicioById]);
 
   // Buscador (por nombre de cliente) y filtro por empleado se combinan por
   // intersección — no pisan la tira de días ni el almanaque, que siguen
@@ -190,6 +211,7 @@ export default function AgendaScreen({ navigation }) {
         cliente={getClienteById(turno.clienteId)}
         auto={getVehiculoById(turno.autoId)}
         onPress={() => setTurnoSeleccionadoId(turno.id)}
+        diaVista={fechaSeleccionada}
       />
     );
   }

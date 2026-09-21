@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTurnos } from "../data/TurnoContext";
 import { useServicios } from "../data/ServicioContext";
-import { calcularFechaEntrega, ESTADOS_CERRADOS } from "../utils/entregas";
+import { obtenerRangoTurno } from "../utils/entregas";
 import {
   diferenciaEnDias,
   obtenerDiaSemanaHorario,
@@ -11,11 +11,12 @@ import {
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 // Tarjeta tipo calendario para el dashboard de Home, al lado del anillo de
-// "Turnos de hoy" (StatCard): muestra el día de hoy y un resumen breve de lo
-// que viene el resto de la semana — turnos agendados (sin contar el de hoy,
-// que ya cuenta el anillo) y entregas estimadas que caen mañana (mismo
-// cálculo compartido que AlmanaqueModal.js, ver utils/entregas.js). Es de
-// solo lectura, no escribe nada en TurnoContext/ServicioContext.
+// "Turnos activos" (StatCard): muestra el día de hoy y un resumen breve de
+// lo que viene el resto de la semana — turnos agendados (sin contar el de
+// hoy, que ya cuenta el anillo) y entregas estimadas que caen mañana, con
+// precisión de hora (obtenerRangoTurno, ver utils/entregas.js — antes usaba
+// el cálculo día-only, que nunca detectaba entregas de servicios en horas).
+// Es de solo lectura, no escribe nada en TurnoContext/ServicioContext.
 export default function WidgetCalendarioHome({ onPress }) {
   const { turnos } = useTurnos();
   const { getServicioById } = useServicios();
@@ -42,10 +43,13 @@ export default function WidgetCalendarioHome({ onPress }) {
       turnosMasEstaSemana++;
     }
 
-    if (!ESTADOS_CERRADOS.has(turno.estado)) {
+    // Entregado es la excepción (ya se retiró, no queda "pendiente") — un
+    // Finalizado sigue contando: está esperando retiro, y "mañana" es
+    // justo cuando se prometió, aunque el trabajo en sí ya esté terminado.
+    if (turno.estado !== "Entregado") {
       const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
-      const fechaEntrega = calcularFechaEntrega(fechaLlegada, servicio);
-      if (diferenciaEnDias(hoy, fechaEntrega) === 1) entregasManana++;
+      const rango = obtenerRangoTurno(turno, servicio);
+      if (rango && diferenciaEnDias(hoy, rango.instanteEntrega) === 1) entregasManana++;
     }
   }
 
