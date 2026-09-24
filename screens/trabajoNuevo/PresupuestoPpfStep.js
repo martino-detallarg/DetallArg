@@ -17,10 +17,17 @@ import { colors, continuousCorner, fonts, radii } from "../../theme";
 // informativo para el taller al cargar el trabajo — no se persiste nada de
 // acá: lo único que se guarda del paso anterior (panelesElegidos) es lo que
 // después se congela en turno_ppf_paneles al finalizar el trabajo.
+const MODOS_CORTE = [
+  { valor: "manual", etiqueta: "Manual" },
+  { valor: "laser", etiqueta: "Láser" },
+];
+
 export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
   const { misInsumos } = useData();
   const insumoPpfId = datos.insumoPpfId ?? null;
   const manoDeObraTexto = datos.manoDeObraTexto ?? "";
+  const insumosAdicionalesTexto = datos.insumosAdicionalesTexto ?? "";
+  const modoCorte = datos.modoCorte ?? "manual";
 
   const rollosPpf = useMemo(
     () =>
@@ -33,6 +40,7 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
   const rolloElegido = rollosPpf.find((r) => r.id === insumoPpfId) ?? rollosPpf[0] ?? null;
   const costoPorM2Rollo = rolloElegido ? rolloElegido.precioCompra / rolloElegido.capacidadTotal : 0;
   const manoDeObraEstimada = Number(String(manoDeObraTexto).replace(",", ".")) || 0;
+  const insumosAdicionalesEstimados = Number(String(insumosAdicionalesTexto).replace(",", ".")) || 0;
 
   const clavePpf = obtenerClavePpf(datos);
   const panelesElegidos = datos.panelesElegidos ?? [];
@@ -44,6 +52,8 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
         panelesElegidos,
         costoPorM2Rollo,
         manoDeObraEstimada,
+        insumosAdicionalesEstimados,
+        modoCorte,
       })
     : null;
 
@@ -53,6 +63,28 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
 
       <SwipeVolver onAtras={onAtras}>
         <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+          <Text style={styles.label}>Modo de corte</Text>
+          <View style={styles.chips}>
+            {MODOS_CORTE.map((modo) => {
+              const activo = modoCorte === modo.valor;
+              return (
+                <TouchableOpacity
+                  key={modo.valor}
+                  style={[styles.chip, activo && styles.chipActivo]}
+                  onPress={() => onCambiar({ modoCorte: modo.valor })}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.chipTexto, activo && styles.chipTextoActivo]} numberOfLines={1}>
+                    {modo.etiqueta}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={styles.ayuda}>
+            Láser/plotter corta más ajustado al panel — menos merma de material que a cutter.
+          </Text>
+
           {rollosPpf.length === 0 ? (
             <Text style={styles.vacio}>
               Todavía no cargaste ningún rollo de PPF en Mis Insumos (categoría PPF, con m² y
@@ -92,6 +124,15 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
             keyboardType="numeric"
           />
 
+          <Input
+            label="Insumos adicionales estimados ($, opcional)"
+            value={insumosAdicionalesTexto}
+            onChangeText={(v) => onCambiar({ insumosAdicionalesTexto: v })}
+            placeholder="Ej: 5000"
+            keyboardType="numeric"
+          />
+          <Text style={styles.ayuda}>Líquido de instalación, lavado/descontaminado previo, etc.</Text>
+
           {!presupuesto ? (
             <Text style={styles.vacio}>No hay matriz de PPF cargada para esta carrocería.</Text>
           ) : (
@@ -119,6 +160,12 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
               <View style={styles.resultadoFila}>
                 <Text style={styles.resultadoLabel}>Mano de obra</Text>
                 <Text style={styles.resultadoValor}>{formatearPesos(presupuesto.manoDeObraEstimada)}</Text>
+              </View>
+              <View style={styles.resultadoFila}>
+                <Text style={styles.resultadoLabel}>Insumos adicionales</Text>
+                <Text style={styles.resultadoValor}>
+                  {formatearPesos(presupuesto.insumosAdicionalesEstimados)}
+                </Text>
               </View>
 
               <View style={styles.separador} />

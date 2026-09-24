@@ -47,12 +47,14 @@ export default function OpcionesNuevoModal({ visible, onClose, onClienteNuevo, o
               onPress={onTrabajoNuevo}
             />
           </TourAnchor>
-          <Opcion
-            icono="wallet-outline"
-            titulo="Seña"
-            descripcion="Registrar una seña para reservar un trabajo que ya cargaste"
-            onPress={onSena}
-          />
+          <TourAnchor id="opcionesNuevo.sena">
+            <Opcion
+              icono="wallet-outline"
+              titulo="Seña"
+              descripcion="Registrar una seña para reservar un trabajo que ya cargaste"
+              onPress={onSena}
+            />
+          </TourAnchor>
 
           <Button title="Cancelar" variant="secondary" onPress={onClose} />
         </View>

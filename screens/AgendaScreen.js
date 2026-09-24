@@ -370,7 +370,9 @@ export default function AgendaScreen({ navigation }) {
         turno={turnoSeleccionado}
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
         auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
-        onCambiarEstado={(nuevoEstado) => actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado)}
+        onCambiarEstado={(nuevoEstado, opciones) =>
+          actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado, opciones)
+        }
         onEliminar={async () => {
           await eliminarTurno(turnoSeleccionado.id);
           setTurnoSeleccionadoId(null);

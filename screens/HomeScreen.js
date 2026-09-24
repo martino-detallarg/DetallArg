@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
@@ -21,6 +21,7 @@ import { useTurnos } from "../data/TurnoContext";
 import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
 import { useFinanzas } from "../data/FinanzasContext";
+import { useTour } from "../data/TourContext";
 import { calcularInstanteEntrega, obtenerInicioTurno } from "../utils/entregas";
 import { calcularSaldoPendienteTurno } from "../utils/calculosFinanzas";
 import { sumarDias } from "../utils/fecha";
@@ -97,6 +98,7 @@ export default function HomeScreen({ navigation }) {
   const { getServicioById } = useServicios();
   const { misDatos } = useTaller();
   const { cobros } = useFinanzas();
+  const { pasoActualId } = useTour();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
   // Cambia cada vez que Home gana/pierde foco: se usa como `key` del anillo
   // de progreso para forzar su remount (y que la animación de llenado se
@@ -118,6 +120,21 @@ export default function HomeScreen({ navigation }) {
   // directo, sin pasar por TrabajoDetalleModal.
   const [selectorSenaVisible, setSelectorSenaVisible] = useState(false);
   const [turnoSenaId, setTurnoSenaId] = useState(null);
+
+  // El tour guiado (ver data/tourSteps.js) avanza de "opcionesNuevo.sena" a
+  // "home.historial" tocando la fila de Seña dentro de este modal (ver
+  // TourAnchor.js) -- pero ese paso siguiente vive anclado en Home, tapada
+  // atrás de OpcionesNuevoModal todavía abierto. Sin este cierre automático
+  // el globito de "Historial de clientes" no tendría dónde mostrarse y el
+  // tour quedaría trabado, igual que el bug original de home.fab. Mismo
+  // setter que usa el botón "Cancelar" del modal -- fuera del tour
+  // (pasoActualId nunca llega a "home.historial" mientras el modal está
+  // abierto) este efecto no dispara nunca.
+  useEffect(() => {
+    if (pasoActualId === "home.historial" && opcionesVisibles) {
+      setOpcionesVisibles(false);
+    }
+  }, [pasoActualId, opcionesVisibles]);
 
   const turnosOrdenados = useMemo(
     () => armarListaUrgencias(turnos, getServicioById),
@@ -294,7 +311,9 @@ export default function HomeScreen({ navigation }) {
         turno={turnoSeleccionado}
         cliente={turnoSeleccionado ? getClienteById(turnoSeleccionado.clienteId) : null}
         auto={turnoSeleccionado ? getVehiculoById(turnoSeleccionado.autoId) : null}
-        onCambiarEstado={(nuevoEstado) => actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado)}
+        onCambiarEstado={(nuevoEstado, opciones) =>
+          actualizarEstadoTrabajo(turnoSeleccionado.id, nuevoEstado, opciones)
+        }
         onEliminar={async () => {
           await eliminarTurno(turnoSeleccionado.id);
           setTurnoSeleccionadoId(null);

@@ -5,7 +5,7 @@ import { useServicios } from "./ServicioContext";
 import { useData } from "./DataContext";
 import { mensajeErrorCarga } from "../utils/errores";
 import { convertirFechaAISO, convertirFechaDesdeISO } from "../utils/fecha";
-import { obtenerClavePpf, obtenerPanelesPpf } from "../utils/calculosPpf";
+import { obtenerClavePpf, calcularPresupuestoPpf } from "../utils/calculosPpf";
 
 const TurnoContext = createContext(null);
 
@@ -365,16 +365,23 @@ export function TurnoProvider({ children }) {
   // Al pasar un trabajo a "Finalizado" por primera vez: descuenta stock
   // según la receta ACTUAL del servicio (DataContext, ya migrado), inserta
   // el snapshot congelado en turno_receta_aplicada, calcula y congela el m²
-  // real de PPF en turno_ppf_paneles (si el trabajo tenía paneles elegidos,
-  // ver turno_ppf_seleccion/SeleccionPanelesPpfStep.js), y recién si todo
-  // eso confirma actualiza el estado del turno — en ese orden, sin
-  // transacción real envolviendo los pasos (mismo criterio que
+  // de PPF en turno_ppf_paneles (si el trabajo tenía paneles elegidos, ver
+  // turno_ppf_seleccion/SeleccionPanelesPpfStep.js), y recién si todo eso
+  // confirma actualiza el estado del turno — en ese orden, sin transacción
+  // real envolviendo los pasos (mismo criterio que
   // descontarInsumos/editarServicio). Los guards `!turno.recetaAplicada` /
   // `!turno.panelesPpfAplicados` evitan repetir cualquiera de los dos
   // snapshots si el trabajo se vuelve a mover a Finalizado tras pasar por
   // otro estado — a propósito no se repone stock ni se recalcula PPF si se
   // revierte hacia atrás.
-  async function actualizarEstadoTrabajo(id, nuevoEstado) {
+  //
+  // opciones.m2RealUsado: opcional, cargado a mano por el taller en
+  // TrabajoDetalleModal.js al finalizar (según SU software de corte) — si
+  // viene un número > 0, GANA sobre el m² estimado por la matriz para el
+  // registro final que queda en turno_ppf_paneles (ver más abajo). El
+  // presupuesto que ya vio el cliente en PresupuestoPpfStep.js no se toca,
+  // esto solo afecta el snapshot congelado del trabajo real.
+  async function actualizarEstadoTrabajo(id, nuevoEstado, opciones = {}) {
     const turno = getTurnoById(id);
     let recetaAplicadaNueva = null;
     let panelesPpfAplicadosNuevo = null;
@@ -432,33 +439,59 @@ export function TurnoProvider({ children }) {
         }
       }
 
-      // m² recalculado contra la matriz VIGENTE en este momento (data/
-      // ppfPanelMatrix.js), no contra la que estaba cargada cuando se armó
-      // el turno — mismo criterio que costoUnitarioSnapshot de arriba,
-      // recalculado contra el precio_compra vigente al finalizar.
+      // m² estimado recalculado contra la matriz y MERMA_POR_MODO VIGENTES en
+      // este momento (data/ppfPanelMatrix.js), no contra las que estaban
+      // cargadas cuando se armó el turno — mismo criterio que
+      // costoUnitarioSnapshot de arriba. El modoCorte que se eligió en el
+      // wizard (PresupuestoPpfStep.js) es solo para la cotización que ya vio
+      // el cliente y no se persiste en el turno, así que acá se usa siempre
+      // el default "manual" (calcularPresupuestoPpf) como base de reparto —
+      // no cambia nada si el taller carga opciones.m2RealUsado, que pisa el
+      // total sin importar de qué mermaPct haya salido la base.
       if (!turno.panelesPpfAplicados && turno.panelesPpf?.length > 0) {
         const clavePpf = obtenerClavePpf({
           tipoVehiculo: turno.tipoVehiculo,
           grupo: turno.grupoVehiculo,
           subdivision: turno.subdivisionVehiculo,
         });
-        const paneles = clavePpf ? obtenerPanelesPpf(clavePpf.tipoVehiculo, clavePpf.subdivision) : null;
-        if (paneles) {
-          const filasPpf = turno.panelesPpf
-            .map((panelId) => {
-              const panel = paneles[panelId];
-              // Panel elegido en su momento que ya no existe en la matriz
-              // vigente (ej. se renombró/sacó un panel) — se ignora en vez
-              // de romper el resto del snapshot.
-              if (!panel) return null;
-              return { turno_id: id, panel_id: panelId, vista: panelId.split("__")[0], m2: panel.m2ConMerma };
+        const presupuestoEstimado = clavePpf
+          ? calcularPresupuestoPpf({
+              tipoVehiculo: clavePpf.tipoVehiculo,
+              subdivision: clavePpf.subdivision,
+              panelesElegidos: turno.panelesPpf,
+              costoPorM2Rollo: 0,
             })
-            .filter(Boolean);
-          if (filasPpf.length > 0) {
-            const { error: errorPpf } = await supabase.from("turno_ppf_paneles").insert(filasPpf);
-            if (errorPpf) throw errorPpf;
-            panelesPpfAplicadosNuevo = filasPpf.map((fila) => fila.panel_id);
-          }
+          : null;
+        // Panel elegido en su momento que ya no existe en la matriz vigente
+        // (ej. se renombró/sacó un panel, ver el TODO de calcularPresupuestoPpf)
+        // se ignora en vez de romper el resto del snapshot.
+        const detalleValido =
+          presupuestoEstimado && !presupuestoEstimado.error
+            ? presupuestoEstimado.detalle.filter((d) => !d.error)
+            : [];
+        if (detalleValido.length > 0) {
+          // Si el taller cargó el m² real (opciones.m2RealUsado, > 0), se
+          // reparte ese total entre los paneles proporcional al peso que
+          // tenía cada uno en la estimación -- el dato real gana en el
+          // TOTAL, pero el snapshot sigue quedando desglosado por panel
+          // (mismo shape de siempre) en vez de un solo número suelto.
+          const m2TotalEstimado = detalleValido.reduce((acc, d) => acc + d.m2ConMerma, 0);
+          const factor =
+            opciones.m2RealUsado > 0 && m2TotalEstimado > 0
+              ? opciones.m2RealUsado / m2TotalEstimado
+              : 1;
+          const filasPpf = detalleValido.map((d) => ({
+            turno_id: id,
+            panel_id: d.panel,
+            vista: d.panel.split("__")[0],
+            // Piso de 0.01 porque turno_ppf_paneles tiene `check (m2 > 0)` —
+            // un m2RealUsado mucho menor al estimado podría, para un panel
+            // chico, redondear a 0.00 y romper el INSERT entero.
+            m2: Math.max(0.01, Math.round(d.m2ConMerma * factor * 100) / 100),
+          }));
+          const { error: errorPpf } = await supabase.from("turno_ppf_paneles").insert(filasPpf);
+          if (errorPpf) throw errorPpf;
+          panelesPpfAplicadosNuevo = filasPpf.map((fila) => fila.panel_id);
         }
       }
     }

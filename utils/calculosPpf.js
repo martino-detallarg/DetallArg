@@ -6,12 +6,12 @@
 // Finanzas (turno_receta_aplicada) -- este calculo alimenta el snapshot que se guarda en
 // turno_ppf_paneles (turno_id, panel_id, vista, m2 congelado).
 
-import { PPF_PANEL_MATRIX } from "../data/ppfPanelMatrix";
+import { PPF_PANEL_MATRIX, MERMA_POR_MODO } from "../data/ppfPanelMatrix";
 
 /**
- * Devuelve el objeto de paneles disponibles (con m2Referencia/complejidad/mermaPct/m2ConMerma)
- * para una subdivision de vehiculo puntual. null si no hay matriz cargada para esa combinacion
- * (ej. Moto, que no tiene PPF en esta v1).
+ * Devuelve el objeto de paneles disponibles (con m2Referencia/complejidad -- la merma NO vive
+ * acá, ver MERMA_POR_MODO) para una subdivision de vehiculo puntual. null si no hay matriz
+ * cargada para esa combinacion (ej. Moto, que no tiene PPF en esta v1).
  */
 export function obtenerPanelesPpf(tipoVehiculo, subdivision) {
   const tipo = PPF_PANEL_MATRIX[tipoVehiculo];
@@ -66,6 +66,15 @@ export function obtenerClavePpf({ tipoVehiculo, grupo, subdivision }) {
  * manoDeObraEstimada: opcional, monto fijo que el taller carga a mano (no hay tarifa por hora
  * definida todavia en el proyecto -- mismo criterio que el resto de Finanzas, sin mano de obra
  * por hora en v1).
+ *
+ * insumosAdicionalesEstimados: opcional, monto fijo que el taller carga a mano para lo que no es
+ * el rollo en sí (líquido de instalación, lavado/descontaminado previo) -- mismo criterio y mismo
+ * patrón que manoDeObraEstimada, sin desglose propio en v1.
+ *
+ * modoCorte: "manual" (default, cutter a mano) o "laser" (laser/plotter) -- define que fila de
+ * MERMA_POR_MODO (data/ppfPanelMatrix.js) se usa para calcular mermaPct/m2ConMerma de cada panel
+ * al vuelo, ya que la matriz de paneles dejó de traer esos dos valores fijos (ver el comentario
+ * de cabecera de ppfPanelMatrix.js).
  */
 export function calcularPresupuestoPpf({
   tipoVehiculo,
@@ -73,6 +82,8 @@ export function calcularPresupuestoPpf({
   panelesElegidos,
   costoPorM2Rollo,
   manoDeObraEstimada = 0,
+  insumosAdicionalesEstimados = 0,
+  modoCorte = "manual",
 }) {
   const paneles = obtenerPanelesPpf(tipoVehiculo, subdivision);
   if (!paneles) {
@@ -81,6 +92,8 @@ export function calcularPresupuestoPpf({
       mensaje: `No hay matriz de paneles PPF cargada para ${tipoVehiculo}/${subdivision}.`,
     };
   }
+
+  const mermaPorComplejidad = MERMA_POR_MODO[modoCorte] ?? MERMA_POR_MODO.manual;
 
   const detalle = panelesElegidos.map((panelKey) => {
     const panel = paneles[panelKey];
@@ -94,25 +107,29 @@ export function calcularPresupuestoPpf({
       // (¿fila de aviso? ¿excluirla del total?).
       return { panel: panelKey, error: "PANEL_DESCONOCIDO" };
     }
+    const mermaPct = mermaPorComplejidad[panel.complejidad];
+    const m2ConMerma = Math.round(panel.m2Referencia * (1 + mermaPct) * 100) / 100;
     return {
       panel: panelKey,
       m2Referencia: panel.m2Referencia,
       complejidad: panel.complejidad,
-      mermaPct: panel.mermaPct,
-      m2ConMerma: panel.m2ConMerma,
-      costoPanel: Math.round(panel.m2ConMerma * costoPorM2Rollo * 100) / 100,
+      mermaPct,
+      m2ConMerma,
+      costoPanel: Math.round(m2ConMerma * costoPorM2Rollo * 100) / 100,
     };
   });
 
   const m2TotalConMerma = detalle.reduce((acc, p) => acc + (p.m2ConMerma || 0), 0);
   const costoMaterial = Math.round(m2TotalConMerma * costoPorM2Rollo * 100) / 100;
-  const presupuestoTotal = Math.round((costoMaterial + manoDeObraEstimada) * 100) / 100;
+  const presupuestoTotal =
+    Math.round((costoMaterial + manoDeObraEstimada + insumosAdicionalesEstimados) * 100) / 100;
 
   return {
     detalle,
     m2TotalConMerma: Math.round(m2TotalConMerma * 100) / 100,
     costoMaterial,
     manoDeObraEstimada,
+    insumosAdicionalesEstimados,
     presupuestoTotal,
   };
 }

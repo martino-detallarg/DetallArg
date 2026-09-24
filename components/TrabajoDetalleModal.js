@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
+import Input from "./Input";
 import RegistrarCobroModal from "./RegistrarCobroModal";
 import CompletarFirmaModal from "./CompletarFirmaModal";
 import TelefonoConAcciones from "./TelefonoConAcciones";
@@ -46,6 +47,13 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   // Se resetea al estado real del turno cada vez que el modal se vuelve a
   // abrir, así cualquier chip probado sin guardar queda descartado.
   const [estadoLocal, setEstadoLocal] = useState(turno?.estado ?? null);
+  // m² real de PPF (según el software de corte del taller), opcional —
+  // solo tiene efecto la primera vez que el trabajo pasa a "Finalizado"
+  // (mismo guard que panelesPpfAplicados en TurnoContext.js). Si se carga,
+  // se guarda ESE número en turno_ppf_paneles en vez del m² estimado por la
+  // matriz — el presupuesto que ya vio el cliente antes de cortar no se
+  // toca, esto solo afecta el registro final del trabajo real.
+  const [m2RealTexto, setM2RealTexto] = useState("");
 
   // Al pasar a "Finalizado", onCambiarEstado (TurnoContext.actualizarEstadoTrabajo)
   // ahora escribe de verdad en Supabase (descuenta insumos) y puede fallar —
@@ -55,6 +63,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
       setErrorEstado(null);
       setErrorEliminar(null);
       setEstadoLocal(turno?.estado ?? null);
+      setM2RealTexto("");
     }
   }, [visible, turno?.id, turno?.estado]);
 
@@ -69,6 +78,15 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   // (Finalizado/Entregado con saldo pendiente) en vez de reemplazarlo.
   const puedeTomarSena = saldoPendiente === null || saldoPendiente > 0;
   const hayCambioSinGuardar = estadoLocal !== turno.estado;
+  // Solo tiene sentido mostrar el campo de m² real cuando este guardado
+  // efectivamente va a disparar el snapshot de PPF (mismo guard que usa
+  // TurnoContext.actualizarEstadoTrabajo: recién al ENTRAR a "Finalizado" la
+  // primera vez, no en cada guardado posterior).
+  const mostrarM2RealPpf =
+    estadoLocal === "Finalizado" &&
+    turno.estado !== "Finalizado" &&
+    !turno.panelesPpfAplicados &&
+    turno.panelesPpf?.length > 0;
 
   // El nombre se muestra con el mismo criterio que el resto de la app
   // (turno.servicio es el nombre CONGELADO al momento de crear el turno,
@@ -88,7 +106,10 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
     setCambiandoEstado(true);
     setErrorEstado(null);
     try {
-      await onCambiarEstado(estadoLocal);
+      const m2RealUsado = mostrarM2RealPpf
+        ? Number(String(m2RealTexto).replace(",", ".")) || undefined
+        : undefined;
+      await onCambiarEstado(estadoLocal, { m2RealUsado });
       onClose();
     } catch (err) {
       setErrorEstado("No se pudo actualizar el estado del trabajo. Probá de nuevo.");
@@ -155,6 +176,21 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                 })}
               </View>
               {errorEstado && <Text style={styles.errorTexto}>{errorEstado}</Text>}
+              {mostrarM2RealPpf && (
+                <View style={styles.m2RealContenedor}>
+                  <Input
+                    label="m² real usado (según tu software de corte, opcional)"
+                    value={m2RealTexto}
+                    onChangeText={setM2RealTexto}
+                    placeholder="Ej: 12.5"
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.m2RealAyuda}>
+                    Si lo cargás, este número reemplaza al estimado para el registro final de este
+                    trabajo — el presupuesto que ya vio el cliente no cambia.
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.tarjetaSeccion}>
@@ -497,6 +533,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.error,
     marginTop: 8,
+  },
+  m2RealContenedor: {
+    marginTop: 12,
+  },
+  m2RealAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: -8,
   },
   cobroBoton: {
     flexDirection: "row",
