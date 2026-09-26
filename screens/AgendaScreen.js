@@ -9,7 +9,6 @@ import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
 import AlmanaqueModal from "../components/AlmanaqueModal";
 import FiltroEmpleadoModal from "../components/FiltroEmpleadoModal";
 import EstadoCarga from "../components/EstadoCarga";
-import TourAnchor from "../components/tour/TourAnchor";
 import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
 import { useServicios } from "../data/ServicioContext";
@@ -232,7 +231,6 @@ export default function AgendaScreen({ navigation }) {
 
       <Text style={styles.mesAnio}>{formatearMesAnio(fechaSeleccionada)}</Text>
 
-      <TourAnchor id="agenda.info">
       <View style={styles.selectorSemana}>
         <TouchableOpacity
           onPress={() => irAFecha(sumarDias(fechaSeleccionada, -7))}
@@ -296,7 +294,6 @@ export default function AgendaScreen({ navigation }) {
           <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
-      </TourAnchor>
 
       <View style={styles.filtrosFila}>
         <View style={styles.buscadorWrap}>

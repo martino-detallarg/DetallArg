@@ -5,7 +5,7 @@ import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import { useData } from "../../data/DataContext";
-import { obtenerClavePpf, calcularPresupuestoPpf } from "../../utils/calculosPpf";
+import { obtenerClavePpf, obtenerPanelesPpf, calcularPresupuestoPpf } from "../../utils/calculosPpf";
 import { formatearPesos } from "../../utils/formato";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
@@ -17,6 +17,11 @@ import { colors, continuousCorner, fonts, radii } from "../../theme";
 // informativo para el taller al cargar el trabajo — no se persiste nada de
 // acá: lo único que se guarda del paso anterior (panelesElegidos) es lo que
 // después se congela en turno_ppf_paneles al finalizar el trabajo.
+//
+// Dos rollos posibles (carrocería y vidrio, ver data/ppfPanelMatrix.js): el
+// selector de vidrio recién aparece si panelesElegidos incluye algún panel
+// con material "vidrio" (hoy, el parabrisas) -- un trabajo que no lo toca no
+// ve ningún campo nuevo, cero cambio respecto de antes de este agregado.
 const MODOS_CORTE = [
   { valor: "manual", etiqueta: "Manual" },
   { valor: "laser", etiqueta: "Láser" },
@@ -25,32 +30,67 @@ const MODOS_CORTE = [
 export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar, onAtras, onContinuar }) {
   const { misInsumos } = useData();
   const insumoPpfId = datos.insumoPpfId ?? null;
+  const insumoPpfVidrioId = datos.insumoPpfVidrioId ?? null;
   const manoDeObraTexto = datos.manoDeObraTexto ?? "";
   const insumosAdicionalesTexto = datos.insumosAdicionalesTexto ?? "";
   const modoCorte = datos.modoCorte ?? "manual";
 
-  const rollosPpf = useMemo(
+  // Dos rollos posibles, nunca mezclados (ver data/ppfPanelMatrix.js: cada
+  // panel trae su propio `material`) -- el de carrocería siempre aplica, el
+  // de vidrio solo si el taller elegió el parabrisas en el paso anterior
+  // (SeleccionPanelesPpfStep.js).
+  const rollosCarroceria = useMemo(
     () =>
       misInsumos.filter(
-        (i) => i.categoria === "ppf" && i.capacidadUnidad === "m2" && i.capacidadTotal > 0 && i.precioCompra > 0
+        (i) =>
+          i.categoria === "ppf" &&
+          i.materialPpf === "carroceria" &&
+          i.capacidadUnidad === "m2" &&
+          i.capacidadTotal > 0 &&
+          i.precioCompra > 0
+      ),
+    [misInsumos]
+  );
+  const rollosVidrio = useMemo(
+    () =>
+      misInsumos.filter(
+        (i) =>
+          i.categoria === "ppf" &&
+          i.materialPpf === "vidrio" &&
+          i.capacidadUnidad === "m2" &&
+          i.capacidadTotal > 0 &&
+          i.precioCompra > 0
       ),
     [misInsumos]
   );
 
-  const rolloElegido = rollosPpf.find((r) => r.id === insumoPpfId) ?? rollosPpf[0] ?? null;
-  const costoPorM2Rollo = rolloElegido ? rolloElegido.precioCompra / rolloElegido.capacidadTotal : 0;
+  const rolloElegido = rollosCarroceria.find((r) => r.id === insumoPpfId) ?? rollosCarroceria[0] ?? null;
+  const costoPorM2RolloCarroceria = rolloElegido ? rolloElegido.precioCompra / rolloElegido.capacidadTotal : 0;
+  const rolloVidrioElegido = rollosVidrio.find((r) => r.id === insumoPpfVidrioId) ?? rollosVidrio[0] ?? null;
+  const costoPorM2RolloVidrio = rolloVidrioElegido
+    ? rolloVidrioElegido.precioCompra / rolloVidrioElegido.capacidadTotal
+    : undefined;
   const manoDeObraEstimada = Number(String(manoDeObraTexto).replace(",", ".")) || 0;
   const insumosAdicionalesEstimados = Number(String(insumosAdicionalesTexto).replace(",", ".")) || 0;
 
   const clavePpf = obtenerClavePpf(datos);
   const panelesElegidos = datos.panelesElegidos ?? [];
+  const panelesMatriz = clavePpf ? obtenerPanelesPpf(clavePpf.tipoVehiculo, clavePpf.subdivision) : null;
+  // Solo se le pide un segundo rollo al taller si de verdad eligió el
+  // parabrisas -- un trabajo de PPF que no lo toca no debe sentir ninguna
+  // fricción nueva (mismo criterio que el resto del wizard, nada obligatorio
+  // que no aplique al trabajo puntual).
+  const hayPanelVidrio = panelesMatriz
+    ? panelesElegidos.some((panelKey) => panelesMatriz[panelKey]?.material === "vidrio")
+    : false;
 
   const presupuesto = clavePpf
     ? calcularPresupuestoPpf({
         tipoVehiculo: clavePpf.tipoVehiculo,
         subdivision: clavePpf.subdivision,
         panelesElegidos,
-        costoPorM2Rollo,
+        costoPorM2RolloCarroceria,
+        costoPorM2RolloVidrio: hayPanelVidrio ? costoPorM2RolloVidrio : undefined,
         manoDeObraEstimada,
         insumosAdicionalesEstimados,
         modoCorte,
@@ -85,16 +125,17 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
             Láser/plotter corta más ajustado al panel — menos merma de material que a cutter.
           </Text>
 
-          {rollosPpf.length === 0 ? (
+          {rollosCarroceria.length === 0 ? (
             <Text style={styles.vacio}>
-              Todavía no cargaste ningún rollo de PPF en Mis Insumos (categoría PPF, con m² y
-              precio cargados) — el costo de material va a quedar en $0 hasta que cargues uno.
+              Todavía no cargaste ningún rollo de PPF de carrocería en Mis Insumos (categoría PPF,
+              con m² y precio cargados) — el costo de material va a quedar en $0 hasta que
+              cargues uno.
             </Text>
           ) : (
             <>
-              <Text style={styles.label}>Rollo a usar</Text>
+              <Text style={styles.label}>Rollo de carrocería a usar</Text>
               <View style={styles.chips}>
-                {rollosPpf.map((rollo) => {
+                {rollosCarroceria.map((rollo) => {
                   const activo = rolloElegido?.id === rollo.id;
                   return (
                     <TouchableOpacity
@@ -111,8 +152,49 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
                 })}
               </View>
               <Text style={styles.ayuda}>
-                Costo por m²: {formatearPesos(costoPorM2Rollo)} (precio de compra ÷ m² del rollo)
+                Costo por m²: {formatearPesos(costoPorM2RolloCarroceria)} (precio de compra ÷ m²
+                del rollo)
               </Text>
+            </>
+          )}
+
+          {/* Solo aparece si de verdad se eligió el parabrisas en el paso
+          anterior -- un trabajo de PPF que no lo toca sigue exactamente
+          igual que antes de este cambio, sin ningún selector extra. */}
+          {hayPanelVidrio && (
+            <>
+              {rollosVidrio.length === 0 ? (
+                <Text style={styles.vacio}>
+                  Elegiste el parabrisas pero todavía no cargaste ningún rollo de PPF de vidrio en
+                  Mis Insumos (categoría PPF, marcado "Vidrio", con m² y precio cargados) — no se
+                  puede calcular ese costo hasta que cargues uno.
+                </Text>
+              ) : (
+                <>
+                  <Text style={styles.label}>Rollo de vidrio a usar (parabrisas)</Text>
+                  <View style={styles.chips}>
+                    {rollosVidrio.map((rollo) => {
+                      const activo = rolloVidrioElegido?.id === rollo.id;
+                      return (
+                        <TouchableOpacity
+                          key={rollo.id}
+                          style={[styles.chip, activo && styles.chipActivo]}
+                          onPress={() => onCambiar({ insumoPpfVidrioId: rollo.id })}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={[styles.chipTexto, activo && styles.chipTextoActivo]} numberOfLines={1}>
+                            {rollo.marca} · {rollo.nombre}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <Text style={styles.ayuda}>
+                    Costo por m²: {formatearPesos(costoPorM2RolloVidrio ?? 0)} (precio de compra ÷
+                    m² del rollo)
+                  </Text>
+                </>
+              )}
             </>
           )}
 
@@ -135,6 +217,8 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
 
           {!presupuesto ? (
             <Text style={styles.vacio}>No hay matriz de PPF cargada para esta carrocería.</Text>
+          ) : presupuesto.error ? (
+            <Text style={styles.vacio}>{presupuesto.mensaje}</Text>
           ) : (
             <View style={styles.resultadoTarjeta}>
               <Text style={styles.resultadoTitulo}>Desglose por panel</Text>
@@ -142,6 +226,7 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
                 <View key={linea.panel} style={styles.resultadoFila}>
                   <Text style={styles.resultadoLabel} numberOfLines={1}>
                     {linea.panel.split("__")[1] ?? linea.panel} · {linea.m2ConMerma} m²
+                    {linea.material === "vidrio" ? " · vidrio" : ""}
                   </Text>
                   <Text style={styles.resultadoValor}>{formatearPesos(linea.costoPanel)}</Text>
                 </View>
@@ -154,9 +239,15 @@ export default function PresupuestoPpfStep({ datos, paso, totalPasos, onCambiar,
                 <Text style={styles.resultadoValor}>{presupuesto.m2TotalConMerma} m²</Text>
               </View>
               <View style={styles.resultadoFila}>
-                <Text style={styles.resultadoLabel}>Costo de material</Text>
-                <Text style={styles.resultadoValor}>{formatearPesos(presupuesto.costoMaterial)}</Text>
+                <Text style={styles.resultadoLabel}>Material carrocería</Text>
+                <Text style={styles.resultadoValor}>{formatearPesos(presupuesto.costoMaterialCarroceria)}</Text>
               </View>
+              {hayPanelVidrio && (
+                <View style={styles.resultadoFila}>
+                  <Text style={styles.resultadoLabel}>Material vidrio</Text>
+                  <Text style={styles.resultadoValor}>{formatearPesos(presupuesto.costoMaterialVidrio)}</Text>
+                </View>
+              )}
               <View style={styles.resultadoFila}>
                 <Text style={styles.resultadoLabel}>Mano de obra</Text>
                 <Text style={styles.resultadoValor}>{formatearPesos(presupuesto.manoDeObraEstimada)}</Text>

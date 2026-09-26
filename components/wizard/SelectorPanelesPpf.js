@@ -12,9 +12,11 @@ import { colors, continuousCorner, fonts } from "../../theme";
 //
 // `panelesDisponibles` es el objeto `paneles` de data/ppfPanelMatrix.js para
 // la subdivisión elegida (via utils/calculosPpf.js: obtenerClavePpf +
-// obtenerPanelesPpf) — los ids de zona reales que NO están ahí (ej. las
-// zonas "vidrio", que PPF no cubre) quedan tocables en el diagrama pero no
-// hacen nada al tocarlas, en vez de romper o mostrar un estado roto.
+// obtenerPanelesPpf) — los ids de zona reales que NO están ahí (ej. lunetas
+// o ventanillas laterales de vidrio, sin panel propio todavía -- el
+// parabrisas SÍ lo tiene, ver data/ppfPanelMatrix.js) quedan tocables en el
+// diagrama pero no hacen nada al tocarlas, en vez de romper o mostrar un
+// estado roto.
 export default function SelectorPanelesPpf({ claveVehiculo, vista, panelesDisponibles, panelesElegidos, onTogglePanel, ancho = 220 }) {
   const diagramaVehiculo = DIAGRAMAS_POR_TIPO_VEHICULO[claveVehiculo];
   const diagramaVista = diagramaVehiculo?.vistas?.[vista];
@@ -28,7 +30,7 @@ export default function SelectorPanelesPpf({ claveVehiculo, vista, panelesDispon
   const danios = Object.fromEntries(panelesElegidos.map((id) => [id, { tipos: ["ppf"] }]));
 
   function handleTocarZona(id) {
-    if (!panelesDisponibles[id]) return; // zona real sin cobertura en la matriz de PPF (ej. vidrio)
+    if (!panelesDisponibles[id]) return; // zona real sin panel propio en la matriz de PPF todavía
     onTogglePanel(id);
   }
 

@@ -15,7 +15,6 @@ import WizardHeader from "../../components/wizard/WizardHeader";
 import SwipeVolver from "../../components/wizard/SwipeVolver";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
-import TourAnchor from "../../components/tour/TourAnchor";
 import { useTaller } from "../../data/TallerContext";
 import { obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { construirResumenDanios } from "../../utils/resumenDanios";
@@ -233,21 +232,19 @@ export default function FirmaConformidadStep({
               <Text style={styles.borrarFirmaTexto}>Borrar firma</Text>
             </TouchableOpacity>
           </View>
-          <TourAnchor id="trabajoNuevo.firma">
-            <View style={styles.firmaContenedor}>
-              <SignatureCanvas
-                ref={firmaRef}
-                onOK={handleOK}
-                onEmpty={handleEmpty}
-                onClear={handleClear}
-                onBegin={handleBegin}
-                webStyle={WEB_STYLE_FIRMA}
-                backgroundColor="#FFFFFF"
-                penColor={colors.bg}
-                descriptionText=""
-              />
-            </View>
-          </TourAnchor>
+          <View style={styles.firmaContenedor}>
+            <SignatureCanvas
+              ref={firmaRef}
+              onOK={handleOK}
+              onEmpty={handleEmpty}
+              onClear={handleClear}
+              onBegin={handleBegin}
+              webStyle={WEB_STYLE_FIRMA}
+              backgroundColor="#FFFFFF"
+              penColor={colors.bg}
+              descriptionText=""
+            />
+          </View>
 
           {error && <Text style={styles.error}>{error}</Text>}
 

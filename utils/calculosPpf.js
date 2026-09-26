@@ -2,9 +2,13 @@
 //
 // Calculo del presupuesto de un trabajo de PPF: paneles elegidos -> m2 de material necesario
 // (ya con merma) -> costo de material segun el precio por m2 del rollo cargado en Mis Insumos.
-// Mismo criterio de "se congela al momento de cobrar/completar el trabajo" que el resto de
-// Finanzas (turno_receta_aplicada) -- este calculo alimenta el snapshot que se guarda en
-// turno_ppf_paneles (turno_id, panel_id, vista, m2 congelado).
+// Puede haber DOS rollos distintos en el mismo trabajo (carrocería y vidrio, ver el campo
+// `material` de cada panel en data/ppfPanelMatrix.js) -- cada panel usa el costo por m² que le
+// corresponde según su propio material, nunca el de carrocería para todos. Mismo criterio de "se
+// congela al momento de cobrar/completar el trabajo" que el resto de Finanzas
+// (turno_receta_aplicada) -- este calculo alimenta el snapshot que se guarda en turno_ppf_paneles
+// (turno_id, panel_id, vista, m2 congelado, y ahora también el costo por m² que le correspondió a
+// ESE panel puntual -- ver TurnoContext.actualizarEstadoTrabajo).
 
 import { PPF_PANEL_MATRIX, MERMA_POR_MODO } from "../data/ppfPanelMatrix";
 
@@ -55,10 +59,16 @@ export function obtenerClavePpf({ tipoVehiculo, grupo, subdivision }) {
 }
 
 /**
- * costoPorM2Rollo: sale de dividir precioCompra / capacidadTotal del insumo PPF elegido
- * (categoria "ppf", capacidadUnidad "m2" -- el taller carga precio pagado + m2 reales del
- * rollo al agregarlo/reabastecerlo en Mis Insumos, mismo modal AgregarInsumoModal.js que ya
- * existe, sin columnas nuevas).
+ * costoPorM2RolloCarroceria: sale de dividir precioCompra / capacidadTotal del insumo PPF de
+ * carrocería elegido (categoria "ppf", materialPpf "carroceria", capacidadUnidad "m2" -- el
+ * taller carga precio pagado + m2 reales del rollo al agregarlo/reabastecerlo en Mis Insumos,
+ * ver AgregarInsumoModal.js). SIEMPRE requerido: todo trabajo de PPF tiene al menos un panel de
+ * carrocería.
+ *
+ * costoPorM2RolloVidrio: mismo cálculo, pero del insumo PPF con materialPpf "vidrio" (una lámina
+ * distinta, pensada para vidrio curvo -- ver data/ppfPanelMatrix.js). Opcional: solo hace falta
+ * si algún panel de panelesElegidos tiene material: "vidrio" (hoy, el parabrisas). Si falta y
+ * hace falta, se devuelve un error en vez de calcular con un costo faltante (ver más abajo).
  *
  * panelesElegidos: array de keys de panel (ej. ["capot", "paragolpes_delantero", ...]) que el
  * taller tildo en el selector (reusa el mismo componente de diagramas del check-in visual).
@@ -74,13 +84,15 @@ export function obtenerClavePpf({ tipoVehiculo, grupo, subdivision }) {
  * modoCorte: "manual" (default, cutter a mano) o "laser" (laser/plotter) -- define que fila de
  * MERMA_POR_MODO (data/ppfPanelMatrix.js) se usa para calcular mermaPct/m2ConMerma de cada panel
  * al vuelo, ya que la matriz de paneles dejó de traer esos dos valores fijos (ver el comentario
- * de cabecera de ppfPanelMatrix.js).
+ * de cabecera de ppfPanelMatrix.js). Misma merma para carrocería y vidrio -- el método de corte
+ * no cambia según el material, solo el costo por m² del rollo.
  */
 export function calcularPresupuestoPpf({
   tipoVehiculo,
   subdivision,
   panelesElegidos,
-  costoPorM2Rollo,
+  costoPorM2RolloCarroceria,
+  costoPorM2RolloVidrio,
   manoDeObraEstimada = 0,
   insumosAdicionalesEstimados = 0,
   modoCorte = "manual",
@@ -90,6 +102,17 @@ export function calcularPresupuestoPpf({
     return {
       error: "SIN_MATRIZ",
       mensaje: `No hay matriz de paneles PPF cargada para ${tipoVehiculo}/${subdivision}.`,
+    };
+  }
+
+  // Si algún panel elegido es de vidrio pero no vino el costo del rollo de vidrio, no hay con qué
+  // calcular ESE costoPanel -- mismo patrón que SIN_MATRIZ arriba, error explícito en vez de
+  // calcular con costoPorM2RolloVidrio undefined (que daría NaN silencioso).
+  const hayPanelVidrio = panelesElegidos.some((panelKey) => paneles[panelKey]?.material === "vidrio");
+  if (hayPanelVidrio && !(costoPorM2RolloVidrio > 0)) {
+    return {
+      error: "SIN_ROLLO_VIDRIO",
+      mensaje: "Elegiste un panel de vidrio pero no hay un rollo de vidrio cargado (o sin precio/m² válidos) para calcular su costo.",
     };
   }
 
@@ -109,24 +132,35 @@ export function calcularPresupuestoPpf({
     }
     const mermaPct = mermaPorComplejidad[panel.complejidad];
     const m2ConMerma = Math.round(panel.m2Referencia * (1 + mermaPct) * 100) / 100;
+    const costoPorM2 = panel.material === "vidrio" ? costoPorM2RolloVidrio : costoPorM2RolloCarroceria;
     return {
       panel: panelKey,
       m2Referencia: panel.m2Referencia,
       complejidad: panel.complejidad,
+      material: panel.material,
       mermaPct,
       m2ConMerma,
-      costoPanel: Math.round(m2ConMerma * costoPorM2Rollo * 100) / 100,
+      costoPanel: Math.round(m2ConMerma * costoPorM2 * 100) / 100,
     };
   });
 
-  const m2TotalConMerma = detalle.reduce((acc, p) => acc + (p.m2ConMerma || 0), 0);
-  const costoMaterial = Math.round(m2TotalConMerma * costoPorM2Rollo * 100) / 100;
+  const detalleValido = detalle.filter((d) => !d.error);
+  const m2TotalConMerma = detalleValido.reduce((acc, p) => acc + (p.m2ConMerma || 0), 0);
+  const costoMaterialCarroceria = Math.round(
+    detalleValido.filter((p) => p.material !== "vidrio").reduce((acc, p) => acc + p.costoPanel, 0) * 100
+  ) / 100;
+  const costoMaterialVidrio = Math.round(
+    detalleValido.filter((p) => p.material === "vidrio").reduce((acc, p) => acc + p.costoPanel, 0) * 100
+  ) / 100;
+  const costoMaterial = Math.round((costoMaterialCarroceria + costoMaterialVidrio) * 100) / 100;
   const presupuestoTotal =
     Math.round((costoMaterial + manoDeObraEstimada + insumosAdicionalesEstimados) * 100) / 100;
 
   return {
     detalle,
     m2TotalConMerma: Math.round(m2TotalConMerma * 100) / 100,
+    costoMaterialCarroceria,
+    costoMaterialVidrio,
     costoMaterial,
     manoDeObraEstimada,
     insumosAdicionalesEstimados,

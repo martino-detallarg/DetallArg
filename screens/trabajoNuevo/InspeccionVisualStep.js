@@ -18,7 +18,6 @@ import Button from "../../components/Button";
 import DiagramaDanios from "../../components/wizard/DiagramaDanios";
 import MedicionMicronesModal, { resumenMedicionMicrones } from "../../components/wizard/MedicionMicronesModal";
 import { PANEL_IDS as ZONAS_IDS, PANEL_LABELS as ZONAS_LABELS } from "../../components/wizard/DamageDiagram";
-import TourAnchor from "../../components/tour/TourAnchor";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "../../components/diagrams/vehicles";
 import { colors, continuousCorner, fonts, radii } from "../../theme";
 
@@ -139,7 +138,6 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
       siente en conflicto en el borde izquierdo, achicar ANCHO_BORDE en
       SwipeVolver.js o sacarlo de este paso puntual. */}
       <SwipeVolver onAtras={onAtras}>
-      <TourAnchor id="trabajoNuevo.inspeccionVisual">
         <View style={styles.diagramaArea}>
           {esMotoSinDiagrama ? (
             <View style={styles.proximamente}>
@@ -189,7 +187,6 @@ export default function InspeccionVisualStep({ datos, paso, totalPasos, onCambia
             </>
           )}
         </View>
-      </TourAnchor>
 
       <View style={styles.acciones}>
         <TouchableOpacity

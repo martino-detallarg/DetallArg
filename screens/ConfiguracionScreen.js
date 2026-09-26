@@ -4,7 +4,6 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import { useTaller } from "../data/TallerContext";
-import { useTour } from "../data/TourContext";
 import { useAuth } from "../data/AuthContext";
 import { PLANES } from "../data/mockTaller";
 import { colors, continuousCorner, fonts, radii } from "../theme";
@@ -15,22 +14,9 @@ const VERSION_APP = "1.0.0";
 
 export default function ConfiguracionScreen({ navigation }) {
   const { plan, misDatos, nombreTaller } = useTaller();
-  const { iniciarTour } = useTour();
   const { user, signOut } = useAuth();
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [errorCierre, setErrorCierre] = useState(null);
-
-  // El primer TourAnchor del tour ("home.fab") vive en HomeScreen.js —
-  // ConfiguracionScreen está en un Stack separado (ConfiguracionStack), así
-  // que si el taller no está ya parado en Home cuando toca este botón, el
-  // spotlight no tiene ningún TourAnchor montado donde aparecer. "Home" es
-  // una Drawer.Screen de primer nivel, hermana directa de "Configuracion"
-  // en el mismo Drawer (ver DashboardNavigator.js) — no hace falta
-  // sintaxis de navegación anidada acá.
-  function handleVerTutorial() {
-    iniciarTour();
-    navigation.navigate("Home");
-  }
 
   async function handleCerrarSesion() {
     setCerrandoSesion(true);
@@ -109,14 +95,6 @@ export default function ConfiguracionScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Text style={styles.filaTexto}>Política de privacidad</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.seccionLabel}>Ayuda</Text>
-        <View style={styles.tarjeta}>
-          <TouchableOpacity style={styles.fila} onPress={handleVerTutorial} activeOpacity={0.8}>
-            <Text style={styles.filaTexto}>Ver tutorial de nuevo</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>

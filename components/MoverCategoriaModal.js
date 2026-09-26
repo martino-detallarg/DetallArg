@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
 import MedidorNivelInsumo from "./MedidorNivelInsumo";
+import EditarConsumoInsumoModal from "./EditarConsumoInsumoModal";
 import { useData } from "../data/DataContext";
 import { CATEGORIAS } from "../data/mockInsumos";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
@@ -18,9 +19,16 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
   const [eliminando, setEliminando] = useState(false);
   const [ajustando, setAjustando] = useState(false);
   const [error, setError] = useState(null);
+  // Solo puede haber un <Modal> hijo abierto a la vez (ver más abajo, mismo
+  // criterio que modoRegistro en TrabajoDetalleModal.js) -- este es el
+  // único hoy, pero deja el patrón listo si se suma otro más adelante.
+  const [editarConsumoVisible, setEditarConsumoVisible] = useState(false);
 
   useEffect(() => {
-    if (visible) setError(null);
+    if (visible) {
+      setError(null);
+      setEditarConsumoVisible(false);
+    }
   }, [visible, insumo?.id]);
 
   async function handleCambiarNivel(nivelNuevo) {
@@ -75,7 +83,8 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <>
+    <Modal visible={visible && !editarConsumoVisible} animationType="slide" transparent onRequestClose={onClose}>
       {/* react-native-gesture-handler no llega adentro de un <Modal> nativo a
       través del GestureHandlerRootView de App.js (el modal abre su propia
       jerarquía nativa) — mismo detalle que TrabajoNuevoWizard.js, hace falta
@@ -84,7 +93,7 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
       <GestureHandlerRootView style={styles.gestureRoot}>
       <View style={styles.fondo}>
         <View style={styles.contenedor}>
-          <Text style={styles.titulo}>Mover a otra categoría</Text>
+          <Text style={styles.titulo}>Insumo</Text>
 
           {/* Único scroll para todo el contenido variable (antes solo
           scrolleaba la lista de categorías) — con el medidor nuevo sumando
@@ -108,6 +117,25 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
               </View>
             )}
 
+            {/* Dilución/rendimiento (ver ConfiguracionConsumoInsumo.js): no
+            se completa al cargar el insumo por primera vez, o el taller
+            se dio cuenta después de que el consumo real es otro -- se
+            edita acá en vez de tener que borrar y volver a cargar el
+            insumo entero. */}
+            <TouchableOpacity
+              style={styles.opcion}
+              onPress={() => setEditarConsumoVisible(true)}
+              disabled={guardando || eliminando || ajustando}
+              activeOpacity={0.8}
+            >
+              <View style={styles.opcionIcono}>
+                <Ionicons name="flask-outline" size={20} color={colors.accentLight} />
+              </View>
+              <Text style={styles.opcionTexto}>Editar consumo (dilución / rendimiento)</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <Text style={styles.seccionLabel}>Mover a otra categoría</Text>
             {Object.entries(CATEGORIAS).map(([clave, datos]) => {
               const esActual = insumo?.categoria === clave;
               return (
@@ -156,6 +184,13 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
       </View>
       </GestureHandlerRootView>
     </Modal>
+
+    <EditarConsumoInsumoModal
+      visible={editarConsumoVisible}
+      insumo={insumo}
+      onClose={() => setEditarConsumoVisible(false)}
+    />
+    </>
   );
 }
 
@@ -195,6 +230,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 4,
+  },
+  seccionLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginTop: 8,
+    marginBottom: 8,
   },
   lista: {
     flexGrow: 0,

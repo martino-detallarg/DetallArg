@@ -243,12 +243,15 @@ create table turnos (
   id                     uuid primary key default gen_random_uuid(),
   taller_id              uuid not null references talleres (id) on delete cascade,
 
-  -- SET NULL en cliente/vehículo/servicio: un turno ya cargado es un
-  -- registro de negocio que no debería desaparecer ni romperse si más
-  -- adelante se borra el cliente, el vehículo o el servicio asociado —
-  -- mismo espíritu que el fallback "Cliente sin datos"/"Auto sin datos"
-  -- que ya tiene TurnoCard.js hoy para referencias colgantes.
-  cliente_id             uuid references clientes (id) on delete set null,
+  -- CASCADE en cliente (cambiado a propósito, ver
+  -- supabase/alter_cliente_borrado_cascada.sql — pedido explícito de
+  -- Augusto: borrar un cliente tiene que borrar sus trabajos de verdad, no
+  -- dejarlos huérfanos). SET NULL en vehículo/servicio, sin cambios: un
+  -- turno ya cargado es un registro de negocio que no debería desaparecer
+  -- ni romperse si más adelante se borra el vehículo o el servicio
+  -- asociado — mismo espíritu que el fallback "Auto sin datos" que ya
+  -- tiene TurnoCard.js hoy para referencias colgantes.
+  cliente_id             uuid references clientes (id) on delete cascade,
   vehiculo_id            uuid references vehiculos (id) on delete set null,
   servicio_id            uuid references servicios (id) on delete set null,
 
@@ -388,9 +391,19 @@ create table cobros (
   id           uuid primary key default gen_random_uuid(),
   taller_id    uuid not null references talleres (id) on delete cascade,
 
-  -- SET NULL (no CASCADE): si se borra el turno, el ingreso histórico se
-  -- conserva — mismo criterio que turno_receta_aplicada.insumo_id.
-  turno_id     uuid references turnos (id) on delete set null,
+  -- CASCADE (cambiado a propósito, ver
+  -- supabase/alter_cliente_borrado_cascada.sql): si se borra el turno, sus
+  -- cobros se borran con él. Antes era SET NULL (el ingreso histórico se
+  -- conservaba, mismo criterio que turno_receta_aplicada.insumo_id) — el
+  -- pedido puntual fue que borrar un cliente borre de verdad todo su
+  -- historial (cliente -> turno -> cobro); como una FK no puede distinguir
+  -- POR QUÉ se borró el turno (a mano, o en cascada porque se borró el
+  -- cliente), este mismo CASCADE aplica en los dos casos. eliminarCliente
+  -- (data/ClienteContext.js) es hoy el único lugar de la app que borra un
+  -- turno con cobros reales sin pasar por una pantalla propia de "eliminar
+  -- turno" -- por eso la confirmación con los números reales vive ahí (ver
+  -- hooks/useConfirmarYEliminarCliente.js), no en este ALTER.
+  turno_id     uuid references turnos (id) on delete cascade,
 
   monto        numeric(12, 2) not null check (monto > 0),
   fecha        date not null,

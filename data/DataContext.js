@@ -15,8 +15,23 @@ function filaAInsumo(fila) {
     marca: fila.marca,
     nombre: fila.nombre,
     categoria: fila.categoria,
-    diluciones: (fila.diluciones ?? []).map((d) => ({ texto: d.texto, mlPorUso: d.ml_por_uso })),
-    rendimiento: fila.rendimiento,
+    // Único dato real de consumo por insumo (ver
+    // components/insumos/ConfiguracionConsumoInsumo.js y
+    // supabase/alter_insumos_ml_por_uso.sql): mlPorUso es el canónico que
+    // usa el resto de la app -- null en insumos todavía sin configurar
+    // (incluidos TODOS los cargados con el modelo viejo de
+    // diluciones/rendimiento, que no se migró automáticamente).
+    seDiluye: fila.se_diluye ?? false,
+    dilucionX: fila.dilucion_x,
+    envaseAplicadorMl: fila.envase_aplicador_ml,
+    mlPorUso: fila.ml_por_uso,
+    // Solo tiene sentido para un insumo de categoria "ppf" (un rollo): a
+    // qué le corresponde, carrocería o vidrio (lámina distinta, ver
+    // data/ppfPanelMatrix.js y supabase/alter_insumos_material_ppf.sql).
+    // Default "carroceria" en la base para que los rollos de PPF ya
+    // cargados antes de este campo sigan funcionando como rollo de
+    // carrocería sin que el taller tenga que tocarlos.
+    materialPpf: fila.material_ppf ?? "carroceria",
     imagen: fila.imagen_url,
     precioCompra: fila.precio_compra,
     capacidadTotal: fila.capacidad_total,
@@ -29,7 +44,7 @@ function filaAInsumo(fila) {
 }
 
 const COLUMNAS_INSUMO =
-  "id, producto_id, marca, nombre, categoria, diluciones, rendimiento, imagen_url, precio_compra, capacidad_total, capacidad_unidad, cantidad_actual, ancho_rollo, es_personalizado, nivel";
+  "id, producto_id, marca, nombre, categoria, se_diluye, dilucion_x, envase_aplicador_ml, ml_por_uso, material_ppf, imagen_url, precio_compra, capacidad_total, capacidad_unidad, cantidad_actual, ancho_rollo, es_personalizado, nivel";
 
 // Migrado a Supabase (tablas `insumos` y `costos_fijos`, ver supabase/schema.sql).
 // Todas las mutaciones son `async` y escriben de verdad contra Supabase antes
@@ -141,8 +156,11 @@ export function DataProvider({ children }) {
     marca,
     nombre,
     categoria,
-    diluciones,
-    rendimiento,
+    seDiluye = false,
+    dilucionX = null,
+    envaseAplicadorMl = null,
+    mlPorUso = null,
+    materialPpf = "carroceria",
     imagen,
     precioCompra,
     capacidadTotal,
@@ -164,8 +182,11 @@ export function DataProvider({ children }) {
         marca,
         nombre,
         categoria,
-        diluciones: diluciones.map((d) => ({ texto: d.texto, ml_por_uso: d.mlPorUso ?? null })),
-        rendimiento,
+        se_diluye: seDiluye,
+        dilucion_x: dilucionX,
+        envase_aplicador_ml: envaseAplicadorMl,
+        ml_por_uso: mlPorUso,
+        material_ppf: materialPpf,
         imagen_url: imagen,
         precio_compra: precioCompra,
         capacidad_total: capacidadTotal,
@@ -321,6 +342,59 @@ export function DataProvider({ children }) {
     );
   }
 
+  // Edita la configuración de consumo de un insumo YA cargado (seDiluye/
+  // dilucionX/envaseAplicadorMl/mlPorUso, ver
+  // components/insumos/ConfiguracionConsumoInsumo.js) — a diferencia de
+  // agregarInsumo (inserta uno nuevo), esto se usa desde
+  // EditarConsumoInsumoModal.js (abierto desde MoverCategoriaModal.js en
+  // Mis Insumos) para completar o corregir el dato de un insumo que ya
+  // existe, típicamente uno cargado con el modelo viejo (mlPorUso null,
+  // ver alter_insumos_ml_por_uso.sql) o uno cuyo consumo real resultó
+  // distinto al configurado.
+  async function actualizarConfiguracionInsumo(id, { seDiluye, dilucionX, envaseAplicadorMl, mlPorUso }) {
+    const { error } = await supabase
+      .from("insumos")
+      .update({
+        se_diluye: seDiluye,
+        dilucion_x: dilucionX,
+        envase_aplicador_ml: envaseAplicadorMl,
+        ml_por_uso: mlPorUso,
+      })
+      .eq("id", id);
+    if (error) throw error;
+
+    setMisInsumos((actuales) =>
+      actuales.map((i) => (i.id === id ? { ...i, seDiluye, dilucionX, envaseAplicadorMl, mlPorUso } : i))
+    );
+  }
+
+  // Recalibra mlPorUso a partir del uso REAL informado por el taller para
+  // ESTE envase (ver NotificacionStockBajoCard.js: "¿te rindió como
+  // esperabas, o te rindió menos/más?"), en vez de a mano desde Mis
+  // Insumos. Fórmula: lo que se consumió de este envase hasta ahora
+  // (capacidadTotal − cantidadActual, el mismo cálculo de "cuánto se gastó"
+  // que ya usa el resto de la app) dividido los usos reales que el taller
+  // dice haber sacado — ajusta la ESTIMACIÓN para adelante, no reescribe
+  // ningún consumo ya descontado (nivel/cantidadActual no se tocan acá).
+  // Sin capacidadTotal cargada, o con usosReales inválido, no hay con qué
+  // calcular: no hace nada en vez de guardar un número inventado.
+  async function recalibrarMlPorUso(id, usosReales) {
+    const insumo = misInsumos.find((i) => i.id === id);
+    const usos = Number(usosReales);
+    if (!insumo?.capacidadTotal || !(usos > 0)) return;
+
+    const mlConsumidos = insumo.capacidadTotal - (insumo.cantidadActual ?? 0);
+    if (!(mlConsumidos > 0)) return;
+    const mlPorUsoNuevo = Math.round((mlConsumidos / usos) * 100) / 100;
+
+    const { error } = await supabase.from("insumos").update({ ml_por_uso: mlPorUsoNuevo }).eq("id", id);
+    if (error) throw error;
+
+    setMisInsumos((actuales) =>
+      actuales.map((i) => (i.id === id ? { ...i, mlPorUso: mlPorUsoNuevo } : i))
+    );
+  }
+
   async function agregarCostoFijo({ nombre, monto }) {
     const { data, error } = await supabase
       .from("costos_fijos")
@@ -371,6 +445,8 @@ export function DataProvider({ children }) {
       descontarInsumos,
       reponerInsumo,
       ajustarNivelInsumo,
+      actualizarConfiguracionInsumo,
+      recalibrarMlPorUso,
       insumosParaRenovar,
       descartarRenovacion,
       agregarCostoFijo,

@@ -4,7 +4,6 @@ import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, T
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import GastoVariableModal from "../components/GastoVariableModal";
-import TourAnchor from "../components/tour/TourAnchor";
 import { useData } from "../data/DataContext";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useTurnos } from "../data/TurnoContext";
@@ -252,19 +251,17 @@ export default function FinanzasScreen({ navigation }) {
           </View>
         )}
 
-        <TourAnchor id="finanzas.info">
-          <View style={styles.heroTarjeta}>
-            <Text style={styles.resumenLabel}>Ganancia neta del mes</Text>
-            <Text style={[styles.resumenMonto, ESTILOS_SEMAFORO[colorSemaforoGananciaNeta]]}>
-              {formatearPesos(gananciaNetaDelMes)}
-            </Text>
-            <Text style={styles.proyeccionTexto}>
-              {proyeccionGananciaNeta !== null
-                ? `A este ritmo, vas a cerrar el mes con ~${formatearPesos(proyeccionGananciaNeta)} de ganancia neta.`
-                : "Todavía es pronto en el mes para proyectar cómo vas a cerrar."}
-            </Text>
-          </View>
-        </TourAnchor>
+        <View style={styles.heroTarjeta}>
+          <Text style={styles.resumenLabel}>Ganancia neta del mes</Text>
+          <Text style={[styles.resumenMonto, ESTILOS_SEMAFORO[colorSemaforoGananciaNeta]]}>
+            {formatearPesos(gananciaNetaDelMes)}
+          </Text>
+          <Text style={styles.proyeccionTexto}>
+            {proyeccionGananciaNeta !== null
+              ? `A este ritmo, vas a cerrar el mes con ~${formatearPesos(proyeccionGananciaNeta)} de ganancia neta.`
+              : "Todavía es pronto en el mes para proyectar cómo vas a cerrar."}
+          </Text>
+        </View>
 
         <View style={styles.grid}>
           <View style={styles.gridItem}>

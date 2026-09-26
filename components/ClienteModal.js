@@ -6,6 +6,7 @@ import WizardHeader from "./wizard/WizardHeader";
 import Input from "./Input";
 import Button from "./Button";
 import { useClientes } from "../data/ClienteContext";
+import { useConfirmarYEliminarCliente } from "../hooks/useConfirmarYEliminarCliente";
 import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -21,7 +22,8 @@ import { colors, continuousCorner, fonts, radii } from "../theme";
 // no existe. Si no viene `onEliminado`, cae a `onClose` (mismo
 // comportamiento que antes, para no romper otro uso futuro de este modal).
 export default function ClienteModal({ visible, cliente, onClose, onEliminado }) {
-  const { agregarCliente, editarCliente, eliminarCliente } = useClientes();
+  const { agregarCliente, editarCliente } = useClientes();
+  const { confirmarYEliminarCliente } = useConfirmarYEliminarCliente();
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -59,12 +61,17 @@ export default function ClienteModal({ visible, cliente, onClose, onEliminado })
     }
   }
 
+  // confirmarYEliminarCliente (ver hooks/useConfirmarYEliminarCliente.js)
+  // muestra el cartel de confirmación con trabajos/cobrado real SOLO si el
+  // cliente tiene algo que perder -- si no, borra directo, igual que antes.
+  // Resuelve `false` si el taller canceló desde el cartel: en ese caso no
+  // pasó nada, así que no hay que cerrar el modal ni avisar a nadie.
   async function handleEliminar() {
     setCargando(true);
     setError(null);
     try {
-      await eliminarCliente(cliente.id);
-      (onEliminado ?? onClose)();
+      const eliminado = await confirmarYEliminarCliente(cliente);
+      if (eliminado) (onEliminado ?? onClose)();
     } catch (err) {
       setError("No se pudo eliminar el cliente. Probá de nuevo.");
     } finally {

@@ -1,16 +1,11 @@
-import { forwardRef } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "./Button";
-import TourAnchor from "./tour/TourAnchor";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
-// forwardRef a propósito: TourAnchor (ver components/tour/TourAnchor.js)
-// necesita medir la posición real en pantalla de cada fila (clonándola con
-// un ref) para poder resaltarla durante el tutorial guiado.
-const Opcion = forwardRef(function Opcion({ icono, titulo, descripcion, onPress }, ref) {
+function Opcion({ icono, titulo, descripcion, onPress }) {
   return (
-    <TouchableOpacity ref={ref} style={styles.opcion} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={styles.opcion} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.opcionIcono}>
         <Ionicons name={icono} size={22} color={colors.accentLight} />
       </View>
@@ -21,7 +16,7 @@ const Opcion = forwardRef(function Opcion({ icono, titulo, descripcion, onPress 
       <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
     </TouchableOpacity>
   );
-});
+}
 
 export default function OpcionesNuevoModal({ visible, onClose, onClienteNuevo, onTrabajoNuevo, onSena }) {
   return (
@@ -31,30 +26,24 @@ export default function OpcionesNuevoModal({ visible, onClose, onClienteNuevo, o
           <Text style={styles.titulo}>¿Qué querés hacer?</Text>
           <Text style={styles.subtitulo}>Elegí una opción para continuar</Text>
 
-          <TourAnchor id="opcionesNuevo.clienteNuevo">
-            <Opcion
-              icono="person-add-outline"
-              titulo="Cliente nuevo"
-              descripcion="Cargar un cliente nuevo o sumarle un vehículo a uno existente"
-              onPress={onClienteNuevo}
-            />
-          </TourAnchor>
-          <TourAnchor id="opcionesNuevo.trabajoNuevo">
-            <Opcion
-              icono="briefcase-outline"
-              titulo="Trabajo nuevo"
-              descripcion="Agendar un servicio para un cliente que ya tenés cargado"
-              onPress={onTrabajoNuevo}
-            />
-          </TourAnchor>
-          <TourAnchor id="opcionesNuevo.sena">
-            <Opcion
-              icono="wallet-outline"
-              titulo="Seña"
-              descripcion="Registrar una seña para reservar un trabajo que ya cargaste"
-              onPress={onSena}
-            />
-          </TourAnchor>
+          <Opcion
+            icono="person-add-outline"
+            titulo="Cliente nuevo"
+            descripcion="Cargar un cliente nuevo o sumarle un vehículo a uno existente"
+            onPress={onClienteNuevo}
+          />
+          <Opcion
+            icono="briefcase-outline"
+            titulo="Trabajo nuevo"
+            descripcion="Agendar un servicio para un cliente que ya tenés cargado"
+            onPress={onTrabajoNuevo}
+          />
+          <Opcion
+            icono="wallet-outline"
+            titulo="Seña"
+            descripcion="Registrar una seña para reservar un trabajo que ya cargaste"
+            onPress={onSena}
+          />
 
           <Button title="Cancelar" variant="secondary" onPress={onClose} />
         </View>

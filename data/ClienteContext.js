@@ -86,6 +86,16 @@ export function ClienteProvider({ children }) {
     setClientes((actuales) => actuales.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
   }
 
+  // Borra el cliente sin confirmar nada ni avisar qué se va a perder — desde
+  // el ALTER de cascada (supabase/alter_cliente_borrado_cascada.sql) esto
+  // también se lleva puestos, de verdad, todos sus turnos y los cobros de
+  // esos turnos (antes quedaban huérfanos con cliente_id/turno_id en null,
+  // sin perderse). Por eso este primitivo NO se llama directo desde ningún
+  // componente: el único lugar que tiene que invocarlo es
+  // hooks/useConfirmarYEliminarCliente.js, que primero cruza cuántos turnos
+  // y cuánto cobrado tiene el cliente (via useTurnos()/useFinanzas(), que
+  // no están disponibles acá — ver el comentario de ese hook) y solo
+  // confirma con el taller si hay algo real que perder.
   async function eliminarCliente(id) {
     const { error } = await supabase.from("clientes").delete().eq("id", id);
     if (error) throw error;

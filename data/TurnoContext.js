@@ -448,6 +448,17 @@ export function TurnoProvider({ children }) {
       // el default "manual" (calcularPresupuestoPpf) como base de reparto —
       // no cambia nada si el taller carga opciones.m2RealUsado, que pisa el
       // total sin importar de qué mermaPct haya salido la base.
+      //
+      // costoPorM2RolloCarroceria/Vidrio en 0/0.01: turno_ppf_paneles NUNCA
+      // guardó un costo por panel (solo `m2`, ver alter_turno_ppf_paneles.sql
+      // -- el costo de material es puramente informativo para la cotización
+      // de PresupuestoPpfStep.js, no se persiste en ningún lado todavía).
+      // Acá solo interesan m2ConMerma/material de cada panel para el
+      // snapshot, así que se le pasan valores dummy -- 0.01 (no 0) en el de
+      // vidrio porque calcularPresupuestoPpf exige un costo > 0 para
+      // cualquier panel de vidrio elegido (ver SIN_ROLLO_VIDRIO) y un
+      // trabajo con el parabrisas marcado tiene que poder finalizarse igual,
+      // sin depender de qué rollo haya elegido el taller en el wizard.
       if (!turno.panelesPpfAplicados && turno.panelesPpf?.length > 0) {
         const clavePpf = obtenerClavePpf({
           tipoVehiculo: turno.tipoVehiculo,
@@ -459,7 +470,8 @@ export function TurnoProvider({ children }) {
               tipoVehiculo: clavePpf.tipoVehiculo,
               subdivision: clavePpf.subdivision,
               panelesElegidos: turno.panelesPpf,
-              costoPorM2Rollo: 0,
+              costoPorM2RolloCarroceria: 0,
+              costoPorM2RolloVidrio: 0.01,
             })
           : null;
         // Panel elegido en su momento que ya no existe en la matriz vigente

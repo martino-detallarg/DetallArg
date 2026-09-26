@@ -6,7 +6,6 @@ import Input from "./Input";
 import RegistrarCobroModal from "./RegistrarCobroModal";
 import CompletarFirmaModal from "./CompletarFirmaModal";
 import TelefonoConAcciones from "./TelefonoConAcciones";
-import TourAnchor from "./tour/TourAnchor";
 import { ESTADOS_TRABAJO } from "../data/mockData";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useServicios } from "../data/ServicioContext";
@@ -367,18 +366,16 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                   <Text style={styles.campoValor}>Cobrado por completo</Text>
                 ) : (
                   (saldoPendiente === null || saldoPendiente > 0) && (
-                    <TourAnchor id="trabajoDetalle.cobrar">
-                      <TouchableOpacity
-                        style={styles.cobroBoton}
-                        onPress={() => setModoRegistro("cobro")}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name="cash-outline" size={16} color={colors.bg} />
-                        <Text style={styles.cobroBotonTexto}>
-                          {totalCobrado > 0 ? "Registrar otro pago" : "Registrar cobro"}
-                        </Text>
-                      </TouchableOpacity>
-                    </TourAnchor>
+                    <TouchableOpacity
+                      style={styles.cobroBoton}
+                      onPress={() => setModoRegistro("cobro")}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="cash-outline" size={16} color={colors.bg} />
+                      <Text style={styles.cobroBotonTexto}>
+                        {totalCobrado > 0 ? "Registrar otro pago" : "Registrar cobro"}
+                      </Text>
+                    </TouchableOpacity>
                   )
                 )}
               </View>
