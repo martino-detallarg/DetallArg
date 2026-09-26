@@ -57,7 +57,7 @@ export default function ClientesScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
+      <ScreenHeader onVolver={() => navigation.goBack()} />
 
       <Text style={styles.titulo}>Clientes</Text>
 

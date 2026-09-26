@@ -218,7 +218,7 @@ export default function AgendaScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
+      <ScreenHeader onVolver={() => navigation.goBack()} />
 
       <View style={styles.encabezadoFila}>
         <Text style={styles.tituloAgenda}>Agenda</Text>

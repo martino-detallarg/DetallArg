@@ -32,7 +32,7 @@ export default function ConfiguracionScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.getParent()?.openDrawer()} />
+      <ScreenHeader onVolver={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
         <Text style={styles.titulo}>Configuración</Text>
@@ -70,7 +70,7 @@ export default function ConfiguracionScreen({ navigation }) {
           <View style={styles.separador} />
           <TouchableOpacity
             style={styles.fila}
-            onPress={() => navigation.navigate("MiTaller", { screen: "MisDatos" })}
+            onPress={() => navigation.navigate("MisDatos")}
             activeOpacity={0.8}
           >
             <Text style={styles.filaTexto}>Editar mis datos</Text>

@@ -7,23 +7,14 @@ import StatCard from "../components/StatCard";
 import WidgetCalendarioHome from "../components/WidgetCalendarioHome";
 import TurnoCard from "../components/TurnoCard";
 import TrabajoDetalleModal from "../components/TrabajoDetalleModal";
-import OpcionesNuevoModal from "../components/OpcionesNuevoModal";
-import SeleccionarTrabajoSenaModal from "../components/SeleccionarTrabajoSenaModal";
-import RegistrarCobroModal from "../components/RegistrarCobroModal";
-import ClienteNuevoSubmenu from "../components/ClienteNuevoSubmenu";
-import ConfirmarTrabajoModal from "../components/ConfirmarTrabajoModal";
 import EstadoCarga from "../components/EstadoCarga";
-import NuevoClienteWizard from "./nuevoCliente/NuevoClienteWizard";
-import TrabajoNuevoWizard from "./trabajoNuevo/TrabajoNuevoWizard";
 import { useClientes } from "../data/ClienteContext";
 import { useTurnos } from "../data/TurnoContext";
 import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
-import { useFinanzas } from "../data/FinanzasContext";
 import { calcularInstanteEntrega, obtenerInicioTurno } from "../utils/entregas";
-import { calcularSaldoPendienteTurno } from "../utils/calculosFinanzas";
 import { sumarDias } from "../utils/fecha";
-import { colors, fonts, shadow } from "../theme";
+import { colors, fonts } from "../theme";
 
 // Horizonte hacia adelante para turnos que todavía no están atrasados ni
 // tienen el trabajo terminado (ver armarListaUrgencias) — más allá de esto
@@ -89,44 +80,23 @@ function armarListaUrgencias(turnos, getServicioById) {
   return [...atrasados, ...finalizados, ...resto].map((item) => item.turno);
 }
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, onAbrirNotificaciones }) {
   const { getClienteById, getVehiculoById } = useClientes();
-  const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, agregarTurno, actualizarEstadoTrabajo, eliminarTurno } =
+  const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, actualizarEstadoTrabajo, eliminarTurno } =
     useTurnos();
   const { getServicioById } = useServicios();
   const { misDatos } = useTaller();
-  const { cobros } = useFinanzas();
   const [turnoSeleccionadoId, setTurnoSeleccionadoId] = useState(null);
   // Cambia cada vez que Home gana/pierde foco: se usa como `key` del anillo
   // de progreso para forzar su remount (y que la animación de llenado se
   // repita) cada vez que se vuelve a esta pantalla, no solo al abrir la app.
   const estaEnfocada = useIsFocused();
 
-  const [opcionesVisibles, setOpcionesVisibles] = useState(false);
-  const [submenuClienteVisible, setSubmenuClienteVisible] = useState(false);
-  const [modoClienteWizard, setModoClienteWizard] = useState("cliente");
-  const [wizardClienteVisible, setWizardClienteVisible] = useState(false);
-  const [wizardTrabajoVisible, setWizardTrabajoVisible] = useState(false);
-  const [prefillTrabajo, setPrefillTrabajo] = useState(null);
-  const [confirmacionTrabajoVisible, setConfirmacionTrabajoVisible] = useState(false);
-  const [clienteVehiculoPendiente, setClienteVehiculoPendiente] = useState(null);
-  // Acceso rápido global a "Registrar seña" (ver OpcionesNuevoModal.js): a
-  // diferencia de turnoSeleccionadoId (que abre el detalle completo del
-  // trabajo), acá el trabajo NO está implícito — primero se elige desde
-  // SeleccionarTrabajoSenaModal, y recién ahí se abre RegistrarCobroModal
-  // directo, sin pasar por TrabajoDetalleModal.
-  const [selectorSenaVisible, setSelectorSenaVisible] = useState(false);
-  const [turnoSenaId, setTurnoSenaId] = useState(null);
-
   const turnosOrdenados = useMemo(
     () => armarListaUrgencias(turnos, getServicioById),
     [turnos, getServicioById]
   );
   const turnoSeleccionado = turnos.find((t) => t.id === turnoSeleccionadoId) ?? null;
-  const turnoSena = turnos.find((t) => t.id === turnoSenaId) ?? null;
-  const cobrosDelTurnoSena = turnoSena ? cobros.filter((c) => c.turnoId === turnoSena.id) : [];
-  const totalCobradoSena = cobrosDelTurnoSena.reduce((suma, c) => suma + c.monto, 0);
-  const saldoPendienteSena = turnoSena ? calcularSaldoPendienteTurno(turnoSena, cobros) : null;
 
   // Solo para el anillo de progreso de la card "Turnos activos": cuántos ya
   // están Finalizado (a entregar) sobre el total — Entregado no puede
@@ -136,65 +106,10 @@ export default function HomeScreen({ navigation }) {
   const turnosCompletados = turnosOrdenados.filter((t) => t.estado === "Finalizado").length;
   const progresoTurnosHoy = turnosOrdenados.length > 0 ? turnosCompletados / turnosOrdenados.length : 0;
 
-  function handleAbrirClienteNuevo() {
-    setOpcionesVisibles(false);
-    setSubmenuClienteVisible(true);
-  }
-
-  function handleAbrirTrabajoNuevo() {
-    setOpcionesVisibles(false);
-    setPrefillTrabajo(null);
-    setWizardTrabajoVisible(true);
-  }
-
-  function handleVolverAOpciones() {
-    setSubmenuClienteVisible(false);
-    setOpcionesVisibles(true);
-  }
-
-  function handleElegirModoCliente(modo) {
-    setSubmenuClienteVisible(false);
-    setModoClienteWizard(modo);
-    setWizardClienteVisible(true);
-  }
-
-  function handleClienteVehiculoListo(clienteId, autoId) {
-    setWizardClienteVisible(false);
-    setClienteVehiculoPendiente({ clienteId, autoId });
-    setConfirmacionTrabajoVisible(true);
-  }
-
-  function handleConfirmarTrabajoSi() {
-    setConfirmacionTrabajoVisible(false);
-    setPrefillTrabajo(clienteVehiculoPendiente);
-    setClienteVehiculoPendiente(null);
-    setWizardTrabajoVisible(true);
-  }
-
-  function handleConfirmarTrabajoNo() {
-    setConfirmacionTrabajoVisible(false);
-    setClienteVehiculoPendiente(null);
-  }
-
-  function handleCerrarTrabajo() {
-    setWizardTrabajoVisible(false);
-    setPrefillTrabajo(null);
-  }
-
-  function handleAbrirSena() {
-    setOpcionesVisibles(false);
-    setSelectorSenaVisible(true);
-  }
-
-  function handleElegirTurnoSena(turno) {
-    setSelectorSenaVisible(false);
-    setTurnoSenaId(turno.id);
-  }
-
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.openDrawer()} />
+      <ScreenHeader onAbrirNotificaciones={onAbrirNotificaciones} />
 
       <EstadoCarga cargando={cargandoTurnos} error={errorCargaTurnos} onReintentar={recargarTurnos}>
         <FlatList
@@ -247,43 +162,6 @@ export default function HomeScreen({ navigation }) {
         />
       </EstadoCarga>
 
-      {!cargandoTurnos && !errorCargaTurnos && (
-        <TouchableOpacity style={styles.fab} onPress={() => setOpcionesVisibles(true)}>
-          <Text style={styles.fabTexto}>+</Text>
-        </TouchableOpacity>
-      )}
-
-      <OpcionesNuevoModal
-        visible={opcionesVisibles}
-        onClose={() => setOpcionesVisibles(false)}
-        onClienteNuevo={handleAbrirClienteNuevo}
-        onTrabajoNuevo={handleAbrirTrabajoNuevo}
-        onSena={handleAbrirSena}
-      />
-
-      <SeleccionarTrabajoSenaModal
-        visible={selectorSenaVisible}
-        onClose={() => setSelectorSenaVisible(false)}
-        onElegirTurno={handleElegirTurnoSena}
-      />
-
-      <RegistrarCobroModal
-        visible={turnoSenaId !== null}
-        turno={turnoSena}
-        esSena
-        saldoPendiente={saldoPendienteSena}
-        montoYaCobrado={totalCobradoSena}
-        onClose={() => setTurnoSenaId(null)}
-      />
-
-      <ClienteNuevoSubmenu
-        visible={submenuClienteVisible}
-        onClose={() => setSubmenuClienteVisible(false)}
-        onVolver={handleVolverAOpciones}
-        onClienteNuevo={() => handleElegirModoCliente("cliente")}
-        onVehiculoNuevo={() => handleElegirModoCliente("vehiculo")}
-      />
-
       <TrabajoDetalleModal
         visible={turnoSeleccionado !== null}
         turno={turnoSeleccionado}
@@ -297,27 +175,6 @@ export default function HomeScreen({ navigation }) {
           setTurnoSeleccionadoId(null);
         }}
         onClose={() => setTurnoSeleccionadoId(null)}
-      />
-
-      <NuevoClienteWizard
-        visible={wizardClienteVisible}
-        modo={modoClienteWizard}
-        onClose={() => setWizardClienteVisible(false)}
-        onListo={handleClienteVehiculoListo}
-      />
-
-      <ConfirmarTrabajoModal
-        visible={confirmacionTrabajoVisible}
-        onSi={handleConfirmarTrabajoSi}
-        onNo={handleConfirmarTrabajoNo}
-      />
-
-      <TrabajoNuevoWizard
-        visible={wizardTrabajoVisible}
-        onClose={handleCerrarTrabajo}
-        onGuardarTrabajo={agregarTurno}
-        clienteIdInicial={prefillTrabajo?.clienteId}
-        autoIdInicial={prefillTrabajo?.autoId}
       />
     </SafeAreaView>
   );
@@ -375,23 +232,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: colors.textMuted,
     marginTop: 40,
-  },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 30,
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    backgroundColor: colors.textPrimary,
-    alignItems: "center",
-    justifyContent: "center",
-    ...shadow,
-  },
-  fabTexto: {
-    color: colors.bg,
-    fontSize: 30,
-    fontWeight: "400",
-    marginTop: -2,
   },
 });

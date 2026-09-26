@@ -28,6 +28,7 @@ import VerifyEmailScreen from "./screens/VerifyEmailScreen";
 import OlvidePasswordScreen from "./screens/OlvidePasswordScreen";
 import RestablecerPasswordScreen from "./screens/RestablecerPasswordScreen";
 import DashboardNavigator from "./navigation/DashboardNavigator";
+import { navigationRef } from "./navigation/navigationRef";
 import OnboardingWizard from "./screens/onboarding/OnboardingWizard";
 import { AuthProvider, useAuth } from "./data/AuthContext";
 import { DataProvider } from "./data/DataContext";
@@ -39,6 +40,7 @@ import { ServicioProvider } from "./data/ServicioContext";
 import { EquipoProvider } from "./data/EquipoContext";
 import { CatalogoProvider } from "./data/CatalogoContext";
 import { FinanzasProvider } from "./data/FinanzasContext";
+import { AccionesRapidasProvider } from "./data/AccionesRapidasContext";
 import { colors } from "./theme";
 
 SplashScreenNativo.preventAutoHideAsync();
@@ -199,8 +201,10 @@ function ContenidoApp() {
   }
 
   return (
-    <NavigationContainer>
-      <DashboardNavigator />
+    <NavigationContainer ref={navigationRef}>
+      <AccionesRapidasProvider>
+        <DashboardNavigator />
+      </AccionesRapidasProvider>
     </NavigationContainer>
   );
 }

@@ -1,68 +1,37 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import EditarTallerModal from "../components/EditarTallerModal";
 import EstadoCarga from "../components/EstadoCarga";
 import { useTaller } from "../data/TallerContext";
-import { useClientes } from "../data/ClienteContext";
-import { useTurnos } from "../data/TurnoContext";
-import { useServicios } from "../data/ServicioContext";
-import { useData } from "../data/DataContext";
-import { useFinanzas } from "../data/FinanzasContext";
-import { generarYCompartirBackup } from "../utils/backupDatos";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const TAMANO_LOGO = 88;
 
+// Mis Datos, Configuración de Finanzas, Historial de Clientes y Exportar
+// mis datos NO están acá (pedido explícito de Augusto, 2026-09-26): viven en
+// el menú de hamburguesa (components/MenuModal.js, 5to tab) aunque
+// conceptualmente sigan siendo parte de Mi Taller — Mi Taller queda solo con
+// los accesos de uso más frecuente/operativo.
 const ITEMS_MENU = [
-  { ruta: "MisDatos", titulo: "Mis Datos", icono: "document-text-outline" },
   { ruta: "MiEquipo", titulo: "Mi Equipo", icono: "people-outline" },
   { ruta: "MisInsumos", titulo: "Mis Insumos", icono: "cube-outline" },
   { ruta: "MisHorarios", titulo: "Mis Horarios", icono: "time-outline" },
   { ruta: "MisServicios", titulo: "Mis Servicios", icono: "construct-outline" },
-  { ruta: "ConfiguracionFinanzas", titulo: "Configuración de Finanzas", icono: "options-outline" },
   { ruta: "Catalogo", titulo: "Catálogo", icono: "albums-outline" },
   { ruta: "Presupuesto", titulo: "Calculadora de Presupuesto", icono: "calculator-outline" },
-  { ruta: "HistorialClientes", titulo: "Historial de Clientes", icono: "archive-outline" },
 ];
 
-export default function MiTallerScreen({ navigation }) {
+export default function MiTallerScreen({ navigation, onAbrirNotificaciones }) {
   const { nombreTaller, logoTaller, cargandoTaller, errorCargaTaller, recargarTaller } = useTaller();
-  const { clientes } = useClientes();
-  const { turnos } = useTurnos();
-  const { servicios } = useServicios();
-  const { misInsumos, costosFijos } = useData();
-  const { cobros, gastosVariables } = useFinanzas();
   const [modalVisible, setModalVisible] = useState(false);
-  const [exportando, setExportando] = useState(false);
-
-  // 100% de solo lectura sobre lo que ya está cargado en memoria por los
-  // contextos de arriba — no dispara ningún fetch nuevo ni toca Supabase.
-  async function handleExportarDatos() {
-    setExportando(true);
-    try {
-      await generarYCompartirBackup(nombreTaller, {
-        clientes,
-        turnos,
-        servicios,
-        insumos: misInsumos,
-        costosFijos,
-        cobros,
-        gastosVariables,
-      });
-    } catch (err) {
-      Alert.alert("No se pudo generar el backup", "Probá de nuevo en unos segundos.");
-    } finally {
-      setExportando(false);
-    }
-  }
 
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.getParent()?.openDrawer()} />
+      <ScreenHeader onAbrirNotificaciones={onAbrirNotificaciones} />
 
       <EstadoCarga cargando={cargandoTaller} error={errorCargaTaller} onReintentar={recargarTaller}>
         <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
@@ -105,23 +74,6 @@ export default function MiTallerScreen({ navigation }) {
               </TouchableOpacity>
             ))}
           </View>
-
-          <TouchableOpacity
-            style={[styles.fila, styles.filaExportar]}
-            onPress={handleExportarDatos}
-            disabled={exportando}
-            activeOpacity={0.8}
-          >
-            <View style={styles.filaIcono}>
-              <Ionicons name="cloud-download-outline" size={20} color={colors.textPrimary} />
-            </View>
-            <Text style={styles.filaTexto}>Exportar mis datos</Text>
-            {exportando ? (
-              <ActivityIndicator color={colors.accentLight} size="small" />
-            ) : (
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            )}
-          </TouchableOpacity>
         </ScrollView>
       </EstadoCarga>
 
@@ -182,9 +134,6 @@ const styles = StyleSheet.create({
   },
   lista: {
     gap: 10,
-  },
-  filaExportar: {
-    marginTop: 10,
   },
   fila: {
     flexDirection: "row",

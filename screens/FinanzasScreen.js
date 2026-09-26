@@ -57,7 +57,7 @@ function obtenerTimestamp(fechaDDMMAAAA) {
 // completo del mes (trabajosDelMes, rankingServicios, desglose) aunque las
 // pantallas de Costos/Rendimiento/Tendencias ya no lo muestren en esta
 // pantalla — por eso ese cálculo sigue viviendo acá, no se duplica.
-export default function FinanzasScreen({ navigation }) {
+export default function FinanzasScreen({ navigation, onAbrirNotificaciones }) {
   const { costosFijos, cargandoCostosFijos, errorCargaCostosFijos } = useData();
   const {
     cobros,
@@ -234,7 +234,7 @@ export default function FinanzasScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar style="light" />
-      <ScreenHeader onAbrirMenu={() => navigation.getParent()?.openDrawer()} />
+      <ScreenHeader onAbrirNotificaciones={onAbrirNotificaciones} />
 
       <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
         <Text style={styles.titulo}>Finanzas</Text>

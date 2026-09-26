@@ -18,7 +18,14 @@ function Opcion({ icono, titulo, descripcion, onPress }) {
   );
 }
 
-export default function OpcionesNuevoModal({ visible, onClose, onClienteNuevo, onTrabajoNuevo, onSena }) {
+export default function OpcionesNuevoModal({
+  visible,
+  onClose,
+  onClienteNuevo,
+  onTrabajoNuevo,
+  onSena,
+  onPresupuesto,
+}) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.fondo}>
@@ -43,6 +50,12 @@ export default function OpcionesNuevoModal({ visible, onClose, onClienteNuevo, o
             titulo="Seña"
             descripcion="Registrar una seña para reservar un trabajo que ya cargaste"
             onPress={onSena}
+          />
+          <Opcion
+            icono="calculator-outline"
+            titulo="Presupuesto"
+            descripcion="Cotizarle un precio a un cliente potencial, sin cargar todavía un trabajo"
+            onPress={onPresupuesto}
           />
 
           <Button title="Cancelar" variant="secondary" onPress={onClose} />
