@@ -36,6 +36,7 @@ import {
   rankingServiciosPorGanancia,
 } from "../utils/calculosFinanzas";
 import { TOPES_MONOTRIBUTO } from "../data/monotributoCategorias";
+import { useTourTarget } from "../data/TourTargetContext";
 import { construirHtmlResumenFinanciero, generarYCompartirPdf } from "../utils/finanzasPdf";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -58,6 +59,7 @@ function obtenerTimestamp(fechaDDMMAAAA) {
 // pantallas de Costos/Rendimiento/Tendencias ya no lo muestren en esta
 // pantalla — por eso ese cálculo sigue viviendo acá, no se duplica.
 export default function FinanzasScreen({ navigation, onAbrirNotificaciones }) {
+  const tourGanancia = useTourTarget("finanzas.ganancia");
   const { costosFijos, cargandoCostosFijos, errorCargaCostosFijos } = useData();
   const {
     cobros,
@@ -251,7 +253,7 @@ export default function FinanzasScreen({ navigation, onAbrirNotificaciones }) {
           </View>
         )}
 
-        <View style={styles.heroTarjeta}>
+        <View ref={tourGanancia.ref} onLayout={tourGanancia.onLayout} style={styles.heroTarjeta}>
           <Text style={styles.resumenLabel}>Ganancia neta del mes</Text>
           <Text style={[styles.resumenMonto, ESTILOS_SEMAFORO[colorSemaforoGananciaNeta]]}>
             {formatearPesos(gananciaNetaDelMes)}

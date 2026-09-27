@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import EstadoCarga from "../components/EstadoCarga";
 import AgregarInsumoModal from "../components/AgregarInsumoModal";
+import { useTourTarget } from "../data/TourTargetContext";
 import CategoriaInsumosModal from "../components/CategoriaInsumosModal";
 import MoverCategoriaModal from "../components/MoverCategoriaModal";
 import ProductoCasillero from "../components/ProductoCasillero";
@@ -84,6 +85,7 @@ export default function MisInsumosScreen({ navigation }) {
   const [categoriaAbierta, setCategoriaAbierta] = useState(null);
   const [paginaActiva, setPaginaActiva] = useState(0);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const tourAgregarInsumo = useTourTarget("insumos.agregar");
 
   const tamanoCasillero =
     (width - PADDING_GRILLA * 2 - ESPACIO_CASILLERO * (COLUMNAS - 1)) / COLUMNAS;
@@ -176,7 +178,12 @@ export default function MisInsumosScreen({ navigation }) {
         </View>
       </EstadoCarga>
 
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity
+        ref={tourAgregarInsumo.ref}
+        onLayout={tourAgregarInsumo.onLayout}
+        style={styles.fab}
+        onPress={() => setModalVisible(true)}
+      >
         <Text style={styles.fabTexto}>+</Text>
       </TouchableOpacity>
 

@@ -84,6 +84,7 @@ export function TallerProvider({ children }) {
   const [misDatos, setMisDatos] = useState(MIS_DATOS_VACIOS);
   const [plan, setPlan] = useState("basico");
   const [onboardingCompletado, setOnboardingCompletado] = useState(true);
+  const [tourRelacionalCompletado, setTourRelacionalCompletado] = useState(true);
   const [umbralGananciaVerdePorcentaje, setUmbralGananciaVerdePorcentaje] = useState(UMBRAL_GANANCIA_VERDE_DEFAULT);
   const [horarios, setHorarios] = useState(horariosIniciales);
   const [cargandoTaller, setCargandoTaller] = useState(true);
@@ -151,6 +152,9 @@ export function TallerProvider({ children }) {
       // la columna no existe, data.onboarding_completado viene undefined y
       // no hay que mostrarle el wizard a nadie por error.
       setOnboardingCompletado(data.onboarding_completado ?? true);
+      // Mismo fallback, para el ratito entre el push y que Nico corra
+      // alter_talleres_tour_relacional.sql.
+      setTourRelacionalCompletado(data.tour_relacional_completado ?? true);
       setUmbralGananciaVerdePorcentaje(
         data.umbral_ganancia_verde_porcentaje ?? UMBRAL_GANANCIA_VERDE_DEFAULT
       );
@@ -436,6 +440,18 @@ export function TallerProvider({ children }) {
     setOnboardingCompletado(true);
   }
 
+  // Tutorial relacional (data/TourManager.js) — se llama al terminarlo o al
+  // saltearlo. Solo apaga el disparo automático: el botón "Ver tutorial de
+  // la app" de Configuración lo vuelve a abrir sin mirar este flag.
+  async function marcarTourRelacionalCompletado() {
+    const { error } = await supabase
+      .from("talleres")
+      .update({ tour_relacional_completado: true })
+      .eq("id", user.id);
+    if (error) throw error;
+    setTourRelacionalCompletado(true);
+  }
+
   // Sin pagos reales conectados: hoy solo lo llama el panel de pruebas de
   // MiEquipoScreen.js. El día que haya un flujo de compra real, este sigue
   // siendo el punto de entrada para actualizar el plan.
@@ -457,6 +473,8 @@ export function TallerProvider({ children }) {
       cambiarPlan,
       onboardingCompletado,
       marcarOnboardingCompletado,
+      tourRelacionalCompletado,
+      marcarTourRelacionalCompletado,
       horarios,
       actualizarHorario,
       umbralGananciaVerdePorcentaje,
@@ -482,6 +500,7 @@ export function TallerProvider({ children }) {
       plan,
       limiteEmpleados,
       onboardingCompletado,
+      tourRelacionalCompletado,
       horarios,
       umbralGananciaVerdePorcentaje,
       planesCuotasTarjeta,

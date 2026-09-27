@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import EditarTallerModal from "../components/EditarTallerModal";
 import EstadoCarga from "../components/EstadoCarga";
+import { useTourTarget } from "../data/TourTargetContext";
 import { useTaller } from "../data/TallerContext";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -12,7 +13,7 @@ const TAMANO_LOGO = 88;
 
 // Mis Datos, Configuración de Finanzas, Historial de Clientes y Exportar
 // mis datos NO están acá (pedido explícito de Augusto, 2026-09-26): viven en
-// el menú de hamburguesa (components/MenuModal.js, 5to tab) aunque
+// la pantalla Menú (screens/MenuScreen.js, 5to tab) aunque
 // conceptualmente sigan siendo parte de Mi Taller — Mi Taller queda solo con
 // los accesos de uso más frecuente/operativo.
 const ITEMS_MENU = [
@@ -27,6 +28,7 @@ const ITEMS_MENU = [
 export default function MiTallerScreen({ navigation, onAbrirNotificaciones }) {
   const { nombreTaller, logoTaller, cargandoTaller, errorCargaTaller, recargarTaller } = useTaller();
   const [modalVisible, setModalVisible] = useState(false);
+  const tourMenu = useTourTarget("mitaller.menu");
 
   return (
     <SafeAreaView style={styles.pantalla}>
@@ -58,7 +60,7 @@ export default function MiTallerScreen({ navigation, onAbrirNotificaciones }) {
             </View>
           </View>
 
-          <View style={styles.lista}>
+          <View ref={tourMenu.ref} onLayout={tourMenu.onLayout} collapsable={false} style={styles.lista}>
             {ITEMS_MENU.map((item) => (
               <TouchableOpacity
                 key={item.ruta}

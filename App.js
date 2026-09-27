@@ -41,6 +41,9 @@ import { EquipoProvider } from "./data/EquipoContext";
 import { CatalogoProvider } from "./data/CatalogoContext";
 import { FinanzasProvider } from "./data/FinanzasContext";
 import { AccionesRapidasProvider } from "./data/AccionesRapidasContext";
+import { TourTargetProvider } from "./data/TourTargetContext";
+import { TourManagerProvider, useTourManager } from "./data/TourManager";
+import TourOverlay from "./components/TourOverlay";
 import { colors } from "./theme";
 
 SplashScreenNativo.preventAutoHideAsync();
@@ -201,10 +204,39 @@ function ContenidoApp() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <AccionesRapidasProvider>
-        <DashboardNavigator />
-      </AccionesRapidasProvider>
-    </NavigationContainer>
+    <TourTargetProvider>
+      <TourManagerProvider>
+        <DashboardConTour />
+      </TourManagerProvider>
+    </TourTargetProvider>
+  );
+}
+
+// Tutorial relacional (data/TourManager.js): se dispara solo la primera vez
+// que se monta el Dashboard para un taller con el onboarding ya hecho y el
+// tour todavía sin ver (cuentas nuevas: justo después de terminar
+// OnboardingWizard, porque ContenidoApp cae recién ahí a esta rama).
+// `onReady` del NavigationContainer corre una sola vez por montaje, y con el
+// contenedor ya listo navigationRef.navigate() funciona desde el primer
+// paso. El botón manual de Configuración llama iniciarTour() sin mirar el
+// flag. TourOverlay va como hermano del NavigationContainer (no adentro de
+// ninguna pantalla) para quedar por encima de todo el Dashboard.
+function DashboardConTour() {
+  const { tourRelacionalCompletado } = useTaller();
+  const { iniciarTour } = useTourManager();
+
+  function handleNavegacionLista() {
+    if (!tourRelacionalCompletado) iniciarTour();
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      <NavigationContainer ref={navigationRef} onReady={handleNavegacionLista}>
+        <AccionesRapidasProvider>
+          <DashboardNavigator />
+        </AccionesRapidasProvider>
+      </NavigationContainer>
+      <TourOverlay />
+    </View>
   );
 }

@@ -58,7 +58,13 @@ create table talleres (
   -- cuentas ya existentes al correr el ALTER quedan con el wizard saltado;
   -- handle_new_user() la inserta en false explícitamente para altas nuevas.
   -- ALTER corrido y verificado contra la base real el 2026-09-08.
-  onboarding_completado boolean not null default true
+  onboarding_completado boolean not null default true,
+
+  -- Tutorial relacional (components/TourOverlay.js + data/TourManager.js).
+  -- Mismo criterio que onboarding_completado: default true para cuentas
+  -- existentes, handle_new_user() la inserta en false para altas nuevas.
+  -- Ver alter_talleres_tour_relacional.sql (incluye el grant de columna).
+  tour_relacional_completado boolean not null default true
 );
 
 comment on table talleres is 'Un taller = un usuario logueado (auth.users). Fusiona datos del taller y "Mis Datos" del titular.';

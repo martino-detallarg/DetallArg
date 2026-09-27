@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import ServicioModal from "../components/ServicioModal";
 import EstadoCarga from "../components/EstadoCarga";
+import { useTourTarget } from "../data/TourTargetContext";
 import { useServicios } from "../data/ServicioContext";
 import { useCatalogo } from "../data/CatalogoContext";
 import { formatearPesos, formatearDuracion } from "../utils/formato";
@@ -14,9 +15,11 @@ const COLUMNAS = 2;
 const PADDING_GRILLA = 20;
 const ESPACIO_TARJETA = 12;
 
-function TarjetaServicio({ servicio, ancho, enCatalogo, onEditar, onEliminar, onToggleCatalogo }) {
+function TarjetaServicio({ servicio, ancho, enCatalogo, onEditar, onEliminar, onToggleCatalogo, tourTarget }) {
   return (
     <TouchableOpacity
+      ref={tourTarget?.ref}
+      onLayout={tourTarget?.onLayout}
       style={[styles.tarjeta, { width: ancho }]}
       onPress={() => onEditar(servicio)}
       activeOpacity={0.85}
@@ -56,6 +59,7 @@ function TarjetaServicio({ servicio, ancho, enCatalogo, onEditar, onEliminar, on
 
 export default function MisServiciosScreen({ navigation }) {
   const { servicios, cargandoServicios, errorCargaServicios, recargarServicios, eliminarServicio } = useServicios();
+  const tourReceta = useTourTarget("servicios.receta");
   const { estaEnCatalogo, agregarAlCatalogo, quitarDelCatalogo } = useCatalogo();
   const { width } = useWindowDimensions();
   const [modalVisible, setModalVisible] = useState(false);
@@ -106,7 +110,7 @@ export default function MisServiciosScreen({ navigation }) {
             <Text style={styles.vacio}>Todavía no cargaste servicios.</Text>
           ) : (
             <View style={styles.grilla}>
-              {servicios.map((item) => (
+              {servicios.map((item, indice) => (
                 <TarjetaServicio
                   key={item.id}
                   servicio={item}
@@ -115,6 +119,7 @@ export default function MisServiciosScreen({ navigation }) {
                   onEditar={handleEditar}
                   onEliminar={handleEliminar}
                   onToggleCatalogo={handleToggleCatalogo}
+                  tourTarget={indice === 0 ? tourReceta : undefined}
                 />
               ))}
             </View>
@@ -123,7 +128,15 @@ export default function MisServiciosScreen({ navigation }) {
       </EstadoCarga>
 
       {!cargandoServicios && !errorCargaServicios && (
-        <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
+        <TouchableOpacity
+          // Tutorial relacional: sin servicios cargados, el "+" es la
+          // entrada a la receta (mismo id que la primera tarjeta, nunca
+          // están montados los dos marcados a la vez).
+          ref={servicios.length === 0 ? tourReceta.ref : undefined}
+          onLayout={servicios.length === 0 ? tourReceta.onLayout : undefined}
+          style={styles.fab}
+          onPress={handleAgregar}
+        >
           <Text style={styles.fabTexto}>+</Text>
         </TouchableOpacity>
       )}

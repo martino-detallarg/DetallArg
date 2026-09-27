@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import { useTaller } from "../data/TallerContext";
 import { useAuth } from "../data/AuthContext";
+import { useTourManager } from "../data/TourManager";
 import { PLANES } from "../data/mockTaller";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -15,6 +16,7 @@ const VERSION_APP = "1.0.0";
 export default function ConfiguracionScreen({ navigation }) {
   const { plan, misDatos, nombreTaller } = useTaller();
   const { user, signOut } = useAuth();
+  const { iniciarTour } = useTourManager();
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [errorCierre, setErrorCierre] = useState(null);
 
@@ -75,6 +77,17 @@ export default function ConfiguracionScreen({ navigation }) {
           >
             <Text style={styles.filaTexto}>Editar mis datos</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.seccionLabel}>Ayuda</Text>
+        <View style={styles.tarjeta}>
+          {/* Siempre disponible, sin mirar tourRelacionalCompletado: el
+          tour navega solo a Clientes/Agenda/Finanzas y al terminar vuelve
+          a Inicio (ver data/TourManager.js). */}
+          <TouchableOpacity style={styles.fila} onPress={iniciarTour} activeOpacity={0.8}>
+            <Text style={styles.filaTexto}>Ver tutorial de la app</Text>
+            <Ionicons name="play-circle-outline" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 

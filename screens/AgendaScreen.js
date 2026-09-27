@@ -13,6 +13,7 @@ import { useTurnos } from "../data/TurnoContext";
 import { useClientes } from "../data/ClienteContext";
 import { useServicios } from "../data/ServicioContext";
 import { useEquipo } from "../data/EquipoContext";
+import { useTourTarget } from "../data/TourTargetContext";
 import { obtenerRangoTurno, diaEstaEnRango } from "../utils/entregas";
 import {
   diferenciaEnDias,
@@ -38,6 +39,7 @@ function obtenerLayoutItemDia(data, index) {
 }
 
 export default function AgendaScreen({ navigation }) {
+  const tourCalendario = useTourTarget("agenda.calendario");
   const { turnos, cargandoTurnos, errorCargaTurnos, recargarTurnos, actualizarEstadoTrabajo, eliminarTurno } =
     useTurnos();
   const { getClienteById, getVehiculoById } = useClientes();
@@ -231,7 +233,7 @@ export default function AgendaScreen({ navigation }) {
 
       <Text style={styles.mesAnio}>{formatearMesAnio(fechaSeleccionada)}</Text>
 
-      <View style={styles.selectorSemana}>
+      <View ref={tourCalendario.ref} onLayout={tourCalendario.onLayout} collapsable={false} style={styles.selectorSemana}>
         <TouchableOpacity
           onPress={() => irAFecha(sumarDias(fechaSeleccionada, -7))}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

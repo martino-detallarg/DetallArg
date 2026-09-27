@@ -79,7 +79,7 @@ export default function MisDatosScreen({ navigation }) {
         situacionFiscal: datos.situacionFiscal,
         categoriaMonotributo: datos.categoriaMonotributo,
       });
-      navigation.navigate("MiTaller");
+      navigation.goBack();
     } catch (err) {
       setError("No se pudieron guardar los cambios. Probá de nuevo.");
     } finally {
@@ -93,7 +93,7 @@ export default function MisDatosScreen({ navigation }) {
         style={styles.flexContainer}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <WizardHeader titulo="Mis Datos" paso={1} totalPasos={1} onAtras={() => navigation.navigate("MiTaller")} />
+        <WizardHeader titulo="Mis Datos" paso={1} totalPasos={1} onAtras={() => navigation.goBack()} />
 
         <EstadoCarga cargando={cargandoTaller} error={errorCargaTaller} onReintentar={recargarTaller}>
           <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">

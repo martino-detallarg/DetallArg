@@ -7,6 +7,7 @@ import ScreenHeader from "../components/ScreenHeader";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import EstadoCarga from "../components/EstadoCarga";
+import { useTourTarget } from "../data/TourTargetContext";
 import { useCatalogo, construirOrdenCompletoCatalogo } from "../data/CatalogoContext";
 import { useServicios } from "../data/ServicioContext";
 import { useTaller } from "../data/TallerContext";
@@ -98,6 +99,7 @@ export default function CatalogoScreen({ navigation }) {
   // ficha individual que se está generando — así cada botón muestra su
   // propio loading sin bloquear el resto de la pantalla.
   const [generando, setGenerando] = useState(null);
+  const tourExportar = useTourTarget("catalogo.exportar");
 
   const taller = { nombreTaller, logoTaller, misDatos };
   const datosOperativos = { formaTrabajo: tallerFormaTrabajo, monedaCobro: tallerMonedaCobro };
@@ -199,28 +201,33 @@ export default function CatalogoScreen({ navigation }) {
             />
           </View>
 
-          <TouchableOpacity
-            style={styles.personalizarBoton}
-            onPress={() => navigation.navigate("EditorCatalogo")}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.personalizarSwatch, { backgroundColor: obtenerPlantillaActiva(configuracionCatalogo).colorAcento }]} />
-            <View style={styles.personalizarTextos}>
-              <Text style={styles.personalizarTitulo}>Personalizar catálogo</Text>
-              <Text style={styles.personalizarSubtitulo}>
-                {PLANTILLAS_CATALOGO[configuracionCatalogo.estiloBase].nombre}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+          {/* Wrapper sin estilo propio, solo para que el tutorial relacional
+          resalte juntos plantillas + exportar (los márgenes siguen en los
+          hijos, el layout no cambia). */}
+          <View ref={tourExportar.ref} onLayout={tourExportar.onLayout} collapsable={false}>
+            <TouchableOpacity
+              style={styles.personalizarBoton}
+              onPress={() => navigation.navigate("EditorCatalogo")}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.personalizarSwatch, { backgroundColor: obtenerPlantillaActiva(configuracionCatalogo).colorAcento }]} />
+              <View style={styles.personalizarTextos}>
+                <Text style={styles.personalizarTitulo}>Personalizar catálogo</Text>
+                <Text style={styles.personalizarSubtitulo}>
+                  {PLANTILLAS_CATALOGO[configuracionCatalogo.estiloBase].nombre}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
 
-          <View style={styles.botonCompleto}>
-            <Button
-              title="Generar catálogo completo"
-              onPress={handleGenerarCatalogoCompleto}
-              disabled={itemsCatalogo.length === 0}
-              loading={generando === "completo"}
-            />
+            <View style={styles.botonCompleto}>
+              <Button
+                title="Generar catálogo completo"
+                onPress={handleGenerarCatalogoCompleto}
+                disabled={itemsCatalogo.length === 0}
+                loading={generando === "completo"}
+              />
+            </View>
           </View>
 
           <View style={styles.separador} />

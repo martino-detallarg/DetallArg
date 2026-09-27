@@ -8,6 +8,7 @@ import ClienteModal from "../components/ClienteModal";
 import VehiculosClienteModal from "../components/VehiculosClienteModal";
 import EstadoCarga from "../components/EstadoCarga";
 import { useClientes } from "../data/ClienteContext";
+import { useTourTarget } from "../data/TourTargetContext";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
 function coincide(campo, termino) {
@@ -20,6 +21,7 @@ export default function ClientesScreen({ navigation }) {
   const [clienteEditandoId, setClienteEditandoId] = useState(null);
   const [clienteDetalleId, setClienteDetalleId] = useState(null);
   const [busqueda, setBusqueda] = useState("");
+  const tourNuevoCliente = useTourTarget("clientes.nuevo");
 
   const clienteEditando = clientes.find((c) => c.id === clienteEditandoId) ?? null;
   const clienteDetalle = clientes.find((c) => c.id === clienteDetalleId) ?? null;
@@ -104,7 +106,12 @@ export default function ClientesScreen({ navigation }) {
       </EstadoCarga>
 
       {!cargandoClientes && !errorCargaClientes && (
-        <TouchableOpacity style={styles.fab} onPress={handleAgregar}>
+        <TouchableOpacity
+          ref={tourNuevoCliente.ref}
+          onLayout={tourNuevoCliente.onLayout}
+          style={styles.fab}
+          onPress={handleAgregar}
+        >
           <Text style={styles.fabTexto}>+</Text>
         </TouchableOpacity>
       )}

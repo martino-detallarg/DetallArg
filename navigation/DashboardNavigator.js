@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -26,12 +25,13 @@ import MisHorariosScreen from "../screens/MisHorariosScreen";
 import ConfiguracionFinanzasScreen from "../screens/ConfiguracionFinanzasScreen";
 import HistorialClientesScreen from "../screens/HistorialClientesScreen";
 import ConfiguracionScreen from "../screens/ConfiguracionScreen";
+import MenuScreen from "../screens/MenuScreen";
 import SeleccionPlanScreen from "../screens/SeleccionPlanScreen";
 import DocumentoLegalScreen from "../screens/DocumentoLegalScreen";
-import MenuModal from "../components/MenuModal";
 import AccionesRapidasModales from "../components/AccionesRapidasModales";
 import RenovacionInsumoModal from "../components/RenovacionInsumoModal";
 import { useAccionesRapidas } from "../data/AccionesRapidasContext";
+import { useTourTarget } from "../data/TourTargetContext";
 import { colors, fonts, shadow } from "../theme";
 
 const Tab = createBottomTabNavigator();
@@ -105,56 +105,67 @@ function EtiquetaTab({ texto, focused }) {
 }
 
 // Pantalla vacía: nunca se llega a montar de verdad porque tabPress siempre
-// hace preventDefault() antes de navegar (ver "NuevoAccion" y "Menu" abajo),
-// pero un Tab.Screen necesita sí o sí un component válido.
+// hace preventDefault() antes de navegar (ver "NuevoAccion" abajo), pero un
+// Tab.Screen necesita sí o sí un component válido.
 function PantallaVacia() {
   return null;
 }
 
 // Los 5 tabs de abajo (pedido explícito de Augusto: Home / Mi Taller / "+"
-// central / Finanzas / menú de hamburguesa con "las cosas que sobran") +
-// las pantallas que ya no tienen tab propio pero siguen siendo navegables
-// desde el menú del 5to tab (Clientes, Agenda, Soporte, Configuración) o
-// desde el ícono de notificaciones del header (Notificaciones) — quedan
+// central / Finanzas / Menú con "las cosas que sobran") + las pantallas que
+// ya no tienen tab propio pero siguen siendo navegables desde la pantalla
+// Menú del 5to tab (Clientes, Agenda, Soporte, Configuración, etc.) o desde
+// el ícono de notificaciones del header (Notificaciones) — quedan
 // registradas como tabs SIN botón visible (tabBarButton null +
 // tabBarItemStyle display:none) para no perder ni el historial de
 // navegación ni la posibilidad de un navigation.navigate() plano desde
 // cualquier pantalla.
 function DashboardTabs({ navigation }) {
   const { abrirOpciones } = useAccionesRapidas();
-  const [menuVisible, setMenuVisible] = useState(false);
+  const tourBarra = useTourTarget("tabs.barra");
 
   // `navigation` acá es el nav del RootStack para la screen "Dashboard" (no
   // el del Tab.Navigator que se renderiza más abajo, adentro de ESTE mismo
   // componente) — un `navigate("Notificaciones")` a secas buscaría esa ruta
   // entre las screens del RootStack ("Dashboard"/"HistorialClientes") y
   // fallaría, porque "Notificaciones" vive un nivel más abajo, adentro del
-  // Tab.Navigator. Por eso hace falta la forma anidada `{screen, params}`
-  // para todo lo que vive DENTRO del Tab.Navigator — "HistorialClientes" es
-  // la única excepción real: vive arriba, como hermana de "Dashboard" en el
-  // RootStack (ver el comentario de esa ruta más abajo), así que a esa sí
-  // hay que navegarla directo, sin anidar.
+  // Tab.Navigator. Por eso hace falta la forma anidada `{screen, params}`.
+  // (Las pantallas que viven DENTRO del Tab.Navigator, como MenuScreen, no
+  // tienen ese problema: su `navigation` ya es el del Tab.Navigator.)
   function abrirNotificaciones() {
     navigation.navigate("Dashboard", { screen: "Notificaciones" });
-  }
-
-  function navegarDesdeMenu(ruta) {
-    setMenuVisible(false);
-    if (ruta === "HistorialClientes") {
-      navigation.navigate("HistorialClientes");
-    } else {
-      navigation.navigate("Dashboard", { screen: ruta });
-    }
   }
 
   return (
     <>
       <Tab.Navigator
+        // "Volver" (goBack de cada pantalla + botón atrás de Android) vuelve
+        // al tab visitado anteriormente, no siempre a Inicio (el default de
+        // v7 es "firstRoute"). Necesario desde que Menú es una pantalla real:
+        // Clientes/Agenda/Soporte/Configuración/Mis Datos/etc. abiertas desde
+        // el Menú vuelven al Menú, y Notificaciones vuelve al tab desde el que
+        // se tocó la campanita. "history" deduplica: cada tab aparece una sola
+        // vez en el historial (la última visita). El tutorial relacional
+        // recorta el historial a solo Inicio al cerrarse (ver cerrarTour en
+        // data/TourManager.js), para que el botón atrás no recorra su trayecto.
+        backBehavior="history"
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: colors.textPrimary,
           tabBarInactiveTintColor: colors.textMuted,
           tabBarStyle: styles.tabBar,
+          // Solo para que el tutorial relacional (último paso, "tus 5
+          // accesos") pueda medir la barra entera: mismo color que
+          // styles.tabBar, así que visualmente no cambia nada.
+          tabBarBackground: () => (
+            <View
+              ref={tourBarra.ref}
+              onLayout={tourBarra.onLayout}
+              collapsable={false}
+              pointerEvents="none"
+              style={styles.tabBarFondo}
+            />
+          ),
         }}
       >
         <Tab.Screen
@@ -209,21 +220,16 @@ function DashboardTabs({ navigation }) {
 
         <Tab.Screen
           name="Menu"
-          component={PantallaVacia}
           options={{
-            tabBarIcon: ({ focused }) => <IconoTab nombre="menu-outline" focused={focused} />,
+            tabBarIcon: ({ focused }) => <IconoTab nombre={focused ? "grid" : "grid-outline"} focused={focused} />,
             tabBarLabel: ({ focused }) => <EtiquetaTab texto="Menú" focused={focused} />,
           }}
-          listeners={{
-            tabPress: (e) => {
-              e.preventDefault();
-              setMenuVisible(true);
-            },
-          }}
-        />
+        >
+          {(props) => <MenuScreen {...props} onAbrirNotificaciones={abrirNotificaciones} />}
+        </Tab.Screen>
 
         {/* Sin botón visible: solo navegables por navigation.navigate() de
-        forma programática, desde el MenuModal o desde el ícono de
+        forma programática, desde la pantalla Menú o desde el ícono de
         notificaciones del header. */}
         <Tab.Screen
           name="Clientes"
@@ -266,8 +272,6 @@ function DashboardTabs({ navigation }) {
           options={{ tabBarButton: () => null, tabBarItemStyle: styles.tabOculto }}
         />
       </Tab.Navigator>
-
-      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} onNavegar={navegarDesdeMenu} />
     </>
   );
 }
@@ -280,13 +284,14 @@ function DashboardTabs({ navigation }) {
 // MisDatos, ConfiguracionFinanzas y Presupuesto NO están en este stack
 // (pedido explícito de Augusto, 2026-09-26): aunque conceptualmente son
 // parte de Mi Taller, hay que llegar a ellas desde otro lado sin pasar por
-// la pantalla de Mi Taller (MisDatos/ConfiguracionFinanzas desde el menú de
-// hamburguesa; Presupuesto además desde el botón "+" central, ver
+// la pantalla de Mi Taller (MisDatos/ConfiguracionFinanzas desde la pantalla
+// Menú del 5to tab; Presupuesto además desde el botón "+" central, ver
 // OpcionesNuevoModal/AccionesRapidasContext) — por eso viven como tabs de
 // nivel superior sin botón visible, mismo criterio que Clientes/Agenda/
-// Soporte más abajo. Sus pantallas ya navegaban de vuelta con
-// `navigation.navigate("MiTaller")` (no `goBack()`), así que "volver" sigue
-// funcionando igual sin cambios ahí. `MiTallerScreen.js` sigue teniendo su
+// Soporte más abajo. MisDatos/ConfiguracionFinanzas vuelven con `goBack()`
+// (desde 2026-09-27, con backBehavior="history": regresan al Menú, o a
+// Configuración si se entró desde "Editar mis datos"); Presupuesto sigue
+// volviendo con `navigation.navigate("MiTaller")`. `MiTallerScreen.js` sigue teniendo su
 // propio acceso a "Presupuesto" en `ITEMS_MENU` — ese `navigate("Presupuesto")`
 // ahora hace bubbling hacia el tab oculto en vez de resolver dentro de este
 // stack, mismo resultado visible para el taller.
@@ -365,6 +370,10 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     backgroundColor: colors.surface,
     borderTopColor: colors.borderSubtle,
+  },
+  tabBarFondo: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.surface,
   },
   tabLabel: {
     fontFamily: fonts.body,

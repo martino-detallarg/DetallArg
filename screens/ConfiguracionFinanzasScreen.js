@@ -58,7 +58,7 @@ export default function ConfiguracionFinanzasScreen({ navigation }) {
     setError(null);
     try {
       await actualizarConfiguracionFinanzas({ umbralGananciaVerdePorcentaje: umbralNumerico });
-      navigation.navigate("MiTaller");
+      navigation.goBack();
     } catch (err) {
       setError("No se pudieron guardar los cambios. Probá de nuevo.");
     } finally {
@@ -91,7 +91,7 @@ export default function ConfiguracionFinanzasScreen({ navigation }) {
           titulo="Configuración de Finanzas"
           paso={1}
           totalPasos={1}
-          onAtras={() => navigation.navigate("MiTaller")}
+          onAtras={() => navigation.goBack()}
         />
 
         <EstadoCarga
