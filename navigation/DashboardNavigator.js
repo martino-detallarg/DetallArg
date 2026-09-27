@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -98,11 +99,21 @@ function IconoTab({ nombre, focused }) {
   );
 }
 
-function EtiquetaTab({ texto, focused }) {
+function EtiquetaTab({ texto, focused, onLayout }) {
   return (
-    <Text style={[styles.tabLabel, focused && styles.tabLabelActivo]}>{texto}</Text>
+    <Text style={[styles.tabLabel, focused && styles.tabLabelActivo]} onLayout={onLayout}>
+      {texto}
+    </Text>
   );
 }
+
+// Tutorial relacional, paso "accesos": margen lateral del área medida de la
+// barra. Sin esto el marco del recorte iría de borde a borde de la pantalla y
+// sus esquinas inferiores quedarían recortadas por las esquinas redondeadas
+// del display (iPhone con indicador de inicio). Con 18 (menos los 6px de
+// padding del paso) el marco queda a 12px del borde, con todos los tabs
+// adentro (cada etiqueta va centrada en su quinto de ancho).
+const MARGEN_LATERAL_TOUR_BARRA = 18;
 
 // Pantalla vacía: nunca se llega a montar de verdad porque tabPress siempre
 // hace preventDefault() antes de navegar (ver "NuevoAccion" abajo), pero un
@@ -123,6 +134,22 @@ function PantallaVacia() {
 function DashboardTabs({ navigation }) {
   const { abrirOpciones } = useAccionesRapidas();
   const tourBarra = useTourTarget("tabs.barra");
+  // Distancia desde el tope de la barra hasta la base de las etiquetas.
+  // La barra tiene alto fijo (styles.tabBar.height) y bottom-tabs le suma
+  // paddingBottom = insets.bottom: en iPhone con indicador de inicio a los
+  // tabs les quedan ~38px, pero cada ítem ocupa ~54 (padding 5 + ícono 28 +
+  // etiqueta + padding 5), así que las etiquetas desbordan hacia la zona
+  // del indicador. Ni la barra entera ni "barra menos inset" sirven para
+  // enmarcarlas: se mide la etiqueta real de Inicio (todas están a la misma
+  // altura), así también acompaña si el sistema agranda la fuente.
+  const [altoHastaEtiquetas, setAltoHastaEtiquetas] = useState(null);
+  const medirEtiquetaTab = useCallback((evento) => {
+    const { y, height } = evento.nativeEvent.layout;
+    // `y` es relativo al botón del tab, que arranca debajo del paddingTop y
+    // del borde superior de la barra.
+    const alto = styles.tabBar.paddingTop + StyleSheet.hairlineWidth + y + height;
+    setAltoHastaEtiquetas((actual) => (actual !== null && Math.abs(actual - alto) < 0.5 ? actual : alto));
+  }, []);
 
   // `navigation` acá es el nav del RootStack para la screen "Dashboard" (no
   // el del Tab.Navigator que se renderiza más abajo, adentro de ESTE mismo
@@ -154,17 +181,24 @@ function DashboardTabs({ navigation }) {
           tabBarActiveTintColor: colors.textPrimary,
           tabBarInactiveTintColor: colors.textMuted,
           tabBarStyle: styles.tabBar,
-          // Solo para que el tutorial relacional (último paso, "tus 5
-          // accesos") pueda medir la barra entera: mismo color que
-          // styles.tabBar, así que visualmente no cambia nada.
+          // Fondo de la barra (mismo color que styles.tabBar, visualmente no
+          // cambia nada) + un View transparente que es lo que mide el
+          // tutorial relacional (último paso, "tus 5 accesos"): desde el
+          // tope de la barra hasta la base de las etiquetas (ver
+          // altoHastaEtiquetas), con margen lateral. Hasta medir la
+          // etiqueta, cubre la barra entera.
           tabBarBackground: () => (
-            <View
-              ref={tourBarra.ref}
-              onLayout={tourBarra.onLayout}
-              collapsable={false}
-              pointerEvents="none"
-              style={styles.tabBarFondo}
-            />
+            <View pointerEvents="none" style={styles.tabBarFondo}>
+              <View
+                ref={tourBarra.ref}
+                onLayout={tourBarra.onLayout}
+                collapsable={false}
+                style={[
+                  styles.tabBarAreaTour,
+                  altoHastaEtiquetas !== null ? { height: altoHastaEtiquetas } : { bottom: 0 },
+                ]}
+              />
+            </View>
           ),
         }}
       >
@@ -172,7 +206,9 @@ function DashboardTabs({ navigation }) {
           name="Home"
           options={{
             tabBarIcon: ({ focused }) => <IconoTab nombre={focused ? "home" : "home-outline"} focused={focused} />,
-            tabBarLabel: ({ focused }) => <EtiquetaTab texto="Inicio" focused={focused} />,
+            tabBarLabel: ({ focused }) => (
+              <EtiquetaTab texto="Inicio" focused={focused} onLayout={medirEtiquetaTab} />
+            ),
           }}
         >
           {(props) => <HomeScreen {...props} onAbrirNotificaciones={abrirNotificaciones} />}
@@ -374,6 +410,12 @@ const styles = StyleSheet.create({
   tabBarFondo: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.surface,
+  },
+  tabBarAreaTour: {
+    position: "absolute",
+    top: 0,
+    left: MARGEN_LATERAL_TOUR_BARRA,
+    right: MARGEN_LATERAL_TOUR_BARRA,
   },
   tabLabel: {
     fontFamily: fonts.body,

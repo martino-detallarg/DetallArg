@@ -91,10 +91,14 @@ export default function TourOverlay() {
   const tamanoOverlayRef = useRef(null);
   const [rect, setRect] = useState(null);
   const [sinSpotlight, setSinSpotlight] = useState(false);
+  // Alto real de la tarjeta posicionada (onLayout), para decidir de qué lado
+  // del recorte entra sin pegarse a los bordes. null hasta medirla.
+  const [altoTarjeta, setAltoTarjeta] = useState(null);
 
   useEffect(() => {
     setRect(null);
     setSinSpotlight(false);
+    setAltoTarjeta(null);
     if (!pasoActual || pasoActual.tipo !== "pantalla") return;
 
     const { target, id: idPaso } = pasoActual;
@@ -265,21 +269,53 @@ export default function TourOverlay() {
 
   let contenido;
   if (esPantalla && rect && tamanoOverlay) {
+    // Ajustes opcionales por paso (ver PASOS_TOUR_RELACIONAL):
+    // `paddingResaltado` reemplaza el margen default alrededor del
+    // elemento, y `expandirResaltado.top` suma lugar arriba para lo que
+    // sobresale del elemento medido (el "+" central sobre la tab bar).
+    const padding = pasoActual.paddingResaltado ?? PADDING_RESALTADO;
     const extraArriba = pasoActual.expandirResaltado?.top ?? 0;
-    const top = Math.max(0, rect.y - PADDING_RESALTADO - extraArriba);
-    const left = Math.max(0, rect.x - PADDING_RESALTADO);
+    const top = Math.max(0, rect.y - padding - extraArriba);
+    const left = Math.max(0, rect.x - padding);
     // Recortado a los bordes del overlay: un elemento pegado al borde (ej.
     // la tab bar, de lado a lado) no puede dejar rectángulos de fondo con
     // ancho/alto negativo.
     const area = {
       left,
       top,
-      width: Math.min(rect.x + rect.width + PADDING_RESALTADO, tamanoOverlay.width) - left,
-      height: Math.min(rect.y + rect.height + PADDING_RESALTADO, tamanoOverlay.height) - top,
+      width: Math.min(rect.x + rect.width + padding, tamanoOverlay.width) - left,
+      height: Math.min(rect.y + rect.height + padding, tamanoOverlay.height) - top,
     };
-    // La tarjeta va del lado con más lugar libre, para no taparse nunca
-    // con lo que se está señalando.
-    const tarjetaVaArriba = area.top + area.height / 2 >= tamanoOverlay.height / 2;
+    const areaAbajo = area.top + area.height;
+
+    // La tarjeta va, por default, del lado con más lugar libre (según en qué
+    // mitad cae el centro del recorte), para no taparse nunca con lo que se
+    // está señalando. Con el alto real de la tarjeta ya medido, además:
+    // nunca queda a menos de MARGEN_TARJETA del safe-area de arriba o de
+    // abajo — si en el lado elegido no entra con ese aire y en el otro sí,
+    // se pasa al otro; si no entra en ninguno, se ajusta al margen mínimo
+    // (puede pisar un poco el recorte, pero nunca el header/status bar).
+    const topMinimo = insets.top + MARGEN_TARJETA;
+    const bottomMaximo = tamanoOverlay.height - insets.bottom - MARGEN_TARJETA;
+    let tarjetaVaArriba = area.top + area.height / 2 >= tamanoOverlay.height / 2;
+    let estiloTarjeta;
+    if (altoTarjeta === null) {
+      // Primer frame: se mide invisible y en su posición default.
+      estiloTarjeta = tarjetaVaArriba
+        ? { bottom: tamanoOverlay.height - area.top + MARGEN_TARJETA, opacity: 0 }
+        : { top: areaAbajo + MARGEN_TARJETA, opacity: 0 };
+    } else {
+      const topSiVaArriba = area.top - MARGEN_TARJETA - altoTarjeta;
+      const topSiVaAbajo = areaAbajo + MARGEN_TARJETA;
+      const entraArriba = topSiVaArriba >= topMinimo;
+      const entraAbajo = topSiVaAbajo + altoTarjeta <= bottomMaximo;
+      if (tarjetaVaArriba && !entraArriba && entraAbajo) tarjetaVaArriba = false;
+      else if (!tarjetaVaArriba && !entraAbajo && entraArriba) tarjetaVaArriba = true;
+      const topDeseado = tarjetaVaArriba ? topSiVaArriba : topSiVaAbajo;
+      estiloTarjeta = {
+        top: Math.max(topMinimo, Math.min(topDeseado, bottomMaximo - altoTarjeta)),
+      };
+    }
 
     contenido = (
       <>
@@ -294,12 +330,11 @@ export default function TourOverlay() {
           style={[styles.marco, { left: area.left, top: area.top, width: area.width, height: area.height }]}
         />
         <View
-          style={[
-            styles.tarjetaPosicionada,
-            tarjetaVaArriba
-              ? { bottom: tamanoOverlay.height - area.top + MARGEN_TARJETA }
-              : { top: area.top + area.height + MARGEN_TARJETA },
-          ]}
+          style={[styles.tarjetaPosicionada, estiloTarjeta]}
+          onLayout={(evento) => {
+            const alto = evento.nativeEvent.layout.height;
+            if (altoTarjeta === null || Math.abs(alto - altoTarjeta) >= 1) setAltoTarjeta(alto);
+          }}
         >
           {tarjetaTexto}
         </View>

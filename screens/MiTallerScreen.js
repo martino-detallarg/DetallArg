@@ -25,10 +25,34 @@ const ITEMS_MENU = [
   { ruta: "Presupuesto", titulo: "Calculadora de Presupuesto", icono: "calculator-outline" },
 ];
 
+// Tutorial relacional (paso "mitaller"): se resaltan solo las primeras
+// filas, no la lista entera — con la lista completa el recorte ocupaba casi
+// toda la pantalla y la tarjeta del coachmark quedaba apretada contra el
+// header. Así el recorte queda en la parte de arriba y la tarjeta entra
+// abajo con aire.
+const FILAS_RESALTADAS_TOUR = 3;
+
 export default function MiTallerScreen({ navigation, onAbrirNotificaciones }) {
   const { nombreTaller, logoTaller, cargandoTaller, errorCargaTaller, recargarTaller } = useTaller();
   const [modalVisible, setModalVisible] = useState(false);
   const tourMenu = useTourTarget("mitaller.menu");
+
+  function renderFila(item) {
+    return (
+      <TouchableOpacity
+        key={item.ruta}
+        style={styles.fila}
+        onPress={() => navigation.navigate(item.ruta)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.filaIcono}>
+          <Ionicons name={item.icono} size={20} color={colors.textPrimary} />
+        </View>
+        <Text style={styles.filaTexto}>{item.titulo}</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.pantalla}>
@@ -60,21 +84,13 @@ export default function MiTallerScreen({ navigation, onAbrirNotificaciones }) {
             </View>
           </View>
 
-          <View ref={tourMenu.ref} onLayout={tourMenu.onLayout} collapsable={false} style={styles.lista}>
-            {ITEMS_MENU.map((item) => (
-              <TouchableOpacity
-                key={item.ruta}
-                style={styles.fila}
-                onPress={() => navigation.navigate(item.ruta)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.filaIcono}>
-                  <Ionicons name={item.icono} size={20} color={colors.textPrimary} />
-                </View>
-                <Text style={styles.filaTexto}>{item.titulo}</Text>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-              </TouchableOpacity>
-            ))}
+          {/* El wrapper de las primeras filas usa el mismo `gap` que la
+          lista, así que el espaciado entre todas las filas no cambia. */}
+          <View style={styles.lista}>
+            <View ref={tourMenu.ref} onLayout={tourMenu.onLayout} collapsable={false} style={styles.lista}>
+              {ITEMS_MENU.slice(0, FILAS_RESALTADAS_TOUR).map(renderFila)}
+            </View>
+            {ITEMS_MENU.slice(FILAS_RESALTADAS_TOUR).map(renderFila)}
           </View>
         </ScrollView>
       </EstadoCarga>

@@ -23,9 +23,10 @@ const TourManagerContext = createContext(null);
 // y Finanzas y Mi Taller son stacks anidados dentro de su tab (ver
 // navigation/DashboardNavigator.js).
 //
-// `expandirResaltado` (opcional) agranda el recorte más allá del elemento
-// medido, para lo que sobresale de su contenedor (ej. el "+" central, que
-// asoma por encima de la tab bar).
+// Ajustes opcionales del recorte (ver TourOverlay.js):
+//   - `expandirResaltado.top` agranda el recorte hacia arriba, para lo que
+//     sobresale del elemento medido (ej. el "+" central sobre la tab bar).
+//   - `paddingResaltado` reemplaza el margen default (8px) alrededor.
 export const PASOS_TOUR_RELACIONAL = [
   {
     id: "clientes",
@@ -122,7 +123,13 @@ export const PASOS_TOUR_RELACIONAL = [
     tipo: "pantalla",
     ruta: ["Dashboard", { screen: "Home" }],
     target: "tabs.barra",
-    expandirResaltado: { top: 26 },
+    // El "+" central sobresale 16px por encima de la barra (paddingTop 6 +
+    // marginTop -22 en DashboardNavigator.js); con padding 6 el marco queda
+    // 6px por encima del "+" y 6px por debajo de las etiquetas (el área
+    // medida termina justo en la base de las etiquetas, ver
+    // altoHastaEtiquetas en DashboardNavigator.js).
+    expandirResaltado: { top: 16 },
+    paddingResaltado: 6,
     titulo: "Tus accesos principales",
     texto:
       "Ahora que viste cómo se conecta todo, estos son tus 5 accesos principales y el + de acciones rápidas.",
