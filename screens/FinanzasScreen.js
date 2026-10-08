@@ -22,7 +22,6 @@ import {
   calcularPuntoEquilibrio,
   calcularFaltanteParaEquilibrio,
   calcularColorSemaforoGananciaNeta,
-  calcularColorSemaforoMonotributo,
   calcularFacturacionUltimos12Meses,
   calcularTotalComisionesTarjeta,
   calcularTotalDescontado,
@@ -134,14 +133,24 @@ export default function FinanzasScreen({ navigation, onAbrirNotificaciones }) {
     umbralGananciaVerdePorcentaje
   );
 
-  // Aviso de tope de Monotributo (solo si el taller es Monotributista y
-  // cargó categoría en Mis Datos, ver MisDatosScreen.js) — ventana MÓVIL de
-  // 12 meses, no año calendario (ver calcularFacturacionUltimos12Meses en
-  // utils/calculosFinanzas.js, ARCA recategoriza así).
-  const mostrarTopeMonotributo = misDatos.situacionFiscal === "Monotributista" && !!misDatos.categoriaMonotributo;
-  const facturacionUltimos12Meses = mostrarTopeMonotributo ? calcularFacturacionUltimos12Meses(cobros) : 0;
-  const topeMonotributo = mostrarTopeMonotributo ? TOPES_MONOTRIBUTO[misDatos.categoriaMonotributo] : null;
-  const colorSemaforoMonotributo = calcularColorSemaforoMonotributo(facturacionUltimos12Meses, topeMonotributo);
+  // Facturación de Monotributo (solo si el taller es Monotributista y cargó
+  // categoría en Mis Datos, ver MisDatosScreen.js) — ventana MÓVIL de 12
+  // meses, no año calendario (ver calcularFacturacionUltimos12Meses en
+  // utils/calculosFinanzas.js, ARCA recategoriza así). Ya no se muestra en
+  // esta pantalla (se sacó la tarjeta), pero se sigue calculando y se le
+  // pasa al PDF exportable.
+  const esMonotributista = misDatos.situacionFiscal === "Monotributista" && !!misDatos.categoriaMonotributo;
+  const facturacionUltimos12Meses = esMonotributista ? calcularFacturacionUltimos12Meses(cobros) : 0;
+  const topeMonotributo = esMonotributista ? TOPES_MONOTRIBUTO[misDatos.categoriaMonotributo] : null;
+
+  // Progreso hacia el punto de equilibrio: lo facturado en el mes sobre la
+  // facturación que hace falta para cubrir los costos fijos (cap en 100%).
+  // Sin costos fijos (facturación de equilibrio 0) ya está cubierto.
+  const porcentajeEquilibrio = puntoEquilibrio
+    ? puntoEquilibrio.facturacion > 0
+      ? Math.min((totalFacturadoDelMes / puntoEquilibrio.facturacion) * 100, 100)
+      : 100
+    : 0;
 
   // Cuánto se "descontó" este mes respecto del precio de lista congelado en
   // cada turno (ver calcularTotalDescontado) — solo cuenta cuando se cobró
@@ -220,6 +229,8 @@ export default function FinanzasScreen({ navigation, onAbrirNotificaciones }) {
         totalCostosFijos,
         totalGastosVariablesDelMes,
         puntoEquilibrio,
+        facturacionUltimos12Meses,
+        topeMonotributo,
         trabajosDelMes,
         rankingServicios,
         desglose,
@@ -265,55 +276,6 @@ export default function FinanzasScreen({ navigation, onAbrirNotificaciones }) {
           </Text>
         </View>
 
-        <View style={styles.grid}>
-          <View style={styles.gridItem}>
-            <Text style={styles.gridLabel}>Punto de equilibrio</Text>
-            {puntoEquilibrio ? (
-              <>
-                <Text style={styles.gridValor} numberOfLines={1} adjustsFontSizeToFit>
-                  {formatearPesos(puntoEquilibrio.facturacion)}
-                </Text>
-                <Text style={styles.gridSub}>
-                  (~{puntoEquilibrio.trabajos} {puntoEquilibrio.trabajos === 1 ? "trabajo" : "trabajos"})
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.gridSub}>Todavía no hay datos suficientes.</Text>
-            )}
-          </View>
-
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => navigation.navigate("CuentasPorCobrar")}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.gridLabel}>Cuentas por Cobrar</Text>
-            <Text style={styles.gridValor} numberOfLines={1} adjustsFontSizeToFit>
-              {formatearPesos(totalCuentasPorCobrar)}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.gridItem}>
-            <Text style={styles.gridLabel}>Descontado</Text>
-            <Text style={styles.gridValor} numberOfLines={1} adjustsFontSizeToFit>
-              {formatearPesos(totalDescontadoDelMes)}
-            </Text>
-            <Text style={styles.gridSub}>vs. precio de lista</Text>
-          </View>
-        </View>
-
-        {mostrarTopeMonotributo && (
-          <View style={styles.monotributoTarjeta}>
-            <Text style={styles.resumenLabel}>
-              Facturación últimos 12 meses (Categoría {misDatos.categoriaMonotributo})
-            </Text>
-            <Text style={[styles.resumenMonto, styles.monotributoMonto, ESTILOS_SEMAFORO[colorSemaforoMonotributo]]}>
-              {formatearPesos(facturacionUltimos12Meses)}
-            </Text>
-            <Text style={styles.proyeccionTexto}>de {formatearPesos(topeMonotributo)} de tope anual</Text>
-          </View>
-        )}
-
         <View style={styles.navLista}>
           <TouchableOpacity
             style={styles.navTarjeta}
@@ -350,6 +312,44 @@ export default function FinanzasScreen({ navigation, onAbrirNotificaciones }) {
             <Text style={styles.navTitulo}>Tendencias y rankings</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.equilibrioTarjeta}>
+          <Text style={styles.gridLabel}>Punto de equilibrio</Text>
+          {puntoEquilibrio ? (
+            <>
+              <View style={styles.equilibrioPista}>
+                <View style={[styles.equilibrioRelleno, { width: `${porcentajeEquilibrio}%` }]} />
+              </View>
+              <Text style={styles.equilibrioTexto}>
+                Facturaste {formatearPesos(totalFacturadoDelMes)} de los {formatearPesos(puntoEquilibrio.facturacion)}{" "}
+                que necesitás este mes para cubrir tus costos fijos ({Math.round(porcentajeEquilibrio)}%).
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.gridSub}>Todavía no hay datos suficientes.</Text>
+          )}
+        </View>
+
+        <View style={styles.grid}>
+          <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() => navigation.navigate("CuentasPorCobrar")}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.gridLabel}>Cuentas por Cobrar</Text>
+            <Text style={styles.gridValor} numberOfLines={1} adjustsFontSizeToFit>
+              {formatearPesos(totalCuentasPorCobrar)}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.gridItem}>
+            <Text style={styles.gridLabel}>Descontado</Text>
+            <Text style={styles.gridValor} numberOfLines={1} adjustsFontSizeToFit>
+              {formatearPesos(totalDescontadoDelMes)}
+            </Text>
+            <Text style={styles.gridSub}>vs. precio de lista</Text>
+          </View>
         </View>
 
         <TouchableOpacity style={styles.botonGasto} onPress={() => setModalGastoVisible(true)} activeOpacity={0.85}>
@@ -482,17 +482,33 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 3,
   },
-  monotributoTarjeta: {
+  equilibrioTarjeta: {
     backgroundColor: colors.surface,
     borderRadius: radii.card,
     ...continuousCorner,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    padding: 16,
+    padding: 14,
     marginBottom: 12,
   },
-  monotributoMonto: {
-    fontSize: 22,
+  equilibrioPista: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.surface2,
+    overflow: "hidden",
+    marginTop: 4,
+  },
+  equilibrioRelleno: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+  },
+  equilibrioTexto: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textSecondary,
+    marginTop: 10,
   },
   navLista: {
     gap: 10,

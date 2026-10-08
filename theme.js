@@ -11,6 +11,9 @@ export const colors = {
   borderSubtle: "rgba(192, 201, 202, 0.12)",
   borderAccent: "rgba(82, 156, 193, 0.38)",
   error: "#B5564A",
+  // Versión más clara de error, para resaltar la barra seleccionada de un
+  // trabajo con pérdida (mismo criterio que accent → accentLight).
+  errorLight: "#CC7A6F",
   amber: "#D9A441",
   success: "#5DCAA5",
   // Versiones tenues (18% opacidad) de error/amber/success, para fondos de

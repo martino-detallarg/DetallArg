@@ -14,27 +14,28 @@ import {
   claveMes,
   claveMesDeFecha,
   margenBrutoTrabajo,
-  calcularPorcentajeInsumosSobreFacturacion,
   calcularTotalComisionesTarjeta,
 } from "../utils/calculosFinanzas";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
 const PADDING_PANTALLA = 20;
 
-// Vieja "página 1" de Finanzas (donut Fijos/Variables, lista de gastos
-// variables, eficiencia de insumos), movida a pantalla propia — ver FASE 2
+// Vieja "página 1" de Finanzas (donut Fijos/Variables, lista de variables
+// del mes: insumos usados en servicios + gastos sueltos), movida a pantalla propia — ver FASE 2
 // del prompt de "nuevo home de Finanzas". Cuentas por Cobrar NO vive acá: se
 // fusionó a la grilla del home (FinanzasScreen.js).
 export default function FinanzasCostosScreen({ navigation }) {
   const { costosFijos, cargandoCostosFijos, errorCargaCostosFijos } = useData();
   const {
     cobros,
+    cargandoCobros,
+    errorCargaCobros,
     gastosVariables,
     cargandoGastosVariables,
     errorCargaGastosVariables,
     eliminarGastoVariable,
   } = useFinanzas();
-  const { getTurnoById } = useTurnos();
+  const { cargandoTurnos, getTurnoById } = useTurnos();
   const [modalGastoVisible, setModalGastoVisible] = useState(false);
   const [eliminandoGastoId, setEliminandoGastoId] = useState(null);
   const [errorEliminarGasto, setErrorEliminarGasto] = useState(null);
@@ -45,24 +46,26 @@ export default function FinanzasCostosScreen({ navigation }) {
   const gastosVariablesDelMes = gastosVariables.filter((g) => claveMes(g.fecha) === claveMesActual);
   const totalGastosVariablesDelMes = gastosVariablesDelMes.reduce((suma, g) => suma + g.monto, 0);
 
+  // Costo de insumos consumidos en los trabajos cobrados este mes: mismo
+  // criterio que trabajosDelMes en FinanzasRendimientoScreen.js (monto
+  // cobrado - margen bruto prorrateado, ver utils/calculosFinanzas.js). Es un
+  // valor calculado, no vive en gastos_variables.
+  const cobrosDelMes = cobros.filter((c) => claveMes(c.fecha) === claveMesActual);
+  const totalInsumosDelMes = cobrosDelMes.reduce((suma, cobro) => {
+    const turno = cobro.turnoId ? getTurnoById(cobro.turnoId) : null;
+    return suma + (cobro.monto - margenBrutoTrabajo(cobro, turno));
+  }, 0);
+
+  // "Variables" = gastos sueltos cargados a mano + insumos usados en servicios.
+  const totalVariablesDelMes = totalGastosVariablesDelMes + totalInsumosDelMes;
+
   const segmentosDonut = [
     { clave: "fijos", etiqueta: "Fijos", valor: totalCostosFijos, color: colors.accent },
-    { clave: "variables", etiqueta: "Variables", valor: totalGastosVariablesDelMes, color: colors.accentLight },
+    { clave: "variables", etiqueta: "Variables", valor: totalVariablesDelMes, color: colors.accentLight },
   ];
 
-  const cargandoDona = cargandoCostosFijos || cargandoGastosVariables;
-  const errorDona = errorCargaCostosFijos || errorCargaGastosVariables;
-
-  // Mismo cálculo que el home (FinanzasScreen.js) para el % de insumos sobre
-  // facturación — se recalcula acá en vez de recibirlo por prop, mismo
-  // criterio que el resto de las pantallas nuevas de Finanzas.
-  const cobrosDelMes = cobros.filter((c) => claveMes(c.fecha) === claveMesActual);
-  const trabajosDelMes = cobrosDelMes.map((cobro) => {
-    const turno = cobro.turnoId ? getTurnoById(cobro.turnoId) : null;
-    const margen = margenBrutoTrabajo(cobro, turno);
-    return { cobro, costoInsumos: cobro.monto - margen };
-  });
-  const porcentajeInsumosSobreFacturacion = calcularPorcentajeInsumosSobreFacturacion(trabajosDelMes);
+  const cargandoDona = cargandoCostosFijos || cargandoGastosVariables || cargandoCobros || cargandoTurnos;
+  const errorDona = errorCargaCostosFijos || errorCargaGastosVariables || errorCargaCobros;
 
   // Comisión de tarjeta fotografiada en los cobros del mes (Fase 4) — mismo
   // dato que ya resta de la Ganancia Neta en FinanzasScreen.js, mostrado
@@ -138,10 +141,27 @@ export default function FinanzasCostosScreen({ navigation }) {
           )}
         </View>
 
-        {gastosVariablesDelMes.length > 0 && (
+        {(totalInsumosDelMes > 0 || gastosVariablesDelMes.length > 0) && (
           <View style={styles.gastosSeccion}>
-            <Text style={styles.gastosTitulo}>Gastos variables de este mes</Text>
+            <Text style={styles.gastosTitulo}>Variables de este mes</Text>
             {errorEliminarGasto && <Text style={styles.gastosError}>{errorEliminarGasto}</Text>}
+            {/* Fila calculada (no es un gasto de gastos_variables): sin
+                botón de borrar y con borde accent para diferenciarla de los
+                gastos cargados a mano. */}
+            {totalInsumosDelMes > 0 && (
+              <View style={[styles.gastoFila, styles.insumosFila]}>
+                <View style={styles.gastoFilaIcono}>
+                  <Ionicons name="flask-outline" size={18} color={colors.accentLight} />
+                </View>
+                <View style={styles.gastoFilaTexto}>
+                  <Text style={styles.gastoFilaCategoria}>Insumos usados en servicios</Text>
+                  <Text style={styles.gastoFilaDetalle} numberOfLines={1}>
+                    Calculado, suma de todos los trabajos del mes
+                  </Text>
+                </View>
+                <Text style={styles.gastoFilaMonto}>{formatearPesos(totalInsumosDelMes)}</Text>
+              </View>
+            )}
             {gastosVariablesDelMes.map((gasto) => {
               const categoria = CATEGORIAS_GASTOS_VARIABLES[gasto.categoria];
               return (
@@ -171,21 +191,11 @@ export default function FinanzasCostosScreen({ navigation }) {
           </View>
         )}
 
-        {porcentajeInsumosSobreFacturacion !== null && (
-          <View style={[styles.tarjeta, styles.tarjetaConMargen]}>
-            <Text style={styles.tarjetaTitulo}>Eficiencia de insumos</Text>
-            <Text style={styles.insumosPorcentajeTexto}>
-              Tus insumos representan el {Math.round(porcentajeInsumosSobreFacturacion)}% de lo que facturás este
-              mes.
-            </Text>
-          </View>
-        )}
-
         {totalComisionesTarjetaDelMes > 0 && (
           <View style={[styles.tarjeta, styles.tarjetaConMargen]}>
             <Text style={styles.tarjetaTitulo}>Comisiones de tarjeta</Text>
-            <Text style={styles.insumosPorcentajeTexto}>
-              {formatearPesos(totalComisionesTarjetaDelMes)} este mes, ya descontados de tu Ganancia Neta.
+            <Text style={styles.comisionesTexto}>
+              Se te fueron {formatearPesos(totalComisionesTarjetaDelMes)} en comisiones de tarjeta este mes.
             </Text>
           </View>
         )}
@@ -312,6 +322,9 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
   },
+  insumosFila: {
+    borderColor: colors.accent,
+  },
   gastoFilaIcono: {
     width: 34,
     height: 34,
@@ -351,7 +364,7 @@ const styles = StyleSheet.create({
   tarjetaConMargen: {
     marginTop: 16,
   },
-  insumosPorcentajeTexto: {
+  comisionesTexto: {
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 19,

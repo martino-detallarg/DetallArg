@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import HomeScreen from "../screens/HomeScreen";
 import ClientesScreen from "../screens/ClientesScreen";
 import AgendaScreen from "../screens/AgendaScreen";
@@ -36,6 +37,21 @@ import { useTourTarget } from "../data/TourTargetContext";
 import { colors, fonts, shadow } from "../theme";
 
 const Tab = createBottomTabNavigator();
+
+// "Tap" liviano al tocar un ítem de la barra de abajo (estilo Mercado
+// Libre/Spotify). En Android NO se usa selectionAsync: expo-haptics lo
+// implementa con el Vibrator directo, que ignora el ajuste "respuesta táctil"
+// del sistema. performAndroidHapticsAsync pasa por performHapticFeedback de
+// la View, que sí lo respeta (si está apagado, no vibra). En iOS
+// selectionAsync ya respeta los ajustes del sistema. El catch es para que un
+// fallo del haptic nunca rompa el tap.
+function hapticTab() {
+  const promesa =
+    Platform.OS === "android"
+      ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Virtual_Key)
+      : Haptics.selectionAsync();
+  promesa?.catch(() => {});
+}
 const RootStack = createNativeStackNavigator();
 const MiTallerStack = createNativeStackNavigator();
 const FinanzasStack = createNativeStackNavigator();
@@ -82,7 +98,17 @@ function ConfiguracionStackNavigator() {
 function BotonAccionCentral({ onPress }) {
   return (
     <View style={styles.centralWrap}>
-      <TouchableOpacity style={styles.centralBoton} onPress={onPress} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={styles.centralBoton}
+        onPress={() => {
+          // Este tabBarButton propio no emite tabPress (no llama al onPress
+          // que le pasa el Tab.Navigator), así que screenListeners no lo
+          // cubre: el haptic va acá.
+          hapticTab();
+          onPress();
+        }}
+        activeOpacity={0.85}
+      >
         <Ionicons name="add" size={30} color={colors.bg} />
       </TouchableOpacity>
     </View>
@@ -176,6 +202,11 @@ function DashboardTabs({ navigation }) {
         // recorta el historial a solo Inicio al cerrarse (ver cerrarTour en
         // data/TourManager.js), para que el botón atrás no recorra su trayecto.
         backBehavior="history"
+        // Haptic en cada toque de un tab de la barra (Inicio, Mi Taller,
+        // Finanzas, Menú), también al re-tocar el tab actual. El "+" va
+        // aparte, en BotonAccionCentral. Los tabs ocultos (tabBarButton null)
+        // nunca emiten tabPress.
+        screenListeners={{ tabPress: hapticTab }}
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: colors.textPrimary,

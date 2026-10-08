@@ -114,7 +114,7 @@ export default function FinanzasRendimientoScreen({ navigation }) {
 
               <View style={styles.graficoContenedor}>
                 <GraficoTrabajosDelMes
-                  datos={trabajosDelMes.map((t) => ({ valor: t.margen }))}
+                  datos={trabajosDelMes.map((t) => ({ monto: t.cobro.monto, margen: t.margen }))}
                   ancho={anchoGrafico}
                   indiceSeleccionado={indiceSeleccionado}
                   onPressBarra={handlePressBarra}
