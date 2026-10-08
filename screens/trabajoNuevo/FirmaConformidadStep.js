@@ -182,6 +182,15 @@ export default function FirmaConformidadStep({
             <View style={styles.separador} />
             <Text style={styles.filaTexto}>{servicio.tipo || "Servicio no especificado"}</Text>
             {!!servicio.precio && <Text style={styles.filaTextoSecundario}>{formatearPesos(servicio.precio)}</Text>}
+            {servicio.previo && (
+              <>
+                <Text style={[styles.filaTexto, styles.filaPrevio]}>{servicio.previo.tipo} (previo)</Text>
+                <Text style={styles.filaTextoSecundario}>{formatearPesos(servicio.previo.precio ?? 0)}</Text>
+                <Text style={[styles.filaTexto, styles.filaPrevio]}>
+                  Total: {formatearPesos((servicio.precio ?? 0) + (servicio.previo.precio ?? 0))}
+                </Text>
+              </>
+            )}
           </View>
 
           {vistasConDanios.length > 0 ? (
@@ -311,6 +320,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  filaPrevio: {
+    marginTop: 8,
   },
   separador: {
     height: 1,

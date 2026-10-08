@@ -13,10 +13,13 @@ import { colors, continuousCorner, fonts, radii } from "../../theme";
 // merma, costo de material y mano de obra (editable, sin tarifa automática
 // por hora en esta v1 — mismo criterio que el resto de Finanzas), reusando
 // calcularPresupuestoPpf (utils/calculosPpf.js) y el mismo patrón visual de
-// tarjeta de resultado que ya tiene screens/PresupuestoScreen.js. Es solo
-// informativo para el taller al cargar el trabajo — no se persiste nada de
-// acá: lo único que se guarda del paso anterior (panelesElegidos) es lo que
-// después se congela en turno_ppf_paneles al finalizar el trabajo.
+// tarjeta de resultado que ya tiene screens/PresupuestoScreen.js. El paso
+// en sí no escribe nada: TrabajoNuevoWizard.js persiste en el turno el
+// rollo de carrocería, el modo de corte, la mano de obra (solo informativa)
+// y los insumos adicionales elegidos acá, y TurnoContext los usa al
+// finalizar el trabajo para congelar el costo real del material en
+// turno_receta_aplicada (ver alter_turnos_costo_ppf_finanzas.sql). El rollo
+// de vidrio elegido NO se persiste (no tiene columna).
 //
 // Dos rollos posibles (carrocería y vidrio, ver data/ppfPanelMatrix.js): el
 // selector de vidrio recién aparece si panelesElegidos incluye algún panel

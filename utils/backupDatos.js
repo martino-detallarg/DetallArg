@@ -48,6 +48,8 @@ const COLUMNAS_TURNO = [
   { clave: "servicio", etiqueta: "servicio" },
   { clave: "servicioId", etiqueta: "servicioId" },
   { clave: "precio", etiqueta: "precio" },
+  { clave: "servicioPrevioId", etiqueta: "servicioPrevioId" },
+  { clave: "precioServicioPrevio", etiqueta: "precioServicioPrevio" },
   { clave: "fecha", etiqueta: "fecha" },
   { clave: "hora", etiqueta: "hora" },
   { clave: "tiempoEstimado", etiqueta: "tiempoEstimado" },

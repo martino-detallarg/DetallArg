@@ -225,6 +225,19 @@ function bloqueServicio(servicio) {
       <div class="servicio-nombre">${escapeHtml(servicio?.tipo || "Servicio no especificado")}</div>
       ${servicio?.precio ? `<div class="servicio-precio">${formatearPesos(servicio.precio)}</div>` : ""}
     </div>
+    ${
+      servicio?.previo
+        ? `
+    <div class="servicio-fila">
+      <div class="servicio-nombre">${escapeHtml(servicio.previo.tipo)} (previo)</div>
+      <div class="servicio-precio">${formatearPesos(servicio.previo.precio ?? 0)}</div>
+    </div>
+    <div class="servicio-fila">
+      <div class="servicio-nombre">Total</div>
+      <div class="servicio-precio">${formatearPesos((servicio.precio ?? 0) + (servicio.previo.precio ?? 0))}</div>
+    </div>`
+        : ""
+    }
     ${servicio?.observaciones ? `<p class="nota">${escapeHtml(servicio.observaciones)}</p>` : ""}
   `;
 }

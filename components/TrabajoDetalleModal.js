@@ -9,7 +9,7 @@ import TelefonoConAcciones from "./TelefonoConAcciones";
 import { ESTADOS_TRABAJO } from "../data/mockData";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useServicios } from "../data/ServicioContext";
-import { calcularSaldoPendienteTurno } from "../utils/calculosFinanzas";
+import { calcularSaldoPendienteTurno, precioTotalTurno } from "../utils/calculosFinanzas";
 import { formatearDuracion, formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii, shadow } from "../theme";
 
@@ -71,6 +71,7 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   const cobrosDelTurno = cobros.filter((c) => c.turnoId === turno.id);
   const totalCobrado = cobrosDelTurno.reduce((suma, c) => suma + c.monto, 0);
   const saldoPendiente = calcularSaldoPendienteTurno(turno, cobros);
+  const precioTotal = precioTotalTurno(turno);
   const puedeCobrar = ESTADOS_QUE_PERMITEN_COBRO.includes(turno.estado);
   // Sin importar el estado del trabajo: una seña es un cobro parcial más,
   // disponible mientras quede saldo — puede convivir con "Registrar cobro"
@@ -99,6 +100,11 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
   const duracionServicio = servicioCatalogo
     ? formatearDuracion(servicioCatalogo.duracionValor, servicioCatalogo.duracionUnidad)
     : null;
+  // Servicio previo de un PPF (lavado/pulido antes del film): a diferencia de
+  // turno.servicio, su nombre NO se congeló en el turno (solo el id), así que
+  // sale del catálogo vivo — si se borró, queda un nombre genérico.
+  const servicioPrevio = turno.servicioPrevioId ? getServicioById(turno.servicioPrevioId) : null;
+  const nombreServicioPrevio = servicioPrevio?.nombre ?? "Servicio previo";
 
   async function handleGuardarCambios() {
     if (!hayCambioSinGuardar) return;
@@ -257,6 +263,25 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                   <Text style={styles.campoValor}>{turno.observaciones}</Text>
                 </View>
               )}
+              {/* Desglose solo si hay servicio previo (PPF): el resto de los
+              trabajos no muestra precio en esta tarjeta, igual que antes. */}
+              {turno.servicioPrevioId && (
+                <View style={styles.observacionesContenedor}>
+                  <Text style={styles.campoLabel}>Precio</Text>
+                  <View style={styles.historialFila}>
+                    <Text style={styles.campoValor}>{nombreServicio}</Text>
+                    <Text style={styles.campoValor}>{formatearPesos(turno.precio ?? 0)}</Text>
+                  </View>
+                  <View style={styles.historialFila}>
+                    <Text style={styles.campoValor}>{nombreServicioPrevio} (previo)</Text>
+                    <Text style={styles.campoValor}>{formatearPesos(turno.precioServicioPrevio ?? 0)}</Text>
+                  </View>
+                  <View style={styles.historialFila}>
+                    <Text style={styles.desgloseTotal}>Total</Text>
+                    <Text style={styles.desgloseTotal}>{formatearPesos(precioTotal)}</Text>
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* conformidadEstado es independiente del estado del trabajo
@@ -309,10 +334,16 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
             {turno.recetaAplicada?.length > 0 && (
               <View style={styles.tarjetaSeccion}>
                 <Text style={styles.tituloTarjeta}>Insumos usados</Text>
+                {/* Clave con origen: un mismo insumo puede aparecer en la
+                receta del servicio principal y en la del previo. */}
                 {turno.recetaAplicada.map((linea, indice) => (
-                  <Text key={linea.libre ? `libre-${indice}` : linea.insumoId} style={styles.campoValor}>
+                  <Text
+                    key={linea.libre ? `libre-${indice}` : `${linea.origen ?? "principal"}-${linea.insumoId}`}
+                    style={styles.campoValor}
+                  >
                     · {linea.nombreInsumo} —{" "}
                     {linea.libre ? formatearPesos(linea.costoEstimado) : `${linea.cantidad} ${linea.unidad}`}
+                    {linea.origen === "previo" ? ` (${nombreServicioPrevio})` : ""}
                   </Text>
                 ))}
               </View>
@@ -358,8 +389,8 @@ export default function TrabajoDetalleModal({ visible, turno, cliente, auto, onC
                 <Text style={styles.tituloTarjeta}>Cobro</Text>
                 {totalCobrado > 0 && (
                   <Text style={styles.campoValor}>
-                    Cobrado hasta ahora: {formatearPesos(totalCobrado)} de {formatearPesos(turno.precio)}
-                    {turno.precio > 0 && ` (${Math.round((totalCobrado / turno.precio) * 100)}%)`}
+                    Cobrado hasta ahora: {formatearPesos(totalCobrado)} de {formatearPesos(precioTotal)}
+                    {precioTotal > 0 && ` (${Math.round((totalCobrado / precioTotal) * 100)}%)`}
                   </Text>
                 )}
                 {saldoPendiente === 0 ? (
@@ -603,6 +634,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
     marginBottom: 6,
+  },
+  desgloseTotal: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+    color: colors.textPrimary,
   },
   senaEtiqueta: {
     backgroundColor: colors.amberTint,

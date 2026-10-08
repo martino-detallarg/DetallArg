@@ -13,6 +13,7 @@ import { useTaller } from "../data/TallerContext";
 import { ORDEN_FORMAS_PAGO, FORMAS_PAGO } from "../data/mockFinanzas";
 import { formatearFechaDDMMAAAA, parsearFechaDDMMAAAA } from "../utils/fecha";
 import { formatearPesos } from "../utils/formato";
+import { precioTotalTurno } from "../utils/calculosFinanzas";
 import { useScrollAlHabilitar } from "../hooks/useScrollAlHabilitar";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -45,7 +46,8 @@ export default function RegistrarCobroModal({ visible, turno, esSena = false, sa
 
   useEffect(() => {
     if (visible) {
-      setMonto(saldoPendiente != null ? String(saldoPendiente) : turno?.precio != null ? String(turno.precio) : "");
+      const precioTotal = precioTotalTurno(turno);
+      setMonto(saldoPendiente != null ? String(saldoPendiente) : precioTotal != null ? String(precioTotal) : "");
       setFecha(formatearFechaDDMMAAAA(new Date()));
       setFormaPago(null);
       setFacturado(false);

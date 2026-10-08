@@ -69,6 +69,19 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
 
   const errorHorario = obtenerErrorHorario();
 
+  // Precio del servicio previo (solo PPF): vacío o inválido no bloquea
+  // continuar a propósito — se guarda como null y el taller lo puede cobrar
+  // igual desde "Registrar cobro". Solo se marca error si escribió algo
+  // que no es un número >= 0.
+  const precioServicioPrevioTexto = datos.precioServicioPrevio ?? "";
+  const precioServicioPrevioNumero = Number(String(precioServicioPrevioTexto).replace(",", "."));
+  const errorPrecioServicioPrevio =
+    datos.servicioPrevioId &&
+    String(precioServicioPrevioTexto).trim() !== "" &&
+    (Number.isNaN(precioServicioPrevioNumero) || precioServicioPrevioNumero < 0)
+      ? "Ingresá un precio válido"
+      : null;
+
   function validar() {
     const nuevosErrores = {};
     if (!datos.servicioId) nuevosErrores.tipo = "Elegí un servicio";
@@ -84,7 +97,28 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
   }
 
   function seleccionarServicio(servicio) {
-    onCambiar({ tipo: servicio.nombre, servicioId: servicio.id, precio: servicio.precio });
+    onCambiar({
+      tipo: servicio.nombre,
+      servicioId: servicio.id,
+      precio: servicio.precio,
+      // El servicio previo solo existe para PPF: si el principal deja de
+      // serlo, se descarta lo que se haya elegido antes.
+      ...(servicio.esPpf ? {} : { servicioPrevioId: null, precioServicioPrevio: "" }),
+    });
+  }
+
+  // Tocar el chip ya elegido lo deselecciona (servicio previo es opcional).
+  // Al elegir uno, el precio arranca en el del catálogo, editable.
+  function toggleServicioPrevio(servicioPrevioId) {
+    if (datos.servicioPrevioId === servicioPrevioId) {
+      onCambiar({ servicioPrevioId: null, precioServicioPrevio: "" });
+      return;
+    }
+    const servicioPrevio = servicios.find((s) => s.id === servicioPrevioId);
+    onCambiar({
+      servicioPrevioId,
+      precioServicioPrevio: servicioPrevio?.precio != null ? String(servicioPrevio.precio) : "",
+    });
   }
 
   // Duración estimada DEL SERVICIO elegido (catálogo de Mis Servicios), no
@@ -94,6 +128,10 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
   const mensajeDuracion = servicioSeleccionado?.duracionValor
     ? `Se entrega en aprox. ${formatearDuracion(servicioSeleccionado.duracionValor, servicioSeleccionado.duracionUnidad)}`
     : null;
+  // Candidatos a servicio previo de un PPF: cualquier servicio del catálogo
+  // que no sea PPF (lavado, pulido, descontaminado...).
+  const esPpf = !!servicioSeleccionado?.esPpf;
+  const serviciosPrevios = esPpf ? servicios.filter((s) => !s.esPpf) : [];
 
   // Cuántos turnos "en danza" tiene ese empleado ahora mismo — Pendiente o
   // En proceso, sin importar la fecha (incluye agendados a futuro), para
@@ -122,7 +160,8 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
     !!datos.servicioId &&
     datos.fecha.trim() !== "" &&
     datos.hora.trim() !== "" &&
-    !errorHorario;
+    !errorHorario &&
+    !errorPrecioServicioPrevio;
   const onLayoutBoton = useScrollAlHabilitar(scrollRef, esValido);
 
   return (
@@ -149,6 +188,34 @@ export default function DatosServicioStep({ datos, paso, totalPasos, onCambiar, 
         )}
         {mensajeDuracion && <Text style={styles.duracionServicio}>{mensajeDuracion}</Text>}
         {errores.tipo && <Text style={styles.error}>{errores.tipo}</Text>}
+
+        {serviciosPrevios.length > 0 && (
+          <View style={styles.servicioPrevioContenedor}>
+            <Text style={styles.label}>Servicio previo (opcional)</Text>
+            <Text style={styles.servicioPrevioAyuda}>
+              Lavado, pulido u otro trabajo que se hace antes de colocar el PPF.
+            </Text>
+            <ChipGroup
+              options={serviciosPrevios.map((s) => ({
+                value: s.id,
+                label: s.nombre,
+                selected: datos.servicioPrevioId === s.id,
+              }))}
+              onPress={toggleServicioPrevio}
+              style={styles.chips}
+            />
+            {datos.servicioPrevioId && (
+              <Input
+                label="Precio del servicio previo"
+                value={String(precioServicioPrevioTexto)}
+                onChangeText={(v) => onCambiar({ precioServicioPrevio: v })}
+                placeholder="Ej: 20000"
+                keyboardType="numeric"
+                error={errorPrecioServicioPrevio}
+              />
+            )}
+          </View>
+        )}
 
         {limiteEmpleados === 0 ? (
           <View style={styles.empleadosBloqueado}>
@@ -346,6 +413,16 @@ const styles = StyleSheet.create({
   },
   empleadosContenedor: {
     marginBottom: 16,
+  },
+  servicioPrevioContenedor: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  servicioPrevioAyuda: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginBottom: 8,
   },
   fechaContenedor: {
     marginBottom: 16,

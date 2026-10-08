@@ -31,6 +31,22 @@ const MAPEO_CAMPOS_TURNO = {
   kilometraje: "kilometraje",
   nivelNafta: "nivel_nafta",
   conformidadEstado: "conformidad_estado",
+  // Servicio previo opcional de un trabajo PPF (lavado/pulido antes de
+  // instalar el film, ver supabase/alter_turnos_servicio_previo_ppf.sql) —
+  // su precio va aparte de `precio` (que sigue siendo el del servicio
+  // principal), el total del trabajo es la suma de los dos (ver
+  // precioTotalTurno en utils/calculosFinanzas.js).
+  servicioPrevioId: "servicio_previo_id",
+  precioServicioPrevio: "precio_servicio_previo",
+  // Lo elegido en el paso "Presupuesto PPF" (PresupuestoPpfStep.js), ver
+  // supabase/alter_turnos_costo_ppf_finanzas.sql — se usa al finalizar el
+  // trabajo para congelar el costo real del material en
+  // turno_receta_aplicada. manoObraPpfEstimada es SOLO informativa: nunca
+  // se resta de ningún margen.
+  insumoPpfId: "insumo_ppf_id",
+  modoCortePpf: "modo_corte_ppf",
+  manoObraPpfEstimada: "mano_obra_ppf_estimada",
+  insumosAdicionalesPpfEstimado: "insumos_adicionales_ppf_estimado",
 };
 
 function turnoACamposDb(datos) {
@@ -46,7 +62,9 @@ const COLUMNAS_TURNO =
   "id, cliente_id, vehiculo_id, servicio_id, servicio_nombre, precio, fecha, hora, " +
   "tiempo_estimado, observaciones, estado, tipo_vehiculo, grupo_vehiculo, " +
   "subdivision_vehiculo, kilometraje, nivel_nafta, conformidad_estado, " +
-  "turno_receta_aplicada(insumo_id, nombre_insumo, unidad, cantidad, costo_estimado, costo_unitario_snapshot), " +
+  "servicio_previo_id, precio_servicio_previo, " +
+  "insumo_ppf_id, modo_corte_ppf, mano_obra_ppf_estimada, insumos_adicionales_ppf_estimado, " +
+  "turno_receta_aplicada(origen, insumo_id, nombre_insumo, unidad, cantidad, costo_estimado, costo_unitario_snapshot), " +
   "turno_danios(zona_id, tipos, nota), turno_empleados(empleado_id, nombre_empleado), " +
   "turno_fotos_danio(storage_path), turno_ppf_seleccion(panel_id), turno_ppf_paneles(panel_id), " +
   "turno_medicion_micrones(panel_id, vista, micrones)";
@@ -102,6 +120,23 @@ function filasMedicionMicrones(turnoId, medicion) {
   return filas;
 }
 
+// Traduce una fila de turno_receta_aplicada a una línea de
+// `turno.recetaAplicada`. `origen` ('principal' | 'previo', ver
+// alter_turnos_servicio_previo_ppf.sql) dice de qué servicio del trabajo
+// vino la línea — solo trazabilidad/UI, costoInsumosTurno suma todas igual.
+function filaRecetaALinea(fila) {
+  return fila.insumo_id
+    ? {
+        origen: fila.origen,
+        insumoId: fila.insumo_id,
+        nombreInsumo: fila.nombre_insumo,
+        unidad: fila.unidad,
+        cantidad: fila.cantidad,
+        costoUnitarioSnapshot: fila.costo_unitario_snapshot,
+      }
+    : { origen: fila.origen, libre: true, nombreInsumo: fila.nombre_insumo, costoEstimado: fila.costo_estimado };
+}
+
 // Traduce una fila de `turnos` + sus embeds (turno_receta_aplicada,
 // turno_danios, turno_empleados, turno_fotos_danio) a la forma que espera el
 // resto de la app. `fotosDano` queda como el array de `storage_path` (no
@@ -131,6 +166,15 @@ function filaATurno(fila) {
     // (FirmaConformidadStep.js) — CompletarFirmaModal.js la pasa a
     // 'firmada' al completarla, típicamente al retirar el vehículo.
     conformidadEstado: fila.conformidad_estado,
+    // null si el trabajo no es PPF o no se eligió servicio previo.
+    servicioPrevioId: fila.servicio_previo_id,
+    precioServicioPrevio: fila.precio_servicio_previo,
+    // null si el trabajo no es PPF (o es un PPF cargado antes de que esto
+    // se persistiera).
+    insumoPpfId: fila.insumo_ppf_id,
+    modoCortePpf: fila.modo_corte_ppf,
+    manoObraPpfEstimada: fila.mano_obra_ppf_estimada,
+    insumosAdicionalesPpfEstimado: fila.insumos_adicionales_ppf_estimado,
     empleadosAsignados: fila.turno_empleados.map((e) => ({
       empleadoId: e.empleado_id,
       nombreEmpleado: e.nombre_empleado,
@@ -155,17 +199,7 @@ function filaATurno(fila) {
     // costo_estimado en su lugar.
     recetaAplicada:
       fila.turno_receta_aplicada.length > 0
-        ? fila.turno_receta_aplicada.map((linea) =>
-            linea.insumo_id
-              ? {
-                  insumoId: linea.insumo_id,
-                  nombreInsumo: linea.nombre_insumo,
-                  unidad: linea.unidad,
-                  cantidad: linea.cantidad,
-                  costoUnitarioSnapshot: linea.costo_unitario_snapshot,
-                }
-              : { libre: true, nombreInsumo: linea.nombre_insumo, costoEstimado: linea.costo_estimado }
-          )
+        ? fila.turno_receta_aplicada.map(filaRecetaALinea)
         : null,
     // Medición de espesor de pintura (µm), 100% opcional — ver
     // MedicionMicronesModal.js. `null` si el turno no tiene nada cargado.
@@ -188,7 +222,7 @@ export function TurnoProvider({ children }) {
   const [intentoCargaTurnos, setIntentoCargaTurnos] = useState(0);
 
   const { getServicioById } = useServicios();
-  const { getInsumoById, descontarInsumos } = useData();
+  const { misInsumos, getInsumoById, descontarInsumos } = useData();
 
   useEffect(() => {
     if (!user) return;
@@ -363,7 +397,8 @@ export function TurnoProvider({ children }) {
   }
 
   // Al pasar un trabajo a "Finalizado" por primera vez: descuenta stock
-  // según la receta ACTUAL del servicio (DataContext, ya migrado), inserta
+  // según la receta ACTUAL del servicio — y la del servicio previo, si el
+  // trabajo PPF tiene uno (DataContext, ya migrado) —, inserta
   // el snapshot congelado en turno_receta_aplicada, calcula y congela el m²
   // de PPF en turno_ppf_paneles (si el trabajo tenía paneles elegidos, ver
   // turno_ppf_seleccion/SeleccionPanelesPpfStep.js), y recién si todo eso
@@ -387,74 +422,90 @@ export function TurnoProvider({ children }) {
     let panelesPpfAplicadosNuevo = null;
 
     if (nuevoEstado === "Finalizado" && turno) {
-      if (!turno.recetaAplicada && turno.servicioId) {
-        const servicio = getServicioById(turno.servicioId);
-        if (servicio?.receta?.length) {
-          await descontarInsumos(servicio.receta);
+      // Un solo snapshot para los dos servicios del trabajo (el principal y,
+      // si es PPF con servicio previo, el previo): todas las filas se
+      // insertan juntas bajo el mismo guard, nunca uno sin el otro.
+      if (!turno.recetaAplicada) {
+        const servicio = turno.servicioId ? getServicioById(turno.servicioId) : null;
+        const servicioPrevio = turno.servicioPrevioId ? getServicioById(turno.servicioPrevioId) : null;
+        const recetasPorOrigen = [
+          { origen: "principal", receta: servicio?.receta ?? [] },
+          { origen: "previo", receta: servicioPrevio?.receta ?? [] },
+        ].filter(({ receta }) => receta.length > 0);
+
+        if (recetasPorOrigen.length > 0) {
+          // Una sola llamada con las dos recetas combinadas (cantidades
+          // sumadas por insumo), no una por servicio: descontarInsumos calcula
+          // el nivel nuevo contra `misInsumos` tal como estaba al llamarla, así
+          // que dos llamadas seguidas con un insumo en común harían que la
+          // segunda pise el descuento de la primera.
+          const cantidadPorInsumo = new Map();
+          for (const { receta } of recetasPorOrigen) {
+            for (const linea of receta) {
+              if (linea.libre) continue;
+              cantidadPorInsumo.set(linea.insumoId, (cantidadPorInsumo.get(linea.insumoId) ?? 0) + linea.cantidad);
+            }
+          }
+          await descontarInsumos(
+            Array.from(cantidadPorInsumo, ([insumoId, cantidad]) => ({ insumoId, cantidad }))
+          );
 
           // Una línea "libre" (sin ficha en Mis Insumos, ver
           // RecetaServicioStep.js) se congela con su nombre y costo estimado
           // tal como se cargaron, en vez de resolverla contra DataContext.
-          const filasReceta = servicio.receta.map((linea) => {
-            if (linea.libre) {
+          const filasReceta = recetasPorOrigen.flatMap(({ origen, receta }) =>
+            receta.map((linea) => {
+              if (linea.libre) {
+                return {
+                  turno_id: id,
+                  origen,
+                  insumo_id: null,
+                  nombre_insumo: linea.nombre,
+                  unidad: null,
+                  costo_estimado: linea.costoEstimado,
+                };
+              }
+              const insumo = getInsumoById(linea.insumoId);
+              // null si el insumo fue borrado o no tiene precio_compra/capacidadTotal
+              // cargados: no hay con qué calcular el costo real, se deja sin dato en
+              // vez de inventar un valor (ver alter_turno_receta_costo_unitario_snapshot.sql).
+              const costoUnitarioSnapshot =
+                insumo?.precioCompra != null && insumo?.capacidadTotal > 0
+                  ? insumo.precioCompra * (linea.cantidad / insumo.capacidadTotal)
+                  : null;
               return {
                 turno_id: id,
-                insumo_id: null,
-                nombre_insumo: linea.nombre,
-                unidad: null,
-                costo_estimado: linea.costoEstimado,
+                origen,
+                insumo_id: linea.insumoId,
+                nombre_insumo: insumo?.nombre ?? "Insumo eliminado",
+                unidad: insumo?.capacidadUnidad ?? null,
+                cantidad: linea.cantidad,
+                costo_unitario_snapshot: costoUnitarioSnapshot,
               };
-            }
-            const insumo = getInsumoById(linea.insumoId);
-            // null si el insumo fue borrado o no tiene precio_compra/capacidadTotal
-            // cargados: no hay con qué calcular el costo real, se deja sin dato en
-            // vez de inventar un valor (ver alter_turno_receta_costo_unitario_snapshot.sql).
-            const costoUnitarioSnapshot =
-              insumo?.precioCompra != null && insumo?.capacidadTotal > 0
-                ? insumo.precioCompra * (linea.cantidad / insumo.capacidadTotal)
-                : null;
-            return {
-              turno_id: id,
-              insumo_id: linea.insumoId,
-              nombre_insumo: insumo?.nombre ?? "Insumo eliminado",
-              unidad: insumo?.capacidadUnidad ?? null,
-              cantidad: linea.cantidad,
-              costo_unitario_snapshot: costoUnitarioSnapshot,
-            };
-          });
+            })
+          );
           const { error: errorReceta } = await supabase.from("turno_receta_aplicada").insert(filasReceta);
           if (errorReceta) throw errorReceta;
 
-          recetaAplicadaNueva = filasReceta.map((fila) =>
-            fila.insumo_id
-              ? {
-                  insumoId: fila.insumo_id,
-                  nombreInsumo: fila.nombre_insumo,
-                  unidad: fila.unidad,
-                  cantidad: fila.cantidad,
-                  costoUnitarioSnapshot: fila.costo_unitario_snapshot,
-                }
-              : { libre: true, nombreInsumo: fila.nombre_insumo, costoEstimado: fila.costo_estimado }
-          );
+          recetaAplicadaNueva = filasReceta.map(filaRecetaALinea);
         }
       }
 
       // m² estimado recalculado contra la matriz y MERMA_POR_MODO VIGENTES en
       // este momento (data/ppfPanelMatrix.js), no contra las que estaban
       // cargadas cuando se armó el turno — mismo criterio que
-      // costoUnitarioSnapshot de arriba. El modoCorte que se eligió en el
-      // wizard (PresupuestoPpfStep.js) es solo para la cotización que ya vio
-      // el cliente y no se persiste en el turno, así que acá se usa siempre
-      // el default "manual" (calcularPresupuestoPpf) como base de reparto —
-      // no cambia nada si el taller carga opciones.m2RealUsado, que pisa el
+      // costoUnitarioSnapshot de arriba. La merma sale del modoCorte elegido
+      // en el wizard (turno.modoCortePpf, PresupuestoPpfStep.js) — "manual"
+      // (el peor caso) en turnos cargados antes de que se persistiera. No
+      // cambia nada si el taller carga opciones.m2RealUsado, que pisa el
       // total sin importar de qué mermaPct haya salido la base.
       //
       // costoPorM2RolloCarroceria/Vidrio en 0/0.01: turno_ppf_paneles NUNCA
-      // guardó un costo por panel (solo `m2`, ver alter_turno_ppf_paneles.sql
-      // -- el costo de material es puramente informativo para la cotización
-      // de PresupuestoPpfStep.js, no se persiste en ningún lado todavía).
-      // Acá solo interesan m2ConMerma/material de cada panel para el
-      // snapshot, así que se le pasan valores dummy -- 0.01 (no 0) en el de
+      // guardó un costo por panel (solo `m2`, ver alter_turno_ppf_paneles.sql)
+      // y el costo real del material se calcula aparte, más abajo, contra
+      // el m² final y el rollo real. De calcularPresupuestoPpf solo
+      // interesan m2ConMerma/material de cada panel, así que se le pasan
+      // valores dummy -- 0.01 (no 0) en el de
       // vidrio porque calcularPresupuestoPpf exige un costo > 0 para
       // cualquier panel de vidrio elegido (ver SIN_ROLLO_VIDRIO) y un
       // trabajo con el parabrisas marcado tiene que poder finalizarse igual,
@@ -472,6 +523,7 @@ export function TurnoProvider({ children }) {
               panelesElegidos: turno.panelesPpf,
               costoPorM2RolloCarroceria: 0,
               costoPorM2RolloVidrio: 0.01,
+              modoCorte: turno.modoCortePpf ?? "manual",
             })
           : null;
         // Panel elegido en su momento que ya no existe en la matriz vigente
@@ -504,6 +556,79 @@ export function TurnoProvider({ children }) {
           const { error: errorPpf } = await supabase.from("turno_ppf_paneles").insert(filasPpf);
           if (errorPpf) throw errorPpf;
           panelesPpfAplicadosNuevo = filasPpf.map((fila) => fila.panel_id);
+
+          // Costo real del PPF congelado en turno_receta_aplicada, bajo este
+          // MISMO guard (una sola vez, junto con turno_ppf_paneles) — así
+          // costoInsumosTurno/margenBrutoTrabajo lo suman sin tocar Finanzas.
+          // m² final por material (ya con m2RealUsado aplicado, si vino).
+          const m2PorMaterial = { carroceria: 0, vidrio: 0 };
+          detalleValido.forEach((d, indice) => {
+            const material = d.material === "vidrio" ? "vidrio" : "carroceria";
+            m2PorMaterial[material] += filasPpf[indice].m2;
+          });
+          const m2TotalCarroceria = Math.round(m2PorMaterial.carroceria * 100) / 100;
+          const m2TotalVidrio = Math.round(m2PorMaterial.vidrio * 100) / 100;
+
+          // Rollo de vidrio: no hay columna para el elegido en el wizard
+          // (insumo_ppf_id es solo el de carrocería), así que se usa el mismo
+          // default que PresupuestoPpfStep.js (primer rollo de vidrio con m²
+          // y precio cargados).
+          const rolloCarroceria = turno.insumoPpfId ? getInsumoById(turno.insumoPpfId) : null;
+          const rolloVidrio =
+            m2TotalVidrio > 0
+              ? misInsumos.find(
+                  (i) =>
+                    i.categoria === "ppf" &&
+                    i.materialPpf === "vidrio" &&
+                    i.capacidadUnidad === "m2" &&
+                    i.capacidadTotal > 0 &&
+                    i.precioCompra > 0
+                ) ?? null
+              : null;
+
+          // Rollo sin precio/capacidad cargados: fila igual (queda el m²
+          // usado), con costo null en vez de inventarlo — mismo criterio que
+          // la receta del servicio de arriba. Rollo borrado: no hay con qué
+          // armar la fila.
+          function filaMaterialPpf(rollo, m2) {
+            return {
+              turno_id: id,
+              origen: "ppf_material",
+              insumo_id: rollo.id,
+              nombre_insumo: rollo.nombre,
+              unidad: rollo.capacidadUnidad ?? null,
+              cantidad: m2,
+              costo_unitario_snapshot:
+                rollo.precioCompra != null && rollo.capacidadTotal > 0
+                  ? Math.round(rollo.precioCompra * (m2 / rollo.capacidadTotal) * 100) / 100
+                  : null,
+            };
+          }
+          const filasCostoPpf = [];
+          if (rolloCarroceria && m2TotalCarroceria > 0) filasCostoPpf.push(filaMaterialPpf(rolloCarroceria, m2TotalCarroceria));
+          if (rolloVidrio) filasCostoPpf.push(filaMaterialPpf(rolloVidrio, m2TotalVidrio));
+          // Insumos adicionales: número suelto tipeado en el wizard, no un
+          // insumo del catálogo — línea "libre", no descuenta stock. La mano
+          // de obra NO va acá bajo ningún concepto (no resta del margen).
+          if (turno.insumosAdicionalesPpfEstimado > 0) {
+            filasCostoPpf.push({
+              turno_id: id,
+              origen: "ppf_adicional",
+              insumo_id: null,
+              nombre_insumo: "Insumos adicionales (PPF)",
+              unidad: null,
+              costo_estimado: turno.insumosAdicionalesPpfEstimado,
+            });
+          }
+
+          if (filasCostoPpf.length > 0) {
+            const { error: errorCostoPpf } = await supabase.from("turno_receta_aplicada").insert(filasCostoPpf);
+            if (errorCostoPpf) throw errorCostoPpf;
+            recetaAplicadaNueva = [
+              ...(recetaAplicadaNueva ?? turno.recetaAplicada ?? []),
+              ...filasCostoPpf.map(filaRecetaALinea),
+            ];
+          }
         }
       }
     }

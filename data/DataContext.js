@@ -37,6 +37,11 @@ function filaAInsumo(fila) {
     capacidadTotal: fila.capacidad_total,
     capacidadUnidad: fila.capacidad_unidad,
     cantidadActual: fila.cantidad_actual,
+    // Desde cuándo se mide el envase actual (ver
+    // supabase/alter_insumos_fecha_ultima_reposicion.sql): ajustarNivelInsumo
+    // cuenta los usos desde acá para recalibrar mlPorUso, y tanto esa
+    // función como reponerInsumo la reinician.
+    fechaUltimaReposicion: fila.fecha_ultima_reposicion,
     anchoRollo: fila.ancho_rollo,
     esPersonalizado: fila.es_personalizado ?? false,
     nivel: fila.nivel,
@@ -44,7 +49,7 @@ function filaAInsumo(fila) {
 }
 
 const COLUMNAS_INSUMO =
-  "id, producto_id, marca, nombre, categoria, se_diluye, dilucion_x, envase_aplicador_ml, ml_por_uso, material_ppf, imagen_url, precio_compra, capacidad_total, capacidad_unidad, cantidad_actual, ancho_rollo, es_personalizado, nivel";
+  "id, producto_id, marca, nombre, categoria, se_diluye, dilucion_x, envase_aplicador_ml, ml_por_uso, material_ppf, imagen_url, precio_compra, capacidad_total, capacidad_unidad, cantidad_actual, fecha_ultima_reposicion, ancho_rollo, es_personalizado, nivel";
 
 // Migrado a Supabase (tablas `insumos` y `costos_fijos`, ver supabase/schema.sql).
 // Todas las mutaciones son `async` y escriben de verdad contra Supabase antes
@@ -297,6 +302,9 @@ export function DataProvider({ children }) {
         ? Math.max(0, Math.min(100, Math.round((cantidadActual / capacidadTotal) * 100)))
         : 100;
 
+    // Envase nuevo = medición nueva desde cero (ver ajustarNivelInsumo).
+    const fechaUltimaReposicion = new Date().toISOString();
+
     const { error } = await supabase
       .from("insumos")
       .update({
@@ -306,6 +314,7 @@ export function DataProvider({ children }) {
         cantidad_actual: cantidadActual,
         ancho_rollo: anchoRollo,
         nivel,
+        fecha_ultima_reposicion: fechaUltimaReposicion,
       })
       .eq("id", id);
     if (error) throw error;
@@ -313,7 +322,16 @@ export function DataProvider({ children }) {
     setMisInsumos((actuales) =>
       actuales.map((insumo) =>
         insumo.id === id
-          ? { ...insumo, capacidadTotal, capacidadUnidad, precioCompra, cantidadActual, anchoRollo, nivel }
+          ? {
+              ...insumo,
+              capacidadTotal,
+              capacidadUnidad,
+              precioCompra,
+              cantidadActual,
+              anchoRollo,
+              nivel,
+              fechaUltimaReposicion,
+            }
           : insumo
       )
     );
@@ -327,19 +345,67 @@ export function DataProvider({ children }) {
   // menos de lo que decía"). Mantiene cantidadActual sincronizada con nivel
   // (capacidadTotal × nivel/100) — null si el insumo no tiene capacidadTotal
   // cargada, no hay con qué derivarla.
+  //
+  // De paso recalibra mlPorUso solo, sin pedirle nada más al taller: lo que
+  // se consumió de verdad desde la última reposición/corrección
+  // (cantidadActual de antes − la de ahora — descontarInsumos nunca toca
+  // cantidadActual, así que la de antes sigue siendo la del último reset)
+  // dividido los usos reales en ese período (filas de turno_receta_aplicada
+  // de este insumo, de cualquier origen). Sin usos, o sin consumo positivo
+  // (ej. corrigió para arriba), no toca mlPorUso — mismo criterio que
+  // recalibrarMlPorUso: nada de números inventados. Siempre reinicia
+  // fechaUltimaReposicion, así la próxima corrección mide desde acá.
+  //
+  // Devuelve { mlPorUsoRecalibrado } para que la UI pueda avisar.
   async function ajustarNivelInsumo(id, nivelNuevo) {
     const insumo = misInsumos.find((i) => i.id === id);
     const cantidadActual = insumo?.capacidadTotal > 0 ? insumo.capacidadTotal * (nivelNuevo / 100) : null;
 
+    let mlPorUsoNuevo = null;
+    if (insumo?.cantidadActual != null && cantidadActual != null && insumo.fechaUltimaReposicion) {
+      const consumoReal = insumo.cantidadActual - cantidadActual;
+      if (consumoReal > 0) {
+        // Usos = trabajos cuyo turno se creó desde la última reposición
+        // (turno_receta_aplicada no tiene fecha propia).
+        const { data, error: errorUsos } = await supabase
+          .from("turno_receta_aplicada")
+          .select("id, turnos!inner(created_at)")
+          .eq("insumo_id", id)
+          .gte("turnos.created_at", insumo.fechaUltimaReposicion);
+        if (errorUsos) throw errorUsos;
+
+        const usos = data.length;
+        if (usos > 0) mlPorUsoNuevo = Math.round((consumoReal / usos) * 100) / 100;
+      }
+    }
+
+    const fechaUltimaReposicion = new Date().toISOString();
     const { error } = await supabase
       .from("insumos")
-      .update({ nivel: nivelNuevo, cantidad_actual: cantidadActual })
+      .update({
+        nivel: nivelNuevo,
+        cantidad_actual: cantidadActual,
+        fecha_ultima_reposicion: fechaUltimaReposicion,
+        ...(mlPorUsoNuevo != null ? { ml_por_uso: mlPorUsoNuevo } : {}),
+      })
       .eq("id", id);
     if (error) throw error;
 
     setMisInsumos((actuales) =>
-      actuales.map((i) => (i.id === id ? { ...i, nivel: nivelNuevo, cantidadActual } : i))
+      actuales.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              nivel: nivelNuevo,
+              cantidadActual,
+              fechaUltimaReposicion,
+              ...(mlPorUsoNuevo != null ? { mlPorUso: mlPorUsoNuevo } : {}),
+            }
+          : i
+      )
     );
+
+    return { mlPorUsoRecalibrado: mlPorUsoNuevo != null && mlPorUsoNuevo !== insumo?.mlPorUso };
   }
 
   // Edita la configuración de consumo de un insumo YA cargado (seDiluye/

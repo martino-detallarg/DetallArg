@@ -22,8 +22,17 @@ export default function ConfirmacionTrabajoStep({ cliente, servicio, onTerminar 
         {servicio.tipo || "Servicio"} para {cliente.nombre}
         {servicio.fecha ? ` el ${servicio.fecha}` : ""}
         {servicio.hora ? ` a las ${servicio.hora}` : ""}
-        {servicio.precio ? ` — ${formatearPesos(servicio.precio)}` : ""}.
+        {!servicio.previo && servicio.precio ? ` — ${formatearPesos(servicio.precio)}` : ""}.
       </Text>
+      {/* PPF con servicio previo: desglose de los dos precios + total, no
+      solo la suma. */}
+      {servicio.previo && (
+        <Text style={styles.texto}>
+          {servicio.tipo}: {formatearPesos(servicio.precio ?? 0)} · {servicio.previo.tipo}:{" "}
+          {formatearPesos(servicio.previo.precio ?? 0)}
+          {"\n"}Total: {formatearPesos((servicio.precio ?? 0) + (servicio.previo.precio ?? 0))}
+        </Text>
+      )}
     </View>
   );
 }

@@ -7,6 +7,7 @@ import Input from "./Input";
 import Button from "./Button";
 import { useTaller } from "../data/TallerContext";
 import { useTurnos } from "../data/TurnoContext";
+import { useServicios } from "../data/ServicioContext";
 import { DIAGRAMAS_POR_TIPO_VEHICULO, obtenerClaveDiagrama } from "./diagrams/vehicles";
 import { construirResumenDanios } from "../utils/resumenDanios";
 import { construirHtmlConformidad, generarYCompartirPdf } from "../utils/conformidadPdf";
@@ -38,6 +39,7 @@ const ALTO_FIRMA = 200;
 export default function CompletarFirmaModal({ visible, turno, cliente, auto, onClose }) {
   const { nombreTaller, logoTaller, misDatos } = useTaller();
   const { actualizarTurno } = useTurnos();
+  const { getServicioById } = useServicios();
   const firmaRef = useRef(null);
   const [aclaracion, setAclaracion] = useState("");
   const [firmaVacia, setFirmaVacia] = useState(true);
@@ -105,7 +107,19 @@ export default function CompletarFirmaModal({ visible, turno, cliente, auto, onC
         kilometraje: turno.kilometraje,
         fecha: turno.fecha,
         hora: turno.hora,
-        servicio: { tipo: turno.servicio, precio: turno.precio, observaciones: turno.observaciones },
+        servicio: {
+          tipo: turno.servicio,
+          precio: turno.precio,
+          observaciones: turno.observaciones,
+          // Servicio previo de un PPF (ver conformidadPdf.js): el nombre sale
+          // del catálogo vivo, no se congeló en el turno.
+          previo: turno.servicioPrevioId
+            ? {
+                tipo: getServicioById(turno.servicioPrevioId)?.nombre ?? "Servicio previo",
+                precio: turno.precioServicioPrevio,
+              }
+            : null,
+        },
         vistas,
         firma: {
           imagen: firmaImagen,

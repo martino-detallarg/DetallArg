@@ -13,6 +13,7 @@ import FirmaConformidadStep from "./FirmaConformidadStep";
 import ConfirmacionTrabajoStep from "./ConfirmacionTrabajoStep";
 import { useClientes } from "../../data/ClienteContext";
 import { useServicios } from "../../data/ServicioContext";
+import { useData } from "../../data/DataContext";
 import { formatearFechaDDMMAAAA } from "../../utils/fecha";
 import { colors } from "../../theme";
 
@@ -33,6 +34,12 @@ function datosVacios(clienteId, autoId) {
       hora: "",
       observaciones: "",
       empleadosAsignados: [],
+      // Solo para servicios PPF (ver DatosServicioStep.js): servicio del
+      // catálogo que se hace antes de colocar el film (lavado, pulido) y su
+      // precio, aparte de `precio`. El precio queda como texto del Input
+      // hasta handleFinalizar.
+      servicioPrevioId: null,
+      precioServicioPrevio: "",
     },
     inspeccion: {
       tipoVehiculo: null,
@@ -58,7 +65,10 @@ function datosVacios(clienteId, autoId) {
       // de useState local en el Step) para que sobrevivan si el taller vuelve
       // a "Selección de paneles" y regresa, mismo criterio que panelesElegidos.
       insumoPpfId: null,
+      insumoPpfVidrioId: null,
+      modoCorte: "manual",
       manoDeObraTexto: "",
+      insumosAdicionalesTexto: "",
       // Mapa { zonaId: { tipos: [tipoDanioId, ...], nota } }: cada zona
       // puede tener varios tipos de daño previo a la vez, no uno solo.
       danios: {},
@@ -91,6 +101,7 @@ export default function TrabajoNuevoWizard({
 }) {
   const { getClienteById, getVehiculoById } = useClientes();
   const { getServicioById } = useServicios();
+  const { misInsumos } = useData();
   const seSaltaSeleccion = !!(clienteIdInicial && autoIdInicial);
 
   const [fase, setFase] = useState(seSaltaSeleccion ? "servicio" : "elegirCliente");
@@ -143,6 +154,30 @@ export default function TrabajoNuevoWizard({
   // ya firmó, o cuando elige "Firmar después" — ver conformidadEstado) y
   // decide qué mostrar/hacer con el resultado — relanza el error tal cual
   // para que quien llama lo capture.
+  // Lo elegido en "Presupuesto PPF", para que TurnoContext congele el costo
+  // real del material al finalizar el trabajo. Rollo y modo de corte se
+  // guardan tal como los vio el cliente: si el taller no tocó ningún chip,
+  // PresupuestoPpfStep.js cotizó con el primer rollo de carrocería válido y
+  // con "manual", así que se persiste ese mismo default (no null). Montos
+  // parseados igual que PresupuestoPpfStep.js.
+  function datosPresupuestoPpf() {
+    const { insumoPpfId, modoCorte, manoDeObraTexto, insumosAdicionalesTexto } = datos.inspeccion;
+    const primerRolloCarroceria = misInsumos.find(
+      (i) =>
+        i.categoria === "ppf" &&
+        i.materialPpf === "carroceria" &&
+        i.capacidadUnidad === "m2" &&
+        i.capacidadTotal > 0 &&
+        i.precioCompra > 0
+    );
+    return {
+      insumoPpfId: insumoPpfId ?? primerRolloCarroceria?.id ?? null,
+      modoCortePpf: modoCorte ?? "manual",
+      manoObraPpfEstimada: Number(String(manoDeObraTexto ?? "").replace(",", ".")) || 0,
+      insumosAdicionalesPpfEstimado: Number(String(insumosAdicionalesTexto ?? "").replace(",", ".")) || 0,
+    };
+  }
+
   async function handleFinalizar(conformidadEstado) {
     await onGuardarTrabajo({
       clienteId: datos.clienteId,
@@ -150,6 +185,8 @@ export default function TrabajoNuevoWizard({
       servicio: datos.servicio.tipo,
       servicioId: datos.servicio.servicioId,
       precio: datos.servicio.precio,
+      servicioPrevioId: servicioPrevio?.id ?? null,
+      precioServicioPrevio: servicioPrevio?.precio ?? null,
       fecha: datos.servicio.fecha,
       hora: datos.servicio.hora,
       observaciones: datos.servicio.observaciones,
@@ -163,6 +200,7 @@ export default function TrabajoNuevoWizard({
       fotosDano: datos.inspeccion.fotosDano,
       panelesElegidos: datos.inspeccion.panelesElegidos,
       medicionMicrones: datos.inspeccion.medicionMicrones,
+      ...(esPpf ? datosPresupuestoPpf() : {}),
       estado: "Pendiente",
       conformidadEstado,
     });
@@ -194,6 +232,27 @@ export default function TrabajoNuevoWizard({
   // Ignora el toggle si el servicio es PPF, sin importar qué haya quedado
   // tildado antes (ver Contexto) — PPF siempre pasa por el flujo completo.
   const omitirInspeccionYFirma = datos.inspeccion.omitirInspeccionYFirma && !esPpf;
+
+  // Servicio previo de un PPF ya resuelto para guardar y mostrar: { id,
+  // tipo, precio } o null. Mismo criterio que DatosServicioStep: precio
+  // vacío o inválido queda en null (se guarda el servicio previo igual).
+  const servicioPrevioCatalogo =
+    esPpf && datos.servicio.servicioPrevioId ? getServicioById(datos.servicio.servicioPrevioId) : null;
+  const precioServicioPrevioTexto = String(datos.servicio.precioServicioPrevio ?? "").trim();
+  const precioServicioPrevioNumero = Number(precioServicioPrevioTexto.replace(",", "."));
+  const servicioPrevio = servicioPrevioCatalogo
+    ? {
+        id: servicioPrevioCatalogo.id,
+        tipo: servicioPrevioCatalogo.nombre,
+        precio:
+          precioServicioPrevioTexto !== "" && !Number.isNaN(precioServicioPrevioNumero)
+            ? precioServicioPrevioNumero
+            : null,
+      }
+    : null;
+  // Lo que ven Conformidad y Confirmación: datos.servicio + el previo
+  // resuelto (ver conformidadPdf.js).
+  const servicioParaResumen = { ...datos.servicio, previo: servicioPrevio };
   const totalPasos = omitirInspeccionYFirma
     ? basePaso // termina en "tipoVehiculo", no hay más pasos numerados
     : (seSaltaSeleccion ? 4 : 5) + (esPpf ? 2 : 0);
@@ -299,7 +358,7 @@ export default function TrabajoNuevoWizard({
             <FirmaConformidadStep
               cliente={clienteSeleccionado}
               auto={autoSeleccionado}
-              servicio={datos.servicio}
+              servicio={servicioParaResumen}
               inspeccion={datos.inspeccion}
               paso={pasoActual}
               totalPasos={totalPasos}
@@ -311,7 +370,7 @@ export default function TrabajoNuevoWizard({
           {fase === "confirmacion" && clienteSeleccionado && (
             <ConfirmacionTrabajoStep
               cliente={clienteSeleccionado}
-              servicio={datos.servicio}
+              servicio={servicioParaResumen}
               onTerminar={cerrar}
             />
           )}

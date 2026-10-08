@@ -43,6 +43,18 @@ export function costoInsumosServicio(servicio, getInsumoById) {
   }, 0);
 }
 
+// Precio total de un trabajo: el del servicio principal (turno.precio) más
+// el del servicio previo, si es un PPF con lavado/pulido previo (ver
+// alter_turnos_servicio_previo_ppf.sql). `null` si no hay ninguno de los
+// dos cargado — mismo criterio de "sin dato" que turno.precio null. Todo lo
+// que compare cobros contra el precio de un trabajo tiene que pasar por
+// acá, no leer turno.precio directo: si no, un PPF con servicio previo
+// quedaría siempre con saldo pendiente.
+export function precioTotalTurno(turno) {
+  if (turno?.precio == null && turno?.precioServicioPrevio == null) return null;
+  return (turno.precio ?? 0) + (turno.precioServicioPrevio ?? 0);
+}
+
 // Margen bruto de un cobro puntual. `turno` puede ser `undefined`/`null`
 // (cobro.turnoId nulo, o el turno original fue borrado): se trata el costo
 // de insumos como 0 (el margen queda igual al monto cobrado completo) — no
@@ -55,13 +67,14 @@ export function costoInsumosServicio(servicio, getInsumoById) {
 // costo de insumos se prorratea según qué proporción del precio representa
 // ESTE cobro puntual — así, sumando todos los cobros de un mismo turno, el
 // costo de insumos se descuenta una sola vez en total, nunca una vez por
-// cobro. Sin `turno.precio` cargado no hay con qué prorratear: se le
-// asigna el costo completo a este cobro (mismo criterio conservador que
-// antes de este cambio).
+// cobro. Sin precio cargado no hay con qué prorratear: se le asigna el
+// costo completo a este cobro (mismo criterio conservador que antes de este
+// cambio).
 export function margenBrutoTrabajo(cobro, turno) {
   const costoTotal = costoInsumosTurno(turno);
-  if (!turno?.precio || turno.precio <= 0) return cobro.monto - costoTotal;
-  const proporcion = cobro.monto / turno.precio;
+  const precioTotal = precioTotalTurno(turno);
+  if (!precioTotal || precioTotal <= 0) return cobro.monto - costoTotal;
+  const proporcion = cobro.monto / precioTotal;
   return cobro.monto - costoTotal * proporcion;
 }
 
@@ -70,11 +83,12 @@ export function margenBrutoTrabajo(cobro, turno) {
 // el turno no tiene precio cargado (no hay con qué comparar, no es que
 // deba $0) — mismo criterio de "sin dato" que el resto de este archivo.
 export function calcularSaldoPendienteTurno(turno, cobros) {
-  if (turno.precio == null) return null;
+  const precioTotal = precioTotalTurno(turno);
+  if (precioTotal == null) return null;
   const totalCobrado = cobros
     .filter((c) => c.turnoId === turno.id)
     .reduce((suma, c) => suma + c.monto, 0);
-  return turno.precio - totalCobrado;
+  return precioTotal - totalCobrado;
 }
 
 const ESTADOS_TRABAJO_COBRABLE = ["Finalizado", "Entregado"];
@@ -346,7 +360,8 @@ export function rankingEmpleadosPorFacturacion(cobros, getTurnoById, cantidadMes
 
 // Cuánto se "regaló" respecto del precio de lista en un conjunto de cobros
 // (pensado para pasarle los cobros de un solo mes, ver FinanzasScreen.js):
-// solo cuenta cuando se cobró MENOS que turno.precio — el precio de lista
+// solo cuenta cuando se cobró MENOS que el precio total del turno
+// (precioTotalTurno: principal + servicio previo de PPF) — el precio de lista
 // YA CONGELADO en el turno al crearlo (mismo criterio que turno.servicio,
 // ver TrabajoNuevoWizard.js), no el precio actual del catálogo, que puede
 // haber cambiado desde entonces y no es lo que se le cotizó a ese cliente.
@@ -355,8 +370,9 @@ export function rankingEmpleadosPorFacturacion(cobros, getTurnoById, cantidadMes
 // con qué comparar, no es que se haya regalado $0.
 export function calcularTotalDescontado(cobros, getTurnoById) {
   return cobrosConTurnoResoluble(cobros, getTurnoById)
-    .filter(({ cobro, turno }) => turno.precio != null && cobro.monto < turno.precio)
-    .reduce((suma, { cobro, turno }) => suma + (turno.precio - cobro.monto), 0);
+    .map(({ cobro, turno }) => ({ cobro, precioTotal: precioTotalTurno(turno) }))
+    .filter(({ cobro, precioTotal }) => precioTotal != null && cobro.monto < precioTotal)
+    .reduce((suma, { cobro, precioTotal }) => suma + (precioTotal - cobro.monto), 0);
 }
 
 // Semáforo de color de la Ganancia Neta del mes, relativo al punto de

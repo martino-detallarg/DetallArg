@@ -8,7 +8,7 @@ import RegistrarCobroModal from "../components/RegistrarCobroModal";
 import { useTurnos } from "../data/TurnoContext";
 import { useFinanzas } from "../data/FinanzasContext";
 import { useClientes } from "../data/ClienteContext";
-import { calcularCuentasPorCobrar } from "../utils/calculosFinanzas";
+import { calcularCuentasPorCobrar, precioTotalTurno } from "../utils/calculosFinanzas";
 import { formatearPesos } from "../utils/formato";
 import { colors, continuousCorner, fonts, radii } from "../theme";
 
@@ -81,7 +81,7 @@ export default function CuentasPorCobrarScreen({ navigation }) {
         turno={itemParaCobrar?.turno ?? null}
         saldoPendiente={itemParaCobrar?.saldo ?? undefined}
         montoYaCobrado={
-          itemParaCobrar && itemParaCobrar.saldo !== null ? itemParaCobrar.turno.precio - itemParaCobrar.saldo : undefined
+          itemParaCobrar && itemParaCobrar.saldo !== null ? precioTotalTurno(itemParaCobrar.turno) - itemParaCobrar.saldo : undefined
         }
         onClose={() => setItemParaCobrar(null)}
       />

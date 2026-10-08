@@ -19,6 +19,10 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
   const [eliminando, setEliminando] = useState(false);
   const [ajustando, setAjustando] = useState(false);
   const [error, setError] = useState(null);
+  // Aviso de que ajustarNivelInsumo recalibró mlPorUso solo (ver
+  // DataContext.js) — mismo texto que calibracionOk de
+  // NotificacionStockBajoCard.js.
+  const [consumoRecalibrado, setConsumoRecalibrado] = useState(false);
   // Solo puede haber un <Modal> hijo abierto a la vez (ver más abajo, mismo
   // criterio que modoRegistro en TrabajoDetalleModal.js) -- este es el
   // único hoy, pero deja el patrón listo si se suma otro más adelante.
@@ -28,6 +32,7 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
     if (visible) {
       setError(null);
       setEditarConsumoVisible(false);
+      setConsumoRecalibrado(false);
     }
   }, [visible, insumo?.id]);
 
@@ -36,7 +41,8 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
     setAjustando(true);
     setError(null);
     try {
-      await ajustarNivelInsumo(insumo.id, nivelNuevo);
+      const { mlPorUsoRecalibrado } = await ajustarNivelInsumo(insumo.id, nivelNuevo);
+      if (mlPorUsoRecalibrado) setConsumoRecalibrado(true);
     } catch (err) {
       setError("No se pudo actualizar el nivel del insumo. Probá de nuevo.");
     } finally {
@@ -114,6 +120,9 @@ export default function MoverCategoriaModal({ visible, insumo, onClose }) {
                   onCambiarNivel={handleCambiarNivel}
                   deshabilitado={guardando || eliminando || ajustando}
                 />
+                {consumoRecalibrado && (
+                  <Text style={styles.recalibradoOk}>✓ Ajustamos la estimación de consumo para los próximos usos.</Text>
+                )}
               </View>
             )}
 
@@ -277,6 +286,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.error,
+    textAlign: "center",
+  },
+  recalibradoOk: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.success,
+    marginTop: 12,
     textAlign: "center",
   },
   eliminarBoton: {
