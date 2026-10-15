@@ -1,33 +1,23 @@
 {
   "expo": {
-    "name": "DetallArg",
-    "slug": "detallarg-app",
+    "name": "Detallarg",
+    "slug": "detallarg",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+      "bundleIdentifier": "com.detallarg.app",
+      "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "updates": {
+      "url": "https://u.expo.dev/TU_PROJECT_ID"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "plugins": [
-      "expo-font",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "DetallArg necesita acceder a tus fotos para adjuntarlas al cliente o al vehículo."
-        }
-      ],
-      "@react-native-community/datetimepicker"
+      "./plugins/withDeploymentTarget"
     ]
   }
 }
