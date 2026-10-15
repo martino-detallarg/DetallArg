@@ -11,7 +11,6 @@ module.exports = {
       bundleIdentifier: "com.detallarg.app",
       buildNumber: "1",
       config: {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
         usesNonExemptEncryption: false,
       },
     },
@@ -28,11 +27,6 @@ module.exports = {
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.INTERNET",
       ],
-      config: {
-        googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY,
-        },
-      },
     },
     web: {
       favicon: "./assets/favicon.png",
